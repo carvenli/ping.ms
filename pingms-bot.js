@@ -12,6 +12,7 @@ var express = require('express')
 var nPs = netPing.createSession({
   networkProtocol: netPing.NetworkProtocol.IPv4,
   packetSize: 56,
+  ttl: 255,
   timeout: 1000
 })
 var net = {
@@ -69,49 +70,87 @@ var net = {
       dest: opts.dest,
       ip: opts.dest,
       ptr: opts.dest,
-      min: null,
-      avg: null,
-      max: null,
-      mdev: 0
+      ttl: nPs.ttl,
+      results: []
     }
-    async.series([
+    async.series(
+      [
         function(next){
           hostbyname.resolve(opts.dest,'v4',function(err,results){
             if(!err && results[0]) traceData.ip = results[0]
             next()
           })
-        },function(next){
+        },
+        function(next){
           dns.reverse(traceData.ip,function(err,results){
             if(!err && results[0]) traceData.ptr = results[0]
             next()
           })
-        },function(next){
-           async.timesSeries(opts.count || 1,function(seq,repeat){
-              nPs.pingHost(traceData.ip,function(error,target,sent,received){
-                var result = {
-                  error: error,
-                  target: target,
-                  sent: (sent) ? +sent : false,
-                  received: (received) ? +received : false,
-                  rtt: (received && sent) ? (received - sent) : false
+        },
+        function(next){
+          nPs.traceRoute(traceData.ip,traceData.ttl,
+            function(error,target,ttl,sent,rcvd){
+              var ms = rcvd - sent
+              if(!traceData.results[ttl])
+                traceData.results[ttl] = []
+              if(error){
+                if(error instanceof netPing.TimeExceededError){
+                  console.log (target + ': ' + error.source + ' (ttl=' + ttl + ' ms=' + ms + ')')
+                  traceData.results[ttl].push({source: error.source,rtt: ms})
+                } else {
+                  console.log (target + ': ' + error.toString() + ' (ttl=' + ttl + ' ms=' + ms + ')')
+                  traceData.results[ttl].push({error: error,rtt: ms})
                 }
-                if(result.rtt){
-                  if(null === traceData.min || result.rtt < traceData.min)
-                    traceData.min = result.rtt
-                  if(null === traceData.max || result.rtt > traceData.max)
-                    traceData.max = result.rtt
-                  traceData.avg = (null === traceData.avg) ? result.rtt : (traceData.avg + result.rtt) / 2
-                }
-                setTimeout(function(){repeat(null,result)},1000)
-              })
-            },function(err,results){
-              traceData.results = results
-              next()
-            })
+              } else {
+                console.log (target + ': ' + target + ' (ttl=' + ttl + ' ms=' + ms + ')')
+                traceData.results[ttl].push({target: target,rtt: ms})
+              }
+            },
+            function(error,target){
+              if(error)
+                next(target + ': ' + error.toString())
+              else
+                next()
+            }
+          )
         }
-      ],function(){
-        cb(traceData)
-      })
+          /*
+                           function(error,target,sent,received){
+                             var result = {
+                               error: error,
+                               target: target,
+                               sent: (sent) ? +sent : false,
+                               received: (received) ? +received : false,
+                               rtt: (received && sent) ? (received - sent) : false
+                             }
+                             if(result.rtt){
+                               if(null === traceData.min || result.rtt < traceData.min)
+                                 traceData.min = result.rtt
+                               if(null === traceData.max || result.rtt > traceData.max)
+                                 traceData.max = result.rtt
+                               traceData.avg = (null === traceData.avg) ? result.rtt : (traceData.avg + result.rtt) / 2
+                             }
+                             setTimeout(function(){repeat(null,result)},1000)
+                           })
+                         }
+          */
+      ],
+      function(){
+        async.forEach(traceData.results,
+          function(result,done){
+            if(result.source){
+              dns.reverse(traceData.ip,function(err,results){
+                if(!err && results[0]) result.source = results[0]
+                done()
+              })
+            }
+          },
+          function(){
+            cb(traceData)
+          }
+        )
+      }
+    )
   }
 }
 
