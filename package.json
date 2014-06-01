@@ -8,7 +8,7 @@
     "type": "git",
     "url": "https://github.com/eSited/ping.ms.git"
   },
-  "main": "app.js",
+  "main": "pingms-mux.js",
   "keywords": [
     "ping.ms",
     "ping",
@@ -28,6 +28,10 @@
     "express": "^3.5.2",
     "express-jsonstream": "0.0.3",
     "hostbyname": "^0.1.0",
+    "jade": "^1.3.1",
+    "mongoose": "^3.8.12",
+    "mongoose-list": "^0.2.1",
+    "mongoose-validator": "^0.2.2",
     "net-ping": "^1.1.10",
     "object-manage": "^0.7.1"
   },

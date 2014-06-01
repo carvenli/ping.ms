@@ -1,0 +1,33 @@
+extends layout
+block content
+  .container
+    h1 Entries
+    form(action='/', method='post', role='form')
+      table.table.table-striped
+        tr
+          th
+            input#toggle(type='checkbox')
+          th Full Name
+          th Company
+          th Email
+          th Address
+          th Phone
+          th Rank
+        each contact,i in contactList
+          tr
+            td
+              input(type='checkbox', name='delete[]', value=contact.id)
+            td
+              a(href='/edit?id=#{contact.id}')= contact.name
+            td= contact.company
+            td= contact.email
+            td= contact.address
+            td= contact.phone
+            td= contact.rank
+      div
+        .pull-right
+          a.btn.btn-default(href='/?start=#{page.previous}') Previous
+          a.btn.btn-default(href='/?start=#{page.next}') Next
+        span #{page.start + 1} - #{page.end} of #{count} entries
+      div
+        button.btn.btn-danger(type='submit') Delete Checked

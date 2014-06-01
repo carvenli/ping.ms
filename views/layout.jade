@@ -1,0 +1,24 @@
+doctype html
+html
+  head
+    block css
+      link(rel='stylesheet', href='/bower_components/html5-boilerplate/css/normalize.css')
+      link(rel='stylesheet', href='/bower_components/html5-boilerplate/css/main.css')
+      link(rel='stylesheet', href='/bower_components/bootstrap/dist/css/bootstrap.min.css')
+    title ping.ms
+  body
+    .navbar.navbar-inverse(role='navigation')
+      .container
+        a.navbar-brand(href='/') ping.ms
+        ul.nav.navbar-nav
+          li
+            a(href='/create') Create
+          li
+            a(href='/import') Import
+          li
+            a(href='/export') Export
+    block content
+    //load scripts
+    script(src='/bower_components/jquery/jquery.min.js')
+    script(src='/bower_components/bootstrap/dist/js/bootstrap.min.js')
+    script(src='/js/main.js')

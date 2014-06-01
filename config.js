@@ -6,10 +6,20 @@ var config = new ObjectManage()
 config.load({
   //options
   version: JSON.parse(fs.readFileSync('package.json', 'utf8')).version,
+  mongoose: {
+    dsn: 'mongodb://localhost/arindb',
+    options: {
+      native_parser: true
+    }
+  },
   mux: {
     listen: {
       host: null,
       port: 80
+    },
+    admin: {
+      user: 'admin',
+      password: 'blah1234'
     },
     allowedBots: [
       '127.0.0.1',

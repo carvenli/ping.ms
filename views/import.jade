@@ -1,0 +1,20 @@
+extends layout
+block content
+  .container
+    h1 Import Entries
+    p Use this form to import entries from a CSV file, the file must follow the format below
+    code name,company,email,address,phone,rank
+    p The first row is assumed the columns and will be ignored
+    h2 File to Import
+    form.form-horizontal(action='/import', method='post', role='form', enctype='multipart/form-data')
+      .form-group
+        label.control-label.col-sm-2 File
+        .col-sm-10
+          input.form-control(type='file', name='importFile')
+      .form-group
+        label.control-label.col-sm-2 Delimiter
+        .col-sm-10
+          input.form-control(type='text', name='delimiter', value=delimiter)
+      .form-group
+        .col-sm-offset-2.col-sm-10
+          button.btn.btn-success(type='submit') Import
