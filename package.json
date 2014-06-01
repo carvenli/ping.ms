@@ -26,6 +26,7 @@
   "dependencies": {
     "async": "^0.8.0",
     "express": "^3.5.2",
+    "express-jsonstream": "0.0.3",
     "hostbyname": "^0.1.0",
     "net-ping": "^1.1.10",
     "object-manage": "^0.7.1"

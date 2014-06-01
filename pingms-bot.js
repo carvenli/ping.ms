@@ -7,16 +7,19 @@ var express = require('express')
   , hostbyname = require('hostbyname')
   , dns = require('dns')
   , netPing = require('net-ping')
+  , jsonStream = require('express-jsonstream')
 
 //Utility functions
 var nPs = netPing.createSession({
+  _debug: false,
   networkProtocol: netPing.NetworkProtocol.IPv4,
   packetSize: 56,
   ttl: 255,
+  retries: 3,
   timeout: 1000
 })
 var net = {
-  ping: function(opts,cb){
+  ping: function(opts,res){
     var pingData = {
       dest: opts.dest,
       ip: opts.dest,
@@ -54,24 +57,25 @@ var net = {
                     pingData.max = result.rtt
                   pingData.avg = (null === pingData.avg) ? result.rtt : (pingData.avg + result.rtt) / 2
                 }
+                res.jsonStream(result)
                 setTimeout(function(){repeat(null,result)},1000)
               })
             },function(err,results){
-              pingData.results = results
+              //pingData.results = results
               next()
             })
         }
       ],function(){
-        cb(pingData)
+        res.jsonStream(pingData)
+        res.end()
       })
   },
-  trace: function(opts,cb){
+  trace: function(opts,res){
     var traceData = {
       dest: opts.dest,
       ip: opts.dest,
       ptr: opts.dest,
-      ttl: nPs.ttl,
-      results: []
+      ttl: nPs.ttl
     }
     async.series(
       [
@@ -91,20 +95,13 @@ var net = {
           nPs.traceRoute(traceData.ip,traceData.ttl,
             function(error,target,ttl,sent,rcvd){
               var ms = rcvd - sent
-              if(!traceData.results[ttl])
-                traceData.results[ttl] = []
-              if(error){
-                if(error instanceof netPing.TimeExceededError){
-                  console.log (target + ': ' + error.source + ' (ttl=' + ttl + ' ms=' + ms + ')')
-                  traceData.results[ttl].push({source: error.source,rtt: ms})
-                } else {
-                  console.log (target + ': ' + error.toString() + ' (ttl=' + ttl + ' ms=' + ms + ')')
-                  traceData.results[ttl].push({error: error,rtt: ms})
-                }
-              } else {
-                console.log (target + ': ' + target + ' (ttl=' + ttl + ' ms=' + ms + ')')
-                traceData.results[ttl].push({target: target,rtt: ms})
-              }
+              if(error)
+                if(error instanceof netPing.TimeExceededError)
+                  res.jsonStream({ttl:ttl,source:error.source,rtt:ms})
+                else
+                  res.jsonStream({ttl:ttl,error:error,rtt:ms})
+              else
+                res.jsonStream({ttl:ttl,target:target,rtt:ms})
             },
             function(error,target){
               if(error)
@@ -114,46 +111,15 @@ var net = {
             }
           )
         }
-          /*
-                           function(error,target,sent,received){
-                             var result = {
-                               error: error,
-                               target: target,
-                               sent: (sent) ? +sent : false,
-                               received: (received) ? +received : false,
-                               rtt: (received && sent) ? (received - sent) : false
-                             }
-                             if(result.rtt){
-                               if(null === traceData.min || result.rtt < traceData.min)
-                                 traceData.min = result.rtt
-                               if(null === traceData.max || result.rtt > traceData.max)
-                                 traceData.max = result.rtt
-                               traceData.avg = (null === traceData.avg) ? result.rtt : (traceData.avg + result.rtt) / 2
-                             }
-                             setTimeout(function(){repeat(null,result)},1000)
-                           })
-                         }
-          */
       ],
       function(){
-        async.forEach(traceData.results,
-          function(result,done){
-            if(result.source){
-              dns.reverse(traceData.ip,function(err,results){
-                if(!err && results[0]) result.source = results[0]
-                done()
-              })
-            }
-          },
-          function(){
-            cb(traceData)
-          }
-        )
+        res.end()
       }
     )
   }
 }
 
+app.use(jsonStream())
 app.use(express.urlencoded())
 
 //main route handlers
@@ -165,9 +131,7 @@ var pingHandler = function(req,res){
   var dest = req.param('dest')
   if(!dest)
     return res.status(403).end('dest not supplied')
-  net.ping({dest:dest,count:4},function(rv){
-    res.end(JSON.stringify(rv,null,1))
-  })
+  net.ping({dest:dest,count:4},res)
 }
 var traceHandler = function(req,res){
   //check the request URL
@@ -177,9 +141,7 @@ var traceHandler = function(req,res){
   var dest = req.param('dest')
   if(!dest)
     return res.status(403).end('dest not supplied')
-  net.trace({dest:dest},function(rv){
-    res.end(JSON.stringify(rv,null,1))
-  })
+  net.trace({dest:dest},res)
 }
 
 //routing
