@@ -4,21 +4,29 @@ html
     block css
       link(rel='stylesheet', href='/bower_components/html5-boilerplate/css/normalize.css')
       link(rel='stylesheet', href='/bower_components/html5-boilerplate/css/main.css')
-      link(rel='stylesheet', href='/bower_components/bootstrap/dist/css/bootstrap.min.css')
-    title ping.ms
+      link(rel='stylesheet', type='text/css', href='/css/style.css', media='screen')
+    title Free Online Ping Test and Traceroute
+    meta(http-equiv='Content-Type', content='text/html; charset=UTF-8')
+    meta(http-equiv='cache-control', content='no-cache')
+    meta(name='Description', content='ping.ms offers free online ping and free online traceroute service with multiple locations worldwide.')
+    meta(name='Keywords', content='ping test, ping, traceroute, reverse traceroute, online ping, remote ping, server, web site, website speed, network speed, traceroutes, ping website')
   body
-    .navbar.navbar-inverse(role='navigation')
-      .container
-        a.navbar-brand(href='/') ping.ms
-        ul.nav.navbar-nav
-          li
-            a(href='/create') Create
-          li
-            a(href='/import') Import
-          li
-            a(href='/export') Export
-    block content
-    //load scripts
-    script(src='/bower_components/jquery/jquery.min.js')
-    script(src='/bower_components/bootstrap/dist/js/bootstrap.min.js')
-    script(src='/js/main.js')
+    #header
+      #title
+        a(href='/')
+          h1 ping.ms
+      #login
+        a(href='/ping') ping
+        | |
+        a(href='/trace') traceroute
+    | {alert}
+  block content
+  //load scripts
+  script.
+    var siteDomain = '.ping.ms'
+    var rootDomain = 'ping.ms'
+    siteDomain = ''
+    rootDomain = ''
+  script(src='/bower_components/jquery/jquery.min.js')
+  script(src='/js/ping.js')
+//  script(src='/js/trace.js')

@@ -1,33 +1,25 @@
 extends layout
 block content
   .container
-    h1 Entries
-    form(action='/', method='post', role='form')
-      table.table.table-striped
-        tr
-          th
-            input#toggle(type='checkbox')
-          th Full Name
-          th Company
-          th Email
-          th Address
-          th Phone
-          th Rank
-        each contact,i in contactList
+    .main-ping
+      form#ping_form(action='', method='post')
+        label Enter a domain or an ip address, e.g. google.com or 72.14.204.99
+        input#ping_dest.ping(type='text', name='dest', size='20')
+        select#group(name='group')
+          option(value='') All Regions
+          each group in groups
+            - var select=null; if(group == group.name) select='selected'
+            option(value=group.groupId, selected=select)= group.name
+        input(type='submit', value='Ping')
+        br
+    #ping_output(style='display:none;')
+      .main
+        table.column_result.server_list(style='width:100%;', rules='all', border='1', bordercolor='#aaa', cellpadding='3')
           tr
-            td
-              input(type='checkbox', name='delete[]', value=contact.id)
-            td
-              a(href='/edit?id=#{contact.id}')= contact.name
-            td= contact.company
-            td= contact.email
-            td= contact.address
-            td= contact.phone
-            td= contact.rank
-      div
-        .pull-right
-          a.btn.btn-default(href='/?start=#{page.previous}') Previous
-          a.btn.btn-default(href='/?start=#{page.next}') Next
-        span #{page.start + 1} - #{page.end} of #{count} entries
-      div
-        button.btn.btn-danger(type='submit') Delete Checked
+            th Location
+            th Host
+            th Min
+            th Max
+            th Avg
+            th Result
+          tbody#ping_server_list

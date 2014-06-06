@@ -7,7 +7,7 @@ config.load({
   //options
   version: JSON.parse(fs.readFileSync('package.json', 'utf8')).version,
   mongoose: {
-    dsn: 'mongodb://localhost/arindb',
+    dsn: 'mongodb://localhost/pingms',
     options: {
       native_parser: true
     }

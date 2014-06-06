@@ -27,15 +27,6 @@ mongoose.connect(config.get('mongoose.dsn'),config.get('mongoose.options'),funct
     app.use(express.errorHandler())
   }
 
-  app.post('/save',routes.save)
-  app.post('/import',routes.import)
-  app.post('/export',routes.export)
-  app.post('/',routes.index)
-
-  app.get('/create',routes.create)
-  app.get('/edit',routes.edit)
-  app.get('/import',routes.import)
-  app.get('/export',routes.export)
   app.get('/',routes.index)
 
   server.listen(config.get('mux.listen.port'),config.get('mux.listen.host'),function(){

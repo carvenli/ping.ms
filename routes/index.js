@@ -1,6 +1,6 @@
 'use strict';
 var async = require('async')
-  , Contact = require('../models/contact').model
+  , Group = require('../models/group').model
 
 
 /**
@@ -9,41 +9,9 @@ var async = require('async')
  * @param {object} res
  */
 exports.index = function(req,res){
-  if('post' === req.method.toLowerCase()){
-    if(req.body.delete && req.body.delete.length){
-      async.each(
-        req.body.delete,
-        function(id,next){
-          Contact.findByIdAndRemove(id,next)
-        },
-        function(err){
-          if(err) res.send(err)
-          else res.redirect('/')
-        }
-      )
-    } else res.redirect('/')
-  } else {
-    var limit = 10
-    var start = parseInt(req.query.start,10) || 0
-    if(start < 0) start = 0
-    Contact.list({start: start, limit: limit, sort: 'name email'},function(err,count,results){
-      if(start > count) start = count - limit
-      var page = {
-        start: start,
-        end: start + limit,
-        previous: start - limit,
-        next: start + limit
-      }
-      if(page.previous < 0) page.previous = 0
-      if(page.next > count) page.next = start
-      if(page.end > count) page.end = count
-      res.render('index',{
-        page: page,
-        count: count,
-        contactList: results
-      })
-    })
-  }
+  Group.list({sort:'index'},
+    function(err,count,results){res.render('index',{groups:results})}
+  )
 }
 
 
@@ -69,7 +37,7 @@ exports.create = function(req,res){
  * @param {object} res
  */
 exports.edit = function(req,res){
-  Contact.findById(req.query.id,function(err,doc){
+  Group.findById(req.query.id,function(err,doc){
     res.render('edit',{
       id: doc.id,
       name: doc.name,
@@ -109,7 +77,7 @@ exports.import = function(req,res){
       lines.forEach(function(line){
         if(lineCount > 0 && line.length > 0){
           var parts = line.split(body.delimiter || ',')
-          var doc = new Contact()
+          var doc = new Group()
           doc.name = parts[0]
           doc.company = parts[1] || ''
           doc.email = parts[2]
@@ -167,8 +135,8 @@ exports.export = function(req,res){
       search.rank = parseInt(req.body.rank,10) || 1
     var csv = ['name','company','email','address','phone','rank'].join(req.body.delimiter) + '\n'
     var entries = []
-    Contact.count(search,function(err,count){
-      var stream = Contact
+    Group.count(search,function(err,count){
+      var stream = Group
         .find(search)
         .skip(getRandomInt(0,count - limit))
         .limit(limit)
@@ -188,7 +156,7 @@ exports.export = function(req,res){
       })
     })
   } else {
-    Contact.list({},function(err,count){
+    Group.list({},function(err,count){
       res.render('export',{
         delimiter: ',',
         limit: count
@@ -204,9 +172,9 @@ exports.export = function(req,res){
  * @param {object} res
  */
 exports.save = function(req,res){
-  Contact.findById(req.body.id,function(err,doc){
+  Group.findById(req.body.id,function(err,doc){
     if(!doc){
-      doc = new Contact()
+      doc = new Group()
     }
     doc.name = req.body.name
     doc.company = req.body.company

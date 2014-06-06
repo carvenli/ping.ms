@@ -1,36 +1,38 @@
 'use strict';
 var mongoose = require('mongoose')
-  , validate = require('mongoose-validator').validate
 
 mongoose.plugin(require('mongoose-list'))
 
 var schema = new mongoose.Schema({
+  index: {
+    type: Number,
+    required: true,
+    unique: true
+  },
   name: {
     type: String,
-    //unique: true,
     required: true,
     index: true
   },
-  email: {
+  ref: {
     type: String,
     unique: true,
     required: true,
-    index: true,
-    validate: [
-      validate('len','6','100'),
-      validate('isEmail')
-    ]
+    index: true
   },
-  address: {
+  desc: {
     type: String,
     required: true
   },
-  company: String,
-  phone: String,
-  rank: Number
+  limitForAggregate: {
+    type: Number,
+    required: true,
+    default: 1,
+    index: true
+  }
 })
 
-var model = mongoose.model('contact',schema)
+var model = mongoose.model('group',schema)
 
 
 /**
