@@ -1,6 +1,6 @@
 'use strict';
 var async = require('async')
-  , Group = require('../models/group').model
+  , Group = require('../models/groups').model
 
 
 /**

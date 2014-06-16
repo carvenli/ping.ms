@@ -32,7 +32,7 @@ var schema = new mongoose.Schema({
   }
 })
 
-var model = mongoose.model('group',schema)
+var model = mongoose.model('server',schema)
 
 
 /**

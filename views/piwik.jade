@@ -1,0 +1,11 @@
+block piwik
+  script(src='//stats.esited.com/piwik.js')
+  script.
+    try {
+      var piwikTracker = Piwik.getTracker(pkBaseURL + "piwik.php",2)
+      piwikTracker.trackPageView()
+      piwikTracker.enableLinkTracking()
+    } catch(err){}
+  noscript
+    p
+      img(src="http://stats.esited.com/piwik.php?idsite=2", style="border:0", alt="")
