@@ -1,0 +1,40 @@
+!!! strict
+html(xmlns='http://www.w3.org/1999/xhtml')
+  head
+    meta(http-equiv='Content-Type', content='text/html; charset=iso-8859-1')
+    title {site_name} - Admin Panel
+    link(rel='stylesheet', href='{theme}/css/reset.css', type='text/css', media='screen')
+    link(rel='stylesheet', href='{theme}/css/style.css', type='text/css', media='screen')
+    link(rel='stylesheet', href='{theme}/css/invalid.css', type='text/css', media='screen')
+    script.
+      var site_url = '{url}'
+  body
+    div#body-wrapper
+      div#sidebar
+        div#sidebar-wrapper
+          // Sidebar with logo and menu
+          h1#sidebar-title
+            a(href='#') {site_name}
+          // Sidebar Profile links
+          div#profile-links
+            | Hello,
+            a(href='{url_profile}', title='Edit your profile') {user_username}
+            | |
+            a(href='{url_logout}', title='Sign Out') Sign Out
+            br
+          ul#main-nav
+            li
+              a.nav-top-item.no-submenu(href='{url_servers}') Servers
+            li
+              a.nav-top-item.no-submenu(href='{url_pages}') Pages
+            li
+              a.nav-top-item.no-submenu(href='{url_staff}') Staff
+          // End #main-nav
+      // End #sidebar
+      div#main-content
+        // Main Content Section with everything
+        | {alert}
+    div#footer
+      div
+        | © {cur_year} {site_name}; All Rights Reserved.
+        small Version: {lss_version} | {script_stats}
