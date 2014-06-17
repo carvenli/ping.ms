@@ -164,8 +164,8 @@ exports.save = function(req,res){
         res.redirect('/groups')
         return
       }
-      req.flash('success','Group Saved')
-      res.redirect('/groups/edit?id=' + doc.id)
+      req.flash('success','Group "' + doc.name + '" Saved')
+      res.redirect('/groups')
     }
   )
 }

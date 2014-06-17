@@ -26,17 +26,21 @@ block content
             tr
               td
                 input(type='checkbox', name='remove[]', value=row.id)
-              td
+              td(style='white-space:nowrap;')
                 a(href='/bots/edit?id=#{row.id}')= row.location
               td
                 a(href='/bots/edit?id=#{row.id}')= row.host
               td= row.port
-              td= row.groups
-              td= row.sponsor.name
+              td
+                each g,i in row.groups.split(',')
+                  if(g)
+                    span.label.label-primary= g
+                    =' '
+              td(style='white-space:nowrap;')= row.sponsor.name
               td= row.hits
-              td= (new Date(row.metrics.dateCreated)).toLocaleString().replace(/\s+\([^)]+\)$/,'')
-              td= (new Date(row.metrics.dateModified)).toLocaleString().replace(/\s+\([^)]+\)$/,'')
-              td= row.metrics.version
+              td(style='white-space:nowrap;')= (new Date(row.metrics.dateCreated)).toLocaleString().replace(/\s+\([^)]+\)$/,'')
+              td(style='white-space:nowrap;')= (new Date(row.metrics.dateModified)).toLocaleString().replace(/\s+\([^)]+\)$/,'')
+              td(style='white-space:nowrap;')= row.metrics.version
               td
                 span.glyphicon.glyphicon-align-center(class='glyphicon-'+(row.active?'ok-circle text-success':'ban-circle text-danger'))
       +tableFooter(page,count)

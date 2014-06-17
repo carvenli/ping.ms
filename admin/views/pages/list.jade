@@ -25,8 +25,5 @@ block content
             td= new Date(row.metrics.dateCreated).toDateString()
             td= new Date(row.metrics.dateModified).toDateString()
             td
-              if(row.active)
-                span.glyphicon.glyphicon-check
-              else
-                span.glyphicon.glyphicon-remove
+              span.glyphicon.glyphicon-align-center(class='glyphicon-'+(row.active?'ok-circle text-success':'ban-circle text-danger'))
       +tableFooter(page,count)

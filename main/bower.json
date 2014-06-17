@@ -1,11 +1,11 @@
 {
-  "name": "pingms-website",
+  "name": "pingms-main",
   "version": "2.0.0",
   "dependencies": {
-    "bootstrap": "~3.0.3",
-    "html5-boilerplate": "latest",
-    "jquery": "~1.10.2",
-    "underscore": "latest",
-    "moment": "~2.6.0"
+    "bootstrap": "~3.1.1",
+    "html5-boilerplate": "~4.3.0",
+    "jquery": "~2.1.1",
+    "moment": "~2.7.0",
+    "underscore": "~1.6.0"
   }
 }

@@ -131,7 +131,6 @@ exports.save = function(req,res){
           if(err) return next(err)
           if(!result) doc = new Bot()
           else doc = result
-          console.log(doc)
           next()
         })
       },
@@ -143,8 +142,8 @@ exports.save = function(req,res){
         if(!doc.port && !req.body.port) doc.port = defaultPort
         if(req.body.port) doc.port = (0 < req.body.port < 65536) ? req.body.port : defaultPort
         doc.groups = req.body.groups || ''
-        doc.active = req.body.active ? true : false
         doc.notes = req.body.notes || ''
+        doc.active = req.body.active ? true : false
         next()
       },
       //save the bot
@@ -167,8 +166,8 @@ exports.save = function(req,res){
         res.redirect('/bots')
         return
       }
-      req.flash('success','Bot Saved')
-      res.redirect('/bots/edit?id=' + doc.id)
+      req.flash('success','Bot "' + doc.location + '" Saved')
+      res.redirect('/bots')
     }
   )
 }

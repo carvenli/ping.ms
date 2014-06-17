@@ -20,7 +20,7 @@ block content
               input(type='checkbox', name='remove[]', value=row.id)
             td
               a(href='/groups/edit?id=#{row.id}')
-                span(class='label label-primary')= row.tag
+                span.label.label-primary= row.tag
             td
               a(href='/groups/edit?id=#{row.id}')= row.name
             td= row.label

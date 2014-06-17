@@ -1,9 +1,0 @@
-{
-  "name": "ping.ms",
-  "version": "0.1.0",
-  "dependencies": {
-    "bootstrap": "~3.0.3",
-    "html5-boilerplate": "latest",
-    "jquery": "~1.10.2"
-  }
-}
