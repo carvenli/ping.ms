@@ -3,6 +3,7 @@ var list = require('../helpers/list')
   , async = require('async')
 
 var Bot = require('../../models/bot').model
+  , Group = require('../../models/group').model
 
 
 var remove = function(botId,next){
@@ -90,7 +91,7 @@ exports.create = function(req,res){
  * @param {object} res
  */
 exports.edit = function(req,res){
-  var bot = {}
+  var bot = {}, groups = []
   async.parallel(
     [
       //get the bot
@@ -101,6 +102,17 @@ exports.edit = function(req,res){
           bot = result
           next()
         })
+      },
+      //get the groups
+      function(next){
+        Group.list(
+          {sort: 'name'},
+          function(err,count,results){
+            if(err) return next(err)
+            groups = results
+            next()
+          }
+        )
       }
     ],
     //display the edit page
@@ -110,7 +122,7 @@ exports.edit = function(req,res){
         res.redirect('/bots')
         return
       }
-      res.render('bots/edit',{bot: bot})
+      res.render('bots/edit',{bot: bot,groups: groups})
     }
   )
 }
