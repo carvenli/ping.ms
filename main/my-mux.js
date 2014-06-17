@@ -6,7 +6,7 @@ var express = require('express')
   , config = require('./../config')
   , routes = require('./routes')
   , mongoose = require('mongoose')
-  , Group = require('./../models/groups.js')
+  , Group = require('./../models/group.js')
   , Server = require('./../models/servers.js')
   , util = require('util')
 

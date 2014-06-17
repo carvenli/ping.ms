@@ -23,7 +23,7 @@ schema = new mongoose.Schema({
     required: true,
     default: 4176
   },
-  groups: [String],
+  groups: String,
   sponsor: {
     name: String,
     url: String
@@ -51,7 +51,8 @@ schema = new mongoose.Schema({
       default: Date.now,
       required: true,
       index: true
-    }
+    },
+    version: String
   }
 })
 
@@ -63,6 +64,14 @@ schema.pre('save',function(next){
   if((void 0) === _ref || null === _ref)
     that.metrics.dateCreated = now
   that.metrics.dateModified = now
+  _ref = that.get('groups')
+  if((void 0) === _ref || null === _ref)
+    that.groups = ''
+  if('string' !== typeof _ref)
+    that.groups = ',' + _ref.join(',') + ','
+  _ref = that.get('metrics.version')
+  if((void 0) === _ref || null === _ref)
+    that.metrics.version = '2.0.0'
   next()
 })
 

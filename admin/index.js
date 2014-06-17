@@ -56,6 +56,13 @@ app.get('/staff',routes.staff.list)
 app.get('/staff/create',routes.staff.form)
 app.get('/staff/edit',routes.staff.form)
 
+//groups
+app.post('/groups',routes.groups.list)
+app.post('/groups/save',routes.groups.save)
+app.get('/groups',routes.groups.list)
+app.get('/groups/create',routes.groups.create)
+app.get('/groups/edit',routes.groups.edit)
+
 //bots
 app.post('/bots',routes.bots.list)
 app.post('/bots/save',routes.bots.save)

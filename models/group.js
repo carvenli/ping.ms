@@ -1,26 +1,24 @@
 'use strict';
 var mongoose = require('mongoose')
+  , schema
 
+//load plugins
 mongoose.plugin(require('mongoose-list'))
 
-var schema = new mongoose.Schema({
-  index: {
-    type: Number,
-    required: true,
-    unique: true
-  },
+schema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
+    unique: true,
     index: true
   },
-  ref: {
+  tag: {
     type: String,
     unique: true,
     required: true,
     index: true
   },
-  desc: {
+  label: {
     type: String,
     required: true
   },
@@ -32,18 +30,29 @@ var schema = new mongoose.Schema({
   }
 })
 
-var model = mongoose.model('groups',schema)
+
+/**
+ * Model name
+ * @type {string}
+ */
+exports.name = 'group'
 
 
 /**
- * Export schema
- * @type {mongoose.Schema}
+ * Model description
+ * @type {string}
+ */
+exports.description = 'Group model'
+
+
+/**
+ * Schema
+ * @type {exports.Schema}
  */
 exports.schema = schema
 
 
 /**
- * Export model
- * @type {mongoose.Model}
+ * Model
  */
-exports.model = model
+exports.model = mongoose.model('Group',schema)

@@ -6,29 +6,37 @@ block content
     +tableHeader('Bots','/bots/create','Create Bot')
     +alerts()
     form(method='post', role='form')
-      table.table.table-striped
-        tr
-          th
-            input#toggle(type='checkbox')
-          th
-          th Hostname
-          th Groups
-          th Location
-          th Sponsor
-          th Hits
-          th Updated
-          th Active
-        each row,i in list
+      table.table.table-bordered
+        thead
           tr
-            td
-              input(type='checkbox', name='remove[]', value=row.id)
-            td
-              a(href='/bots/edit?id=#{row.id}')= row.host
-            td= row.groups.join()
-            td= row.location
-            td= row.sponsor.name
-            td= row.hits
-            td= new Date(row.metrics.dateModified).toDateString()
-            td
-              span.glyphicon(class='glyphicon-#{row.active?\'check\':\'remove\'}')
+            th
+              input#toggle(type='checkbox')
+            th Location
+            th Host
+            th Port
+            th Groups
+            th Sponsor
+            th Hits
+            th Created
+            th Updated
+            th Version
+            th Active
+        tbody
+          each row,i in list
+            tr
+              td
+                input(type='checkbox', name='remove[]', value=row.id)
+              td
+                a(href='/bots/edit?id=#{row.id}')= row.location
+              td
+                a(href='/bots/edit?id=#{row.id}')= row.host
+              td= row.port
+              td= row.groups
+              td= row.sponsor.name
+              td= row.hits
+              td= (new Date(row.metrics.dateCreated)).toLocaleString().replace(/\s+\([^)]+\)$/,'')
+              td= (new Date(row.metrics.dateModified)).toLocaleString().replace(/\s+\([^)]+\)$/,'')
+              td= row.metrics.version
+              td
+                span.glyphicon.glyphicon-align-center(class='glyphicon-'+(row.active?'ok-circle text-success':'ban-circle text-danger'))
       +tableFooter(page,count)

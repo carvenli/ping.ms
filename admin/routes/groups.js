@@ -2,24 +2,24 @@
 var list = require('../helpers/list')
   , async = require('async')
 
-var Bot = require('../../models/bot').model
+var Group = require('../../models/group').model
 
 
-var remove = function(botId,next){
-  var bot
+var remove = function(groupId,next){
+  var group
   async.series(
     [
-      //find the bot
+      //find the group
       function(next){
-        Bot.findById(botId,function(err,result){
+        Group.findById(groupId,function(err,result){
           if(err) return next(err)
-          bot = result
+          group = result
           next()
         })
       },
-      //remove the bot
+      //remove the group
       function(next){
-        bot.remove(next)
+        group.remove(next)
       }
     ],
     next
@@ -28,7 +28,7 @@ var remove = function(botId,next){
 
 
 /**
- * List bots
+ * List groups
  * @param {object} req
  * @param {object} res
  */
@@ -45,7 +45,7 @@ exports.list = function(req,res){
         if(err)
           return req.flash('error','Removed ' + count + ' item(s) before removal failed ' + err)
         req.flash('success','Deleted ' + count + ' item(s)')
-        res.redirect('/bots')
+        res.redirect('/groups')
       }
     )
   } else {
@@ -53,16 +53,16 @@ exports.list = function(req,res){
     var start = parseInt(req.query.start,10) || 0
     var search = req.query.search || ''
     if(start < 0) start = 0
-    Bot.list(
+    Group.list(
       {
         start: start,
-        sort: 'location',
+        sort: 'name',
         limit: limit,
         find: search
       },
       function(err,count,results){
         if(err) return res.send(err)
-        res.render('bots/list',{
+        res.render('groups/list',{
           page: list.pagination(start,count,limit),
           count: count,
           search: search,
@@ -75,30 +75,30 @@ exports.list = function(req,res){
 
 
 /**
- * Create bot
+ * Create group
  * @param {object} req
  * @param {object} res
  */
 exports.create = function(req,res){
-  res.render('bots/create')
+  res.render('groups/create')
 }
 
 
 /**
- * Edit bot
+ * Edit group
  * @param {object} req
  * @param {object} res
  */
 exports.edit = function(req,res){
-  var bot = {}
+  var group = {}
   async.parallel(
     [
-      //get the bot
+      //get the group
       function(next){
-        Bot.findById(req.query.id,function(err,result){
+        Group.findById(req.query.id,function(err,result){
           if(err) return next(err)
-          if(!result) return next('Bot not found')
-          bot = result
+          if(!result) return next('Group not found')
+          group = result
           next()
         })
       }
@@ -107,17 +107,17 @@ exports.edit = function(req,res){
     function(err){
       if(err){
         req.flash('error',err)
-        res.redirect('/bots')
+        res.redirect('/groups')
         return
       }
-      res.render('bots/edit',{bot: bot})
+      res.render('groups/edit',{group: group})
     }
   )
 }
 
 
 /**
- * Save bot
+ * Save group
  * @param {object} req
  * @param {object} res
  */
@@ -125,37 +125,34 @@ exports.save = function(req,res){
   var doc
   async.series(
     [
-      //find an existing bot
+      //find an existing group
       function(next){
-        Bot.findById(req.body.id,function(err,result){
+        Group.findById(req.body.id,function(err,result){
           if(err) return next(err)
-          if(!result) doc = new Bot()
+          if(!result) doc = new Group()
           else doc = result
-          console.log(doc)
           next()
         })
       },
       //populate data
       function(next){
-        var defaultPort = 4176
-        doc.location = req.body.location
-        doc.host = req.body.host
-        if(!doc.port && !req.body.port) doc.port = defaultPort
-        if(req.body.port) doc.port = (0 < req.body.port < 65536) ? req.body.port : defaultPort
-        doc.groups = req.body.groups || ''
-        doc.active = req.body.active ? true : false
-        doc.notes = req.body.notes || ''
+        console.log(req.body)
+        doc.name = req.body.name
+        doc.tag = req.body.tag || req.body.name.replace(/\s+/g,'').toLowerCase()
+        doc.label = req.body.label || (req.body.name + ' Ping Servers').trim()
+        doc.limitForAggregate = req.body.limitForAggregate || 1
+        console.log(doc)
         next()
       },
-      //save the bot
+      //save the group
       function(next){
         doc.save(next)
       },
-      //refind updated bot
+      //refind updated group
       function(next){
-        Bot.findOne({location: doc.location},function(err,result){
+        Group.findOne({name: doc.name},function(err,result){
           if(err) return next(err)
-          if(!result) return next('Could not find bot after saving')
+          if(!result) return next('Could not find group after saving')
           doc = result
           next()
         })
@@ -164,11 +161,11 @@ exports.save = function(req,res){
     function(err){
       if(err){
         req.flash('error',err.message)
-        res.redirect('/bots')
+        res.redirect('/groups')
         return
       }
-      req.flash('success','Bot Saved')
-      res.redirect('/bots/edit?id=' + doc.id)
+      req.flash('success','Group Saved')
+      res.redirect('/groups/edit?id=' + doc.id)
     }
   )
 }
