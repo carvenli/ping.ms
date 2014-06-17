@@ -1,46 +1,48 @@
 'use strict';
 var ObjectManage = require('object-manage')
   , fs = require('fs')
+  , config
 
-var config = new ObjectManage()
+//setup config object
+config = new ObjectManage()
+//dist config schema
 config.load({
-  //options
-  version: JSON.parse(fs.readFileSync('package.json', 'utf8')).version,
+  title: 'ping.ms',
+  version: '0.1.0',
   mongoose: {
-    dsn: 'mongodb://localhost/pingms',
-    options: {
-      native_parser: true
+    enabled: false,
+    name: 'ping-ms',
+    dsn: 'mongodb://localhost/ping-ms',
+    options: {native_parser: true} // jshint ignore:line
+  },
+  admin: {
+    enabled: false,
+    port: 3003,
+    host: null,
+    mainBaseUrl: 'http://localhost:3000',
+    cookie: {
+      secret: '',
+      maxAge: 2592000000 //30 days
     }
   },
-  mux: {
-    listen: {
-      host: null,
-      port: 80
-    },
-    admin: {
-      user: 'admin',
-      password: 'blah1234'
-    },
-    allowedBots: [
-      '127.0.0.1',
-      'ping.ms',
-      '199.87.234.131'
-    ]
-  },
   bot: {
-    listen: {
-      host: null,
-      port: 4176
-    },
-    allowedSources: [
-      '127.0.0.1',
-      'ping.ms',
-      '199.87.234.131'
-    ]
+    enabled: false,
+    port: 4176,
+    host: null,
+    secret: ''
+  },
+  main: {
+    enabled: false,
+    port: 3000,
+    host: null,
+    cookie: {
+      secret: '',
+      maxAge: 2592000000 //30 days
+    }
   }
 })
-
-if(fs.existsSync('./config.local.js')){
+//load user config
+if(fs.existsSync(__dirname + '/config.local.js')){
   config.load(require(__dirname + '/config.local.js'))
 }
 

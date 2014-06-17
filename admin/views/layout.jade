@@ -1,0 +1,39 @@
+include alerts
+include table
+doctype html
+html
+  head
+    block css
+      link(rel='stylesheet', href='/bower_components/html5-boilerplate/css/normalize.css')
+      link(rel='stylesheet', href='/bower_components/html5-boilerplate/css/main.css')
+      link(rel='stylesheet', href='/bower_components/bootstrap/dist/css/bootstrap.min.css')
+      link(rel='stylesheet', href='/css/layout.css')
+    title Ping.ms Admin
+  body
+    if user
+      //navbar
+      .navbar.navbar-fixed-top.navbar-inverse(role='navigation')
+        .container
+          a.navbar-brand(href='/') Ping.ms
+          ul.nav.navbar-nav
+            li
+              a(href='/bots') Bots
+            li
+              a(href='/pages') Pages
+            li
+              a(href='/staff') Staff
+          ul.nav.navbar-nav.navbar-right
+            li.dropdown
+              a.dropdown-toggle(data-toggle='dropdown')= user.email
+                b.caret
+              ul.dropdown-menu
+                li
+                  a(href='/logout') Logout
+    //main content
+    block content
+    .text-center
+      small(style='font-size: 9px;') &copy; Ping.ms. Version #{version}
+    //load scripts
+    block js
+      script(src='/bower_components/jquery/jquery.min.js')
+      script(src='/bower_components/bootstrap/dist/js/bootstrap.min.js')

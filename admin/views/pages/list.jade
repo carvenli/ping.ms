@@ -1,0 +1,32 @@
+extends ../layout
+block append js
+  script(src='/js/table.js')
+block content
+  .container
+    +tableHeader('Pages','/pages/create','Create Page')
+    +alerts()
+    form(method='post', role='form')
+      table.table.table-striped
+        tr
+          th
+            input#toggle(type='checkbox')
+          th Title
+          th URI
+          th Created
+          th Updated
+          th Active
+        each row,i in list
+          tr
+            td
+              input(type='checkbox', name='remove[]', value=row.id)
+            td
+              a(href='/pages/edit?id=#{row.id}')= row.title
+            td= row.uri
+            td= new Date(row.metrics.dateCreated).toDateString()
+            td= new Date(row.metrics.dateModified).toDateString()
+            td
+              if(row.active)
+                span.glyphicon.glyphicon-check
+              else
+                span.glyphicon.glyphicon-remove
+      +tableFooter(page,count)

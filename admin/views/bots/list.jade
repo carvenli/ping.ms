@@ -1,0 +1,34 @@
+extends ../layout
+block append js
+  script(src='/js/table.js')
+block content
+  .container
+    +tableHeader('Bots','/bots/create','Create Bot')
+    +alerts()
+    form(method='post', role='form')
+      table.table.table-striped
+        tr
+          th
+            input#toggle(type='checkbox')
+          th
+          th Hostname
+          th Groups
+          th Location
+          th Sponsor
+          th Hits
+          th Updated
+          th Active
+        each row,i in list
+          tr
+            td
+              input(type='checkbox', name='remove[]', value=row.id)
+            td
+              a(href='/bots/edit?id=#{row.id}')= row.host
+            td= row.groups.join()
+            td= row.location
+            td= row.sponsor.name
+            td= row.hits
+            td= new Date(row.metrics.dateModified).toDateString()
+            td
+              span.glyphicon(class='glyphicon-#{row.active?\'check\':\'remove\'}')
+      +tableFooter(page,count)

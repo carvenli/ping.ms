@@ -1,0 +1,62 @@
+doctype html
+html
+  head
+    block meta
+      meta(charset='utf-8')
+      meta(name='author', content='Ping.ms')
+      meta(property='og:site_name', content='Ping.ms')
+    block css
+      link(rel='stylesheet', href='/bower_components/html5-boilerplate/css/normalize.css')
+      link(rel='stylesheet', href='/bower_components/html5-boilerplate/css/main.css')
+      link(rel='stylesheet', href='/bower_components/bootstrap/dist/css/bootstrap.min.css')
+      link(rel='stylesheet', href='/css/style.css')
+    link(rel='icon', href='/images/pingms-favicon.png', type='image/png')
+    title #{pageTitle || 'Ping.ms'}
+  body
+    #wrapper
+      #header
+        #title
+          h1
+            a(href="/") ping.ms
+        #login
+          a(href="/ping") ping
+          | |
+          a(href="/trace") traceroute
+      .clearfix
+
+      //main content
+      block content
+      //footer
+      .footer
+        //whos.amung.us
+        div(style='position: absolute; margin-left: 644px; margin-top: 3px;')
+          script(id='_wau5ni').
+            var _wau = _wau || []; _wau.push(["small", "wmkiodnoh3et", "5ni"]);
+            (function() {var s=document.createElement("script"); s.async=true;
+            s.src="http://widgets.amung.us/small.js";
+            document.getElementsByTagName("head")[0].appendChild(s);
+            })();
+        .links
+          a &copy; #{app.title} #{new Date().getFullYear()}
+          a(href='/bots') Bot List
+
+  //load scripts
+  block js
+    script(src='/bower_components/jquery/jquery.min.js')
+    script(src='/bower_components/bootstrap/dist/js/bootstrap.min.js')
+    script(src='/bower_components/moment/min/moment.min.js')
+    script(src='/js/main.js')
+    script(src='js/ping.js')
+    //piwik
+    script.
+      var _paq = _paq || [];
+      _paq.push(['trackPageView']);
+      _paq.push(['enableLinkTracking']);
+      (function() {
+        var u=(("https:" == document.location.protocol) ? "https" : "http") + "://stats.esited.com/";
+        _paq.push(['setTrackerUrl', u+'piwik.php']);
+        _paq.push(['setSiteId', 2]);
+        var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0]; g.type='text/javascript';
+        g.defer=true; g.async=true; g.src=u+'piwik.js'; s.parentNode.insertBefore(g,s);
+      })();
+    //end piwik
