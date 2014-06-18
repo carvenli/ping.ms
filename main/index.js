@@ -67,7 +67,7 @@ io.on('connection',function(socket){
     async.series(
       [
         function(next){
-          var query = {}
+          var query = {active: true}
           //filter by group if we can
           if('All' !== data.group)
             query.groups = new RegExp(',' + data.group + ',','i')
@@ -80,8 +80,18 @@ io.on('connection',function(socket){
               async.each(
                 results,
                 function(bot,next){
-                  //right here need to ask the bot for a ping result to the host
-                  //i dont remember what the bot interface is like
+                  socket.emit('pingResult',{
+                    location: bot.location,
+                    sponsor: bot.sponsor,
+                    ip: '199.87.232.5',
+                    ping: {
+                      min: 0,
+                      max: 5,
+                      avg: 3,
+                      stDev: 2,
+                      loss: 0
+                    }
+                  })
                   next()
                 },
                 next
