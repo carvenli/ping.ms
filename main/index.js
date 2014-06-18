@@ -2,6 +2,8 @@
 var express = require('express')
   , flash = require('connect-flash')
   , app = express()
+  , server = require('http').Server(app)
+  , io = require('socket.io')(server)
   , config = require('../config')
   , routes = require('./routes')
   , RedisStore = require('connect-redis')(express)
@@ -57,5 +59,13 @@ app.get('/',routes.index)
 //bot list
 app.get('/bots',routes.bot)
 
+//socket.io routing
+io.on('connection',function(socket){
+  socket.on('ping',function(data){
+    console.log(data)
+    socket.emit('pingResult',{stuff: 'foo'})
+  })
+})
+
 //setup and listen
-app.listen(config.get('main.port'),config.get('main.host'))
+server.listen(config.get('main.port'),config.get('main.host'))

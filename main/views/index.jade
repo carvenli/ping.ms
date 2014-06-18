@@ -1,13 +1,27 @@
 extends layout
+append js
+  script(src='/js/main.js')
 block content
   +alerts()
   .main
     p.site-description Free online ping test and traceroute service with multiple locations worldwide
-    form(action="/", method="post")
-
-      input.ping(type="text", name="host", size="10", value="")
-      select(name="group")
+    form#ping(action="#", method="post")
+      input.ping#host(type="text", name="host", size="10", value="")
+      select#group(name="group")
         each row in groups
           option(value=row.name)= row.name
       input(type="submit", value="Ping")
     .instructions Enter a domain or an ip address, e.g. google.com or 72.14.204.99
+  .wrapper.hidden#results
+    .results
+      table.table.table-striped
+        thead
+          tr
+            th Location
+            th IP
+            th Min
+            th Max
+            th Avg
+            th Result
+            th Options
+        tbody

@@ -37,14 +37,15 @@ html
       //end whos.amung.us
       .links
         a(href='/bots') Bot List
-        a(href='http://en.wikipedia.org/wiki/Ping_(networking_utility)') What is Ping?
-        a(href='http://en.wikipedia.org/wiki/Traceroute') What is Traceroute?
+        //a(href='http://en.wikipedia.org/wiki/Ping_(networking_utility)') What is Ping?
+        //a(href='http://en.wikipedia.org/wiki/Traceroute') What is Traceroute?
   //load scripts
   block js
     script(src='//code.jquery.com/jquery-1.11.1.min.js')
     script(src='//maxcdn.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js')
-    script(src='/js/main.js')
-    script(src='/js/ping.js')
+    script(src='/socket.io/socket.io.js')
+    script.
+      var socket = io.connect()
     //piwik
     script.
       var _paq = _paq || [];

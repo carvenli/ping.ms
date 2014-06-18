@@ -43,7 +43,7 @@
     "mongoose-validator": "^0.2.2",
     "net-ping": "^1.1.10",
     "object-manage": "~0.7.1",
-    "socket.io": "^1.0.4",
+    "socket.io": "^1.0.5",
     "validator": "^3.7.0",
     "winston": "^0.7.3"
   }
