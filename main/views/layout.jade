@@ -1,3 +1,4 @@
+include alerts
 doctype html
 html
   head
@@ -5,48 +6,46 @@ html
       meta(charset='utf-8')
       meta(name='author', content='Ping.ms')
       meta(property='og:site_name', content='Ping.ms')
+      meta(name='keywords', content='ping test, ping, traceroute, reverse traceroute, online ping, remote ping, server, web site, website speed, network speed, traceroutes, ping website')
+      meta(name='description', content='ping.ms offers free online ping and free online traceroute service with multiple locations worldwide.')
     block css
       link(rel='stylesheet', href='/bower_components/html5-boilerplate/css/normalize.css')
       link(rel='stylesheet', href='/bower_components/html5-boilerplate/css/main.css')
-      link(rel='stylesheet', href='/bower_components/bootstrap/dist/css/bootstrap.min.css')
+      link(rel='stylesheet', href='//maxcdn.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css')
       link(rel='stylesheet', href='/css/style.css')
-    link(rel='icon', href='/images/pingms-favicon.png', type='image/png')
+    link(rel='icon', href='/images/network.png', type='image/png')
     title #{pageTitle || 'Ping.ms'}
   body
-    #wrapper
-      #header
-        #title
-          h1
-            a(href="/") ping.ms
-        #login
-          a(href="/ping") ping
-          | |
-          a(href="/trace") traceroute
-      .clearfix
-
-      //main content
-      block content
+    #header
+      #title
+        h1
+          a(href="/")
+            img#logo(src='/images/network.png')
+            | Ping.ms
+    //main content
+    block content
       //footer
-      .footer
+    #footer
+      .pull-right
         //whos.amung.us
-        div(style='position: absolute; margin-left: 644px; margin-top: 3px;')
-          script(id='_wau5ni').
-            var _wau = _wau || []; _wau.push(["small", "wmkiodnoh3et", "5ni"]);
-            (function() {var s=document.createElement("script"); s.async=true;
-            s.src="http://widgets.amung.us/small.js";
-            document.getElementsByTagName("head")[0].appendChild(s);
-            })();
-        .links
-          a &copy; #{app.title} #{new Date().getFullYear()}
-          a(href='/bots') Bot List
-
+        script(id='_wau5ni').
+          var _wau = _wau || []; _wau.push(["small", "wmkiodnoh3et", "5ni"]);
+          (function() {var s=document.createElement("script"); s.async=true;
+          s.src="http://widgets.amung.us/small.js";
+          document.getElementsByTagName("head")[0].appendChild(s);
+          })();
+      //end whos.amung.us
+      div &copy; #{app.title} #{new Date().getFullYear()}
+      .links
+        a(href='/bots') Bot List
+        a(href='http://en.wikipedia.org/wiki/Ping_(networking_utility)') What is Ping?
+        a(href='http://en.wikipedia.org/wiki/Traceroute') What is Traceroute?
   //load scripts
   block js
-    script(src='/bower_components/jquery/jquery.min.js')
-    script(src='/bower_components/bootstrap/dist/js/bootstrap.min.js')
-    script(src='/bower_components/moment/min/moment.min.js')
+    script(src='//code.jquery.com/jquery-1.11.1.min.js')
+    script(src='//maxcdn.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js')
     script(src='/js/main.js')
-    script(src='js/ping.js')
+    script(src='/js/ping.js')
     //piwik
     script.
       var _paq = _paq || [];
@@ -60,3 +59,12 @@ html
         g.defer=true; g.async=true; g.src=u+'piwik.js'; s.parentNode.insertBefore(g,s);
       })();
     //end piwik
+    //google analytics
+    script.
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+            ga('create', 'UA-51999698-2', 'ping.ms');
+      ga('send', 'pageview');
+    //end google analytics

@@ -1,8 +1,10 @@
 'use strict';
 var express = require('express')
+  , flash = require('connect-flash')
   , app = express()
   , config = require('../config')
   , routes = require('./routes')
+  , RedisStore = require('connect-redis')(express)
 
 //setup global tpl vars
 app.locals.app = {title: config.get('title')}
@@ -13,6 +15,19 @@ app.set('view engine','jade')
 app.use(express.json())
 app.use(express.urlencoded())
 app.use(express.methodOverride())
+app.use(express.cookieParser(config.get('main.cookie.secret')))
+app.use(express.session({
+  cookie: {
+    maxAge: config.get('main.cookie.maxAge')
+  },
+  store: new RedisStore(),
+  secret: config.get('main.cookie.secret')
+}))
+app.use(flash())
+app.use(function(req,res,next){
+  res.locals.flash = req.flash.bind(req)
+  next()
+})
 app.use(express.static(__dirname + '/public'))
 
 //try to find a page matching the uri, if not continue
@@ -38,6 +53,9 @@ if('development' === app.get('env')){
 
 //home page
 app.get('/',routes.index)
+
+//bot list
+app.get('/bots',routes.bots)
 
 //setup and listen
 app.listen(config.get('main.port'),config.get('main.host'))

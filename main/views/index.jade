@@ -1,36 +1,11 @@
 extends layout
 block content
-  .main-ping
-    form#ping_form(action="/", method="post")
-      fieldset
-        input(type="hidden", name="ping", value="true")
-        input#referrer(type="hidden", name="referrer", value="")
-        label(for="ping_dest") Enter a domain or an ip address, e.g. google.com or 72.14.204.99
-        input#ping_dest.ping(type="text", name="dest", size="20", value="")
-        label(for="group")
-        select#group(name="group")
-          option(value="") All Regions
-          option(value="asia") Asia
-          option(value="canada") Canada
-          option(value="china") China
-          option(value="china-telecom") China Telecom
-          option(value="china-unicom") China Unicom
-          option(value="europe") Europe
-          option(value="usa") USA
-        input(type="submit", value="Ping")
-        br
-  #ping_output(style="display: none;")
-    .main
-      table.column_result.server_list(style="width:100%;border:1px solid #efefef;", rules="all", cellpadding="3")
-        thead
-          tr
-            th Location
-            th IP
-            th Min
-            th Max
-            th Avg
-            th Result
-            th Options
-        tbody#ping_server_list
-          tr
-            td(colspan="7") Loading...
+  +alerts()
+  .main
+    form(action="/", method="post")
+      .instructions Enter a domain or an ip address, e.g. google.com or 72.14.204.99
+      input.ping(type="text", name="host", size="10", value="")
+      select(name="group")
+        each row in groups
+          option(value=row.name)= row.name
+      input(type="submit", value="Ping")
