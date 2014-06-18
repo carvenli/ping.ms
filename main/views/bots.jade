@@ -1,0 +1,15 @@
+extends layout
+block content
+  .wrapper
+    h2 Bots
+    table.table.table-striped
+      tr
+        th Location
+        th Sponsor
+        th Active
+      each row in bots
+        tr
+          td= row.location
+          td
+            a(href=row.sponsor.url)=row.sponsor.name
+          td= row.active ? 'Yes' : 'No'

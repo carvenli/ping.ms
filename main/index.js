@@ -55,7 +55,7 @@ if('development' === app.get('env')){
 app.get('/',routes.index)
 
 //bot list
-app.get('/bots',routes.bots)
+app.get('/bots',routes.bot)
 
 //setup and listen
 app.listen(config.get('main.port'),config.get('main.host'))

@@ -27,8 +27,10 @@ exports.index = function(req,res){
         })
         return
       }
+      var groups = results[0]
+      groups.unshift({name: 'All'})
       res.render('index',{
-        groups: results[0],
+        groups: groups,
         pageTitle: 'Online Ping Test, Online Trace Route, Internet Test'
       })
     }
@@ -55,10 +57,13 @@ exports.bot = function(req,res){
     function(err,results){
       if(err){
         res.render('error',{
-          bots: results[0],
           message: err
         })
+        return
       }
+      res.render('bots',{
+        bots: results[0]
+      })
     }
   )
 }
