@@ -14,19 +14,13 @@ schema = new mongoose.Schema({
   },
   tag: {
     type: String,
-    unique: true,
     required: true,
+    unique: true,
     index: true
   },
   label: {
     type: String,
     required: true
-  },
-  limitForAggregate: {
-    type: Number,
-    required: true,
-    default: 1,
-    index: true
   }
 })
 

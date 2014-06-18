@@ -2,7 +2,20 @@ extends ../layout
 block append js
   script(src='/bower_components/bootstrap-multiselect/js/bootstrap-multiselect.js')
   script.
-    $(document).ready(function(){$('.multiselect').multiselect()})
+    $(document).ready(function(){$('.multiselect').multiselect({
+      buttonText: function(options){
+        if(0 === options.length)
+          return '<span class="label label-default">(none)</span> <b class="caret"></b>'
+        else {
+          var selected = ''
+          options.each(function(){
+            var label = ($(this).attr('value') !== undefined) ? $(this).attr('value') : $(this).html()
+            selected += '<span class="label label-primary">' + label + '</span> '
+          })
+          return selected.substr(0, selected.length - 1) + ' <b class="caret"></b>'
+        }
+      }
+    })})
   script(src='/js/table.js')
 block append css
   link(rel='stylesheet', href='/bower_components/bootstrap-multiselect/css/bootstrap-multiselect.css')
@@ -29,7 +42,7 @@ block content
         .col-sm-10
           select.multiselect(multiple='multiple', name='groups')
             each g,i in groups
-              option(value=g.tag, selected=(bot.groups.split(',').indexOf(g.tag) > -1) ) #{g.label}
+              option(value=g.tag, selected=(bot.groups.split(',').indexOf(g.tag) > -1)) #{g.label}
       .form-group
         label.control-label.col-sm-2 Active
         .col-sm-10.checkbox

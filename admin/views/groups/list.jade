@@ -6,14 +6,13 @@ block content
     +tableHeader('Groups','/groups/create','Create Group')
     +alerts()
     form(method='post', role='form')
-      table.table.table-bordered
+      table.table.table-striped
         tr
           th
             input#toggle(type='checkbox')
           th Tag
           th Name
           th Label
-          th Aggregate Limit
         each row,i in list
           tr
             td
@@ -24,5 +23,4 @@ block content
             td
               a(href='/groups/edit?id=#{row.id}')= row.name
             td= row.label
-            td= row.limitForAggregate
       +tableFooter(page,count)

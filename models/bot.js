@@ -31,8 +31,8 @@ schema = new mongoose.Schema({
   active: {
     type: Boolean,
     required: true,
-    index: true,
-    default: true
+    default: true,
+    index: true
   },
   hits: Number,
   secret: String,

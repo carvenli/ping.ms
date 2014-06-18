@@ -27,8 +27,17 @@ var remove = function(botId,next){
   )
 }
 
+var groupList = function(next){
+  Group.list(
+    {sort: 'name'},
+    function(err,count,results){
+      if(err) return next(err)
+      next(null,results)
+    }
+  )
+}
 
-/**
+  /**
  * List bots
  * @param {object} req
  * @param {object} res
@@ -91,38 +100,28 @@ exports.create = function(req,res){
  * @param {object} res
  */
 exports.edit = function(req,res){
-  var bot = {}, groups = []
   async.parallel(
-    [
+    {
       //get the bot
-      function(next){
-        Bot.findById(req.query.id,function(err,result){
-          if(err) return next(err)
-          if(!result) return next('Bot not found')
-          bot = result
-          next()
-        })
-      },
-      //get the groups
-      function(next){
-        Group.list(
-          {sort: 'name'},
-          function(err,count,results){
+      bot:
+        function(next){
+          Bot.findById(req.query.id,function(err,result){
             if(err) return next(err)
-            groups = results
-            next()
-          }
-        )
-      }
-    ],
+            if(!result) return next('Bot not found')
+            next(null,result)
+          })
+        },
+      //get the groups
+      groups: groupList
+    },
     //display the edit page
-    function(err){
+    function(err,results){
       if(err){
         req.flash('error',err)
         res.redirect('/bots')
         return
       }
-      res.render('bots/edit',{bot: bot,groups: groups})
+      res.render('bots/edit',results)
     }
   )
 }

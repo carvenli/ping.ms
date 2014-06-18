@@ -32,10 +32,13 @@ block content
                 a(href='/bots/edit?id=#{row.id}')= row.host
               td= row.port
               td
-                each g,i in row.groups.split(',')
-                  if(g)
-                    span.label.label-primary= g
-                    =' '
+                if(!row.groups.length)
+                  span.label.label-default (none)
+                else
+                  each g,i in row.groups.split(',')
+                    if(g)
+                      span.label.label-primary= g
+                      =' '
               td(style='white-space:nowrap;')= row.sponsor.name
               td= row.hits
               td(style='white-space:nowrap;')= (new Date(row.metrics.dateCreated)).toLocaleString().replace(/\s+\([^)]+\)$/,'')
