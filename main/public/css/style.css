@@ -16,7 +16,7 @@ a:hover {
   text-decoration: none;
 }
 #header, #footer, .site-description, .wrapper {
-  width: 650px;
+  width: 850px;
   margin: 0 auto 10px;
   overflow: hidden;
 }
@@ -43,7 +43,7 @@ a:hover {
 }
 .main {
   padding: 15px;
-  width: 650px;
+  width: 850px;
   margin: auto;
   border: 1px solid #cbcbcb;
   border-radius: 10px;

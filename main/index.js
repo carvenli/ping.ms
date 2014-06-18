@@ -7,6 +7,7 @@ var express = require('express')
   , config = require('../config')
   , routes = require('./routes')
   , RedisStore = require('connect-redis')(express)
+  , async = require('async')
 
 //setup global tpl vars
 app.locals.app = {title: config.get('title')}
@@ -62,8 +63,38 @@ app.get('/bots',routes.bot)
 //socket.io routing
 io.on('connection',function(socket){
   socket.on('ping',function(data){
-    console.log(data)
-    socket.emit('pingResult',{stuff: 'foo'})
+    var Bot = require('../models/bot').model
+    async.series(
+      [
+        function(next){
+          var query = {}
+          //filter by group if we can
+          if('All' !== data.group)
+            query.groups = new RegExp(',' + data.group + ',','i')
+          //get bots and submit queries
+          Bot
+            .find(query)
+            .sort('location')
+            .exec(function(err,results){
+              if(err) return next(err.message)
+              async.each(
+                results,
+                function(bot,next){
+                  //right here need to ask the bot for a ping result to the host
+                  //i dont remember what the bot interface is like
+                  next()
+                },
+                next
+              )
+            })
+        }
+      ],
+      function(err){
+        if(err){
+          socket.emit('error',{message: err})
+        }
+      }
+    )
   })
 })
 
