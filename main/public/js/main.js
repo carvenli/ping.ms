@@ -53,6 +53,7 @@ $(document).ready(function(){
     //update the row
     var row = tbody.find('tr#row_' + data.id)
     if(row.length){
+      row.find('td#pulsar_' + data.id).html('<span class="glyphicon glyphicon-heart text-danger"/>')
       var rowUpdate = function(tag){
         row.find('td#' + tag + '_' + data.id).html(data.result[tag])
       }
@@ -61,7 +62,7 @@ $(document).ready(function(){
       rowUpdate('max')
       rowUpdate('avg')
       rowUpdate('loss')
-      row.find('td#pulsar_' + data.id + ' > span').fadeIn(0).fadeOut(1000)
+      row.find('td#pulsar_' + data.id + ' > span').fadeOut(1000)
     }
   })
   socket.on('pingComplete',function(data){
