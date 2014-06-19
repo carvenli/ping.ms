@@ -1,15 +1,10 @@
 'use strict';
-var express = require('express')
-  , app = express()
-  , server = require('http').createServer(app)
-  , io = require('socket.io')(server)
+var io = require('socket.io-client')
   , config = require('./../config')
   , async = require('async')
   , hostbyname = require('hostbyname')
   , dns = require('dns')
   , netPing = require('net-ping')
-
-app.use(express.urlencoded())
 
 var nPs = netPing.createSession({
   _debug: false,
@@ -20,6 +15,7 @@ var nPs = netPing.createSession({
   timeout: 1000
 })
 
+/*
 //routing
 app.get('/ping',function(req,res){
   //check the request URL
@@ -138,15 +134,22 @@ app.get('/trace',function(req,res){
     }
   )
 })
-
-io.on('connection',function(socket){
-  socket.emit('hello',{version:config.get('version')})
-  socket.on('login',function(data){
-    console.log(data)
+*/
+var connUrl = config.get('bot.connect')
+var muxConnect = function(){
+  console.log('[BOT] connecting to ' + connUrl)
+  var mux = io.connect(connUrl)
+  mux.on('connect',function(){
+    console.log('[BOT] connected')
+    mux.on('botLoginResult',function(data){
+      if(data.error){
+        console.log('[BOT] ERROR: auth failed!')
+        setTimeout(muxConnect,2000)
+      } else {
+        console.log('[BOT] authorized')
+      }
+    })
+    mux.emit('botLogin',{secret:config.get('bot.secret')})
   })
-})
-
-server.listen(config.get('bot.port'),config.get('bot.host'),function(err){
-  if(err) return console.log(err)
-  console.log('ping.ms bot running on port ' + config.get('bot.port'))
-})
+}
+muxConnect()

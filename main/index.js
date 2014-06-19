@@ -61,8 +61,23 @@ app.get('/',routes.index)
 app.get('/bots',routes.bot)
 
 //socket.io routing
-io.on('connection',function(socket){
-  socket.on('ping',function(data){
+io.on('connection',function(client){
+  client.on('botLogin',function(data){
+    var Bot = require('../models/bot').model
+    Bot
+      .findOne({active:true,secret:data.secret})
+      .exec(function(err,result){
+        if(err) return console.log(err)
+        if(result){
+          console.log('[BOTSRV] accepted connection from "' + result.location + '"')
+          client.emit('botLoginResult',{error:false})
+        } else {
+          console.log('[BOTSRV] incoming connection failed')
+          client.emit('botLoginResult',{error:true})
+        }
+      })
+  })
+  client.on('ping',function(data){
     var Bot = require('../models/bot').model
     async.series(
       [
@@ -80,7 +95,7 @@ io.on('connection',function(socket){
               async.each(
                 results,
                 function(bot,next){
-                  socket.emit('pingResult',{
+                  client.emit('pingResult',{
                     location: bot.location,
                     sponsor: bot.sponsor,
                     ip: '199.87.232.5',
@@ -101,7 +116,7 @@ io.on('connection',function(socket){
       ],
       function(err){
         if(err){
-          socket.emit('error',{message: err})
+          client.emit('error',{message: err})
         }
       }
     )
