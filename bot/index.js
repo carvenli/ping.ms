@@ -120,6 +120,7 @@ var muxConnect = function(){
                 next()
               })
             },function(next){
+              mux.emit('pingInit.' + data.handle,pingData)
               async.timesSeries(pingData.count || 1,function(seq,repeat){
                 nPs.pingHost(pingData.ip,function(error,target,sent,received){
                   var result = {
@@ -144,7 +145,7 @@ var muxConnect = function(){
               })
             }
           ],function(){
-            mux.emit('pingFinals.' + data.handle,pingData)
+            mux.emit('pingComplete.' + data.handle,pingData)
           })
         })
       }

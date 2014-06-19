@@ -7,7 +7,7 @@ $(document).ready(function(){
     //clear results
     tbody.empty()
     //add waiting
-    tbody.html('<tr id="waiting"><td colspan="7">Waiting for results...</td></tr>')
+    tbody.html('<tr class="waiting"><td colspan="7">Waiting for results...</td></tr>')
     //remove hidden class
     results.removeClass('hidden')
     //send the ping submission to the backend
@@ -16,9 +16,9 @@ $(document).ready(function(){
       group: $('#group').val()
     })
   })
-  socket.on('pingResult',function(data){
+  var updateTable = function(data){
     //if the waiting banner still exists clear it
-    var waiting = $('#waiting')
+    var waiting = $('.waiting')
     if(waiting.length) waiting.remove()
     //figure out sponsor
     var sponsor
@@ -27,16 +27,22 @@ $(document).ready(function(){
     else
       sponsor = '<td>' + data.location + '</td>'
     //add the result
-    tbody.append(
-      '<tr>' +
-      sponsor +
-      '<td>' + data.result.ip + '</td>' +
-      '<td>' + data.result.min + '</td>' +
-      '<td>' + data.result.max +'</td>' +
-      '<td>' + data.result.avg + '</td>' +
-      '<td>' + data.result.loss + '%</td>' +
-      '<td><a href="#">Traceroute</a></td>' +
-      '</tr>'
+    var row = tbody.find('tr#' + data.id)
+    if(!row.length){
+      tbody.append('<tr id="' + data.id + '"></tr>')
+      row = tbody.find('tr#' + data.id)
+    }
+    row.html(
+        sponsor +
+        '<td>' + data.result.ip + '</td>' +
+        '<td>' + data.result.min + '</td>' +
+        '<td>' + data.result.max +'</td>' +
+        '<td>' + data.result.avg + '</td>' +
+        '<td>' + data.result.loss + '%</td>' +
+        '<td><a href="#">Traceroute</a></td>'
     )
+  }
+  socket.on('pingResult',function(data){
+    updateTable(data)
   })
 })

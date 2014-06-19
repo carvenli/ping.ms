@@ -8,6 +8,7 @@ var express = require('express')
   , routes = require('./routes')
   , RedisStore = require('connect-redis')(express)
   , async = require('async')
+  , shortId = require('shortid')
 
 //setup global tpl vars
 app.locals.app = {title: config.get('title')}
@@ -101,14 +102,24 @@ io.on('connection',function(client){
                 function(bot,next){
                   if(botSocket[bot.id]){
                     console.log('[PING] Found connected bot for ' + bot.location)
-                    var handle = 'fuckyou1234'
-                    botSocket[bot.id].on('pingResult.' + handle,function(data){
+                    var handle = shortId.generate().replace(/[-_]/g,'')
+                    var resultHandler = function(data,bot){
                       client.emit('pingResult',{
+                        id: bot.id,
                         location: bot.location,
                         sponsor: bot.sponsor,
                         result: data
                       })
-                    })
+                    }
+                    botSocket[bot.id].on('pingInit.' + handle,
+                      function(data){resultHandler(data,bot)}
+                    )
+                    botSocket[bot.id].on('pingResult.' + handle,
+                      function(data){resultHandler(data,bot)}
+                    )
+                    botSocket[bot.id].on('pingComplete.' + handle,
+                      function(data){resultHandler(data,bot)}
+                    )
                     botSocket[bot.id].emit('execPing',{
                       handle:handle,
                       host:data.host
