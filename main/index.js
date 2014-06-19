@@ -111,15 +111,26 @@ io.on('connection',function(client){
                         result: data
                       })
                     }
-                    botSocket[bot.id].on('pingInit.' + handle,
-                      function(data){resultHandler(data,bot)}
-                    )
-                    botSocket[bot.id].on('pingResult.' + handle,
-                      function(data){resultHandler(data,bot)}
-                    )
-                    botSocket[bot.id].on('pingComplete.' + handle,
-                      function(data){resultHandler(data,bot)}
-                    )
+                    botSocket[bot.id].on('pingInit.' + handle,function(data){
+                      client.emit('pingInit',{
+                        id: bot.id,
+                        location: bot.location,
+                        sponsor: bot.sponsor,
+                        result: data
+                      })
+                    })
+                    botSocket[bot.id].on('pingResult.' + handle,function(data){
+                      client.emit('pingResult',{
+                        id: bot.id,
+                        result: data
+                      })
+                    })
+                    botSocket[bot.id].on('pingComplete.' + handle,function(data){
+                      client.emit('pingComplete',{
+                        id: bot.id,
+                        result: data
+                      })
+                    })
                     botSocket[bot.id].emit('execPing',{
                       handle:handle,
                       host:data.host

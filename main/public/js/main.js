@@ -16,33 +16,49 @@ $(document).ready(function(){
       group: $('#group').val()
     })
   })
-  var updateTable = function(data){
+  socket.on('pingInit',function(data){
+    var idGen = function(tag){return tag + '_' + data.id}
+    var cellGen = function(item){
+      return '<td id="' + idGen(item) + '">' + data.result[item] + '</td>'
+    }
     //if the waiting banner still exists clear it
     var waiting = $('.waiting')
     if(waiting.length) waiting.remove()
     //figure out sponsor
-    var sponsor
+    var sponsor = '<td id="' + idGen('sponsor') + '">'
     if(data.sponsor.url)
-      sponsor = '<td><a href="'+ data.sponsor.url +'">'+ data.location + '</a></td>'
+      sponsor = sponsor + '<a href="'+ data.sponsor.url +'">'+ data.location + '</a>'
     else
-      sponsor = '<td>' + data.location + '</td>'
+      sponsor = sponsor + data.location
+    sponsor = sponsor + '</td>'
     //add the result
-    var row = tbody.find('tr#' + data.id)
+    var row = tbody.find('tr#' + idGen('row'))
     if(!row.length){
-      tbody.append('<tr id="' + data.id + '"></tr>')
-      row = tbody.find('tr#' + data.id)
+      tbody.append('<tr id="' + idGen('row') + '"></tr>')
+      row = tbody.find('tr#' + idGen('row'))
     }
     row.html(
         sponsor +
-        '<td>' + data.result.ip + '</td>' +
-        '<td>' + data.result.min + '</td>' +
-        '<td>' + data.result.max +'</td>' +
-        '<td>' + data.result.avg + '</td>' +
-        '<td>' + data.result.loss + '%</td>' +
-        '<td><a href="#">Traceroute</a></td>'
+        cellGen('ip') +
+        cellGen('min') +
+        cellGen('max') +
+        cellGen('avg') +
+        cellGen('loss') +
+        '<td id="' + idGen('traceLink') + '"><a href="#">Traceroute</a></td>'
     )
-  }
+  })
   socket.on('pingResult',function(data){
-    updateTable(data)
+    //update the row
+    var row = tbody.find('tr#row_' + data.id)
+    if(row.length){
+      var rowUpdate = function(tag){
+        row.find('td#' + tag + '_' + data.id).html(data.result[tag])
+      }
+      rowUpdate('ip')
+      rowUpdate('min')
+      rowUpdate('max')
+      rowUpdate('avg')
+      rowUpdate('loss')
+    }
   })
 })
