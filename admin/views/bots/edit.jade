@@ -2,7 +2,7 @@ extends ../layout
 block append js
   script(src='/js/table.js')
   script(src='/bower_components/bootstrap-multiselect/js/bootstrap-multiselect.js')
-  script(src='/js/password-generator.min.js')
+  script(src='/bower_components/pGenerator/pGenerator.jquery.js')
   script(src='/js/bots.js')
 block append css
   link(rel='stylesheet', href='/bower_components/bootstrap-multiselect/css/bootstrap-multiselect.css')
@@ -30,7 +30,7 @@ block content
           .input-group
             input.form-control(type='text', name='secret', placeholder='Bot Secret', value=bot.secret)
             span.input-group-btn
-              button.btn.btn-default(type='button',onclick='generateSecret()') Generate
+              button.btn.btn-default.btn-generate(type='button') Generate
       .form-group
         label.control-label.col-sm-2 Groups
         .col-sm-10

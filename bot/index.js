@@ -2,14 +2,13 @@
 var express = require('express')
   , app = express()
   , server = require('http').createServer(app)
+  , io = require('socket.io')(server)
   , config = require('./../config')
   , async = require('async')
   , hostbyname = require('hostbyname')
   , dns = require('dns')
   , netPing = require('net-ping')
-  , jsonStream = require('express-jsonstream')
 
-app.use(jsonStream())
 app.use(express.urlencoded())
 
 var nPs = netPing.createSession({
@@ -69,15 +68,14 @@ app.get('/ping',function(req,res){
             pingData.avg = (null === pingData.avg) ? result.rtt : (pingData.avg + result.rtt) / 2
           }
           setTimeout(function(){repeat(null,result)},1000)
-          res.jsonStream(result)
+          res.end(result)
         })
       },function(){
         next()
       })
     }
   ],function(){
-    res.jsonStream(pingData)
-    res.end()
+    res.end(pingData)
   })
 })
 
@@ -141,7 +139,14 @@ app.get('/trace',function(req,res){
   )
 })
 
-server.listen(config.get('bot.listen.port'),config.get('bot.listen.host'),function(err){
+io.on('connection',function(socket){
+  socket.emit('hello',{version:config.get('version')})
+  socket.on('login',function(data){
+    console.log(data)
+  })
+})
+
+server.listen(config.get('bot.port'),config.get('bot.host'),function(err){
   if(err) return console.log(err)
-  console.log('ping.ms bot running on port ' + config.get('bot.listen.port'))
+  console.log('ping.ms bot running on port ' + config.get('bot.port'))
 })
