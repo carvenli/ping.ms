@@ -30,11 +30,11 @@ $(document).ready(function(){
     tbody.append(
       '<tr>' +
       sponsor +
-      '<td>' + data.ip + '</td>' +
-      '<td>' + data.ping.min + '</td>' +
-      '<td>' + data.ping.max +'</td>' +
-      '<td>' + data.ping.avg + '</td>' +
-      '<td>' + data.ping.loss + '%</td>' +
+      '<td>' + data.result.ip + '</td>' +
+      '<td>' + data.result.min + '</td>' +
+      '<td>' + data.result.max +'</td>' +
+      '<td>' + data.result.avg + '</td>' +
+      '<td>' + data.result.loss + '%</td>' +
       '<td><a href="#">Traceroute</a></td>' +
       '</tr>'
     )

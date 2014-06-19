@@ -60,6 +60,9 @@ app.get('/',routes.index)
 //bot list
 app.get('/bots',routes.bot)
 
+//connected bots table
+var botSocket = {}
+
 //socket.io routing
 io.on('connection',function(client){
   client.on('botLogin',function(data){
@@ -70,6 +73,7 @@ io.on('connection',function(client){
         if(err) return console.log(err)
         if(result){
           console.log('[BOTSRV] accepted connection from "' + result.location + '"')
+          botSocket[result.id] = client
           client.emit('botLoginResult',{error:false})
         } else {
           console.log('[BOTSRV] incoming connection failed')
@@ -95,18 +99,21 @@ io.on('connection',function(client){
               async.each(
                 results,
                 function(bot,next){
-                  client.emit('pingResult',{
-                    location: bot.location,
-                    sponsor: bot.sponsor,
-                    ip: '199.87.232.5',
-                    ping: {
-                      min: 0,
-                      max: 5,
-                      avg: 3,
-                      stDev: 2,
-                      loss: 0
-                    }
-                  })
+                  if(botSocket[bot.id]){
+                    console.log('[PING] Found connected bot for ' + bot.location)
+                    var handle = 'fuckyou1234'
+                    botSocket[bot.id].on('pingResult.' + handle,function(data){
+                      client.emit('pingResult',{
+                        location: bot.location,
+                        sponsor: bot.sponsor,
+                        result: data
+                      })
+                    })
+                    botSocket[bot.id].emit('execPing',{
+                      handle:handle,
+                      host:data.host
+                    })
+                  }
                   next()
                 },
                 next

@@ -23,56 +23,6 @@ app.get('/ping',function(req,res){
     return res.status(403).end('not-allowed from ' + req.ip)
   //check the given dest
   var dest = req.param('dest')
-  if(!dest)
-    return res.status(403).end('dest not supplied')
-  var pingData = {
-    count: req.param('count') || 4,
-    dest: dest,
-    ip: dest,
-    ptr: dest,
-    min: null,
-    avg: null,
-    max: null,
-    mdev: 0
-  }
-  async.series([
-    function(next){
-      hostbyname.resolve(pingData.dest,'v4',function(err,results){
-        if(!err && results[0]) pingData.ip = results[0]
-        next()
-      })
-    },function(next){
-      dns.reverse(pingData.ip,function(err,results){
-        if(!err && results[0]) pingData.ptr = results[0]
-        next()
-      })
-    },function(next){
-      async.timesSeries(pingData.count || 1,function(seq,repeat){
-        nPs.pingHost(pingData.ip,function(error,target,sent,received){
-          var result = {
-            error: error,
-            target: target,
-            sent: (sent) ? +sent : false,
-            received: (received) ? +received : false,
-            rtt: (received && sent) ? (received - sent) : false
-          }
-          if(result.rtt){
-            if(null === pingData.min || result.rtt < pingData.min)
-              pingData.min = result.rtt
-            if(null === pingData.max || result.rtt > pingData.max)
-              pingData.max = result.rtt
-            pingData.avg = (null === pingData.avg) ? result.rtt : (pingData.avg + result.rtt) / 2
-          }
-          setTimeout(function(){repeat(null,result)},1000)
-          res.end(result)
-        })
-      },function(){
-        next()
-      })
-    }
-  ],function(){
-    res.end(pingData)
-  })
 })
 
 app.get('/trace',function(req,res){
@@ -147,6 +97,56 @@ var muxConnect = function(){
         setTimeout(muxConnect,2000)
       } else {
         console.log('[BOT] authorized')
+        mux.on('execPing',function(data){
+          var pingData = {
+            count: data.count || 4,
+            host: data.host,
+            ip: data.host,
+            ptr: data.host,
+            min: null,
+            avg: null,
+            max: null,
+            loss: 0
+          }
+          async.series([
+            function(next){
+              hostbyname.resolve(pingData.host,'v4',function(err,results){
+                if(!err && results[0]) pingData.ip = results[0]
+                next()
+              })
+            },function(next){
+              dns.reverse(pingData.ip,function(err,results){
+                if(!err && results[0]) pingData.ptr = results[0]
+                next()
+              })
+            },function(next){
+              async.timesSeries(pingData.count || 1,function(seq,repeat){
+                nPs.pingHost(pingData.ip,function(error,target,sent,received){
+                  var result = {
+                    error: error,
+                    target: target,
+                    sent: (sent) ? +sent : false,
+                    received: (received) ? +received : false,
+                    rtt: (received && sent) ? (received - sent) : false
+                  }
+                  if(result.rtt){
+                    if(null === pingData.min || result.rtt < pingData.min)
+                      pingData.min = result.rtt
+                    if(null === pingData.max || result.rtt > pingData.max)
+                      pingData.max = result.rtt
+                    pingData.avg = (null === pingData.avg) ? result.rtt : (pingData.avg + result.rtt) / 2
+                  }
+                  setTimeout(function(){repeat(null,result)},1000)
+                  mux.emit('pingResult.' + data.handle,pingData)
+                })
+              },function(){
+                next()
+              })
+            }
+          ],function(){
+            mux.emit('pingFinals.' + data.handle,pingData)
+          })
+        })
       }
     })
     mux.emit('botLogin',{secret:config.get('bot.secret')})
