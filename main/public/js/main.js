@@ -38,6 +38,7 @@ $(document).ready(function(){
       row = tbody.find('tr#' + idGen('row'))
     }
     row.html(
+        '<td id="' + idGen('pulsar') + '"><span class="glyphicon glyphicon-heart text-danger"/></td>' +
         sponsor +
         cellGen('ip') +
         cellGen('min') +
@@ -46,6 +47,7 @@ $(document).ready(function(){
         cellGen('loss') +
         '<td id="' + idGen('traceLink') + '"><a href="#">Traceroute</a></td>'
     )
+    row.find('td#' + idGen('pulsar') + ' > span').fadeOut(1000)
   })
   socket.on('pingResult',function(data){
     //update the row
@@ -59,6 +61,22 @@ $(document).ready(function(){
       rowUpdate('max')
       rowUpdate('avg')
       rowUpdate('loss')
+      row.find('td#pulsar_' + data.id + ' > span').fadeIn(0).fadeOut(1000)
+    }
+  })
+  socket.on('pingComplete',function(data){
+    //complete the row
+    var row = tbody.find('tr#row_' + data.id)
+    if(row.length){
+      var rowUpdate = function(tag){
+        row.find('td#' + tag + '_' + data.id).html(data.result[tag])
+      }
+      rowUpdate('ip')
+      rowUpdate('min')
+      rowUpdate('max')
+      rowUpdate('avg')
+      rowUpdate('loss')
+      row.find('td#pulsar_' + data.id).html('<span class="glyphicon glyphicon-ok text-success"/>')
     }
   })
 })
