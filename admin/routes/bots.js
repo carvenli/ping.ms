@@ -152,6 +152,7 @@ exports.save = function(req,res){
         doc.host = req.body.host
         if(!doc.port && !req.body.port) doc.port = defaultPort
         if(req.body.port) doc.port = (0 < req.body.port < 65536) ? req.body.port : defaultPort
+        doc.secret = req.body.secret || doc.secret || ''
         doc.groups = req.body.groups || ''
         doc.notes = req.body.notes || ''
         doc.active = req.body.active ? true : false

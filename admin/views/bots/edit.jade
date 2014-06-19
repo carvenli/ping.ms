@@ -1,7 +1,11 @@
 extends ../layout
 block append js
+  script(src='/js/password-generator.min.js')
   script(src='/bower_components/bootstrap-multiselect/js/bootstrap-multiselect.js')
   script.
+    var generateSecret = function(){
+      $("[name='secret']")[0].value = generatePassword(15,false)
+    }
     $(document).ready(function(){$('.multiselect').multiselect({
       buttonText: function(options){
         if(0 === options.length)
@@ -37,6 +41,13 @@ block content
         label.control-label.col-sm-2 Port
         .col-sm-10
           input.form-control(type='text', name='port', placeholder='Bot Port', value=bot.port)
+      .form-group
+        label.control-label.col-sm-2 Secret
+        .col-sm-10
+          .input-group
+            input.form-control(type='text', name='secret', placeholder='Bot Secret', value=bot.secret)
+            span.input-group-btn
+              button.btn.btn-default(type='button',onclick='generateSecret()') Generate
       .form-group
         label.control-label.col-sm-2 Groups
         .col-sm-10
