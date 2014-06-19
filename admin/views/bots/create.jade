@@ -1,4 +1,8 @@
 extends ../layout
+block append js
+  script(src='/bower_components/bootstrap-multiselect/js/bootstrap-multiselect.js')
+  script(src='/js/password-generator.min.js')
+  script(src='/js/bots.js')
 block content
   .container
     h1 Create Bot
@@ -16,6 +20,13 @@ block content
         label.control-label.col-sm-2 Port
         .col-sm-10
           input.form-control(type='text', name='port', placeholder='Bot Port, leave blank for 4176')
+      .form-group
+        label.control-label.col-sm-2 Secret
+        .col-sm-10
+          .input-group
+            input.form-control(type='text', name='secret', placeholder='Bot Secret')
+            span.input-group-btn
+              button.btn.btn-default(type='button',onclick='generateSecret()') Generate
       .form-group
         label.control-label.col-sm-2 Active
         .col-sm-10
