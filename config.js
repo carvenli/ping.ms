@@ -27,8 +27,7 @@ config.load({
   },
   bot: {
     enabled: false,
-    port: 4176,
-    host: null,
+    connect: 'http://127.0.0.1:3000',
     secret: ''
   },
   main: {
