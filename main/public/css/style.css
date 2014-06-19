@@ -1,5 +1,5 @@
 body {
-  background-color: #f6f6f6;
+  background-color: #000;
   color: #444;
 }
 h1, h2, h3, h4, h5 {
@@ -10,10 +10,11 @@ h1 a {
 }
 a {
   text-decoration: none;
-  color: #08c;
+  color: #034500;
 }
 a:hover {
   text-decoration: none;
+  color: #0f0;
 }
 #header, #footer, .site-description, .wrapper {
   width: 850px;
@@ -33,8 +34,8 @@ a:hover {
   margin: 3px;
 }
 #logo {
-  width: 50px;
-  height: 50px;
+  width: 320px;
+  height: 77px;
 }
 .site-description {
   margin-top: 0;
@@ -50,7 +51,7 @@ a:hover {
   -moz-border-radius: 10px;
   -webkit-border-radius: 10px;
   font-size: 14px;
-  background: #333;
+  background: #034500;
   color: #fff;
 }
 .instructions {
@@ -81,23 +82,6 @@ input.ping {
   -moz-border-radius: 5px;
   -webkit-border-radius: 5px;
 }
-input[type=submit], input.submit {
-  width: auto;
-  background: #08c;
-  border: 1px solid #06a;
-  color: #fff;
-  font-weight: bold;
-  margin-top: 15px;
-  cursor: pointer;
-  border-radius: 5px;
-  -moz-border-radius: 5px;
-  -webkit-border-radius: 5px;
-  padding: 10px;
-}
-input[type=submit]:hover, input[type=submit]:focus, input.submit:hover, input.submit:focus {
-  background: #06a;
-  color: #fff;
-}
 select {
   width: auto;
 }
@@ -105,7 +89,7 @@ select {
   margin-top: 5px;
   padding: 5px;
   background: #fff;
-  border: 1px solid #ddd;
+  border: 3px solid #034500;
   border-radius: 10px;
   -moz-border-radius: 10px;
   -webkit-border-radius: 10px;
