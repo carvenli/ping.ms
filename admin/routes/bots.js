@@ -155,6 +155,8 @@ exports.save = function(req,res){
         doc.secret = req.body.secret || doc.secret || ''
         doc.groups = req.body.groups || ''
         doc.notes = req.body.notes || ''
+        doc.sponsor.name = req.body.sponsorName || ''
+        doc.sponsor.url = req.body.sponsorUrl || ''
         doc.active = req.body.active ? true : false
         next()
       },
