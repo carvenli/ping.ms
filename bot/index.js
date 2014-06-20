@@ -42,9 +42,9 @@ async.times(conn.length,function(n,next){
               host: data.host,
               ip: data.host,
               ptr: data.host,
-              min: null,
-              avg: null,
-              max: null,
+              min: 0,
+              avg: 0,
+              max: 0,
               loss: 0
             }
             async.series([

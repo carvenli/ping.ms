@@ -27,7 +27,7 @@ $(document).ready(function(){
     //figure out sponsor
     var sponsor = '<td id="' + idGen('sponsor') + '">'
     if(data.sponsor.url)
-      sponsor = sponsor + '<a href="'+ data.sponsor.url +'">'+ data.location + '</a>'
+      sponsor = sponsor + '<a href="'+ data.sponsor.url +'" target="_blank">'+ data.location + '</a>'
     else
       sponsor = sponsor + data.location
     sponsor = sponsor + '</td>'
