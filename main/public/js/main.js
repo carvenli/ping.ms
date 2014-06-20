@@ -1,83 +1,46 @@
-/* global socket: false */
+/* global socket: false, Handlebars: false */
 $(document).ready(function(){
-  var tbody = $('#resultBody')
-  var results = $('#results')
+  var template = Handlebars.compile($('#ping-result-template').html())
+
+  var pingResults = []
+  var pingExists = function(id){
+    var exists = false
+    pingResults.forEach(function(row){
+      if(row.id === id) exists = true
+    })
+    return exists
+  }
+  var pingUpdate = function(data){
+    if(!pingExists(data.id)) pingResults.push(data)
+    else {
+      pingResults.forEach(function(row,i,o){
+        if(row.id !== data.id) return
+        o[i] = data
+      })
+    }
+    $('#pingResults').html(template({pingResults: pingResults}))
+    var pulsars = $('.pulsar>span')
+    pulsars.fadeOut(1000)
+  }
   $('#ping').submit(function(e){
     e.preventDefault()
-    //clear results
-    tbody.empty()
-    //add waiting
-    tbody.html('<tr class="waiting"><td colspan="7">Waiting for results...</td></tr>')
-    //remove hidden class
-    results.removeClass('hidden')
+    $('#pingResults').html(template())
+    $('#pingResultWrapper').removeClass('hidden')
     //send the ping submission to the backend
     socket.emit('ping',{
       host: $('#host').val(),
       group: $('#group').val()
     })
   })
-  socket.on('pingInit',function(data){
-    var idGen = function(tag){return tag + '_' + data.id}
-    var cellGen = function(item){
-      return '<td id="' + idGen(item) + '">' + data.result[item] + '</td>'
-    }
-    //if the waiting banner still exists clear it
-    var waiting = $('.waiting')
-    if(waiting.length) waiting.remove()
-    //figure out sponsor
-    var sponsor = '<td id="' + idGen('sponsor') + '">'
-    if(data.sponsor.url)
-      sponsor = sponsor + '<a href="'+ data.sponsor.url +'" target="_blank">'+ data.location + '</a>'
-    else
-      sponsor = sponsor + data.location
-    sponsor = sponsor + '</td>'
-    //add the result
-    var row = tbody.find('tr#' + idGen('row'))
-    if(!row.length){
-      tbody.append('<tr id="' + idGen('row') + '"></tr>')
-      row = tbody.find('tr#' + idGen('row'))
-    }
-    row.html(
-        '<td id="' + idGen('pulsar') + '"><span class="glyphicon glyphicon-heart text-danger"/></td>' +
-        sponsor +
-        cellGen('ip') +
-        cellGen('min') +
-        cellGen('max') +
-        cellGen('avg') +
-        cellGen('loss') +
-        '<td id="' + idGen('traceLink') + '"><a href="#">Traceroute</a></td>'
-    )
-    row.find('td#' + idGen('pulsar') + ' > span').fadeOut(1000)
-  })
-  socket.on('pingResult',function(data){
-    //update the row
-    var row = tbody.find('tr#row_' + data.id)
-    if(row.length){
-      row.find('td#pulsar_' + data.id).html('<span class="glyphicon glyphicon-heart text-danger"/>')
-      var rowUpdate = function(tag){
-        row.find('td#' + tag + '_' + data.id).html(data.result[tag])
-      }
-      rowUpdate('ip')
-      rowUpdate('min')
-      rowUpdate('max')
-      rowUpdate('avg')
-      rowUpdate('loss')
-      row.find('td#pulsar_' + data.id + ' > span').fadeOut(1000)
-    }
-  })
+  socket.on('pingInit',pingUpdate)
+  socket.on('pingResult',pingUpdate)
   socket.on('pingComplete',function(data){
-    //complete the row
-    var row = tbody.find('tr#row_' + data.id)
-    if(row.length){
-      var rowUpdate = function(tag){
-        row.find('td#' + tag + '_' + data.id).html(data.result[tag])
-      }
-      rowUpdate('ip')
-      rowUpdate('min')
-      rowUpdate('max')
-      rowUpdate('avg')
-      rowUpdate('loss')
-      row.find('td#pulsar_' + data.id).html('<span class="glyphicon glyphicon-ok text-success"/>')
-    }
+    pingUpdate(data)
+    setTimeout(function(){
+      var pulsars = $('.pulsar>span')
+      pulsars.removeClass('glyphicon-heart text-danger')
+      pulsars.addClass('glyphicon-ok text-success')
+      pulsars.fadeIn(100)
+    },1000)
   })
 })

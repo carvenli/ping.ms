@@ -104,34 +104,17 @@ io.on('connection',function(client){
                   if(botSocket[bot.id]){
                     logger.info('Found connected bot for ' + bot.location)
                     var handle = shortId.generate().replace(/[-_]/g,'')
-                    var resultHandler = function(data,bot){
-                      client.emit('pingResult',{
+                    var resultHandler = function(event,data){
+                      client.emit(event,{
                         id: bot.id,
                         location: bot.location,
                         sponsor: bot.sponsor,
                         result: data
                       })
                     }
-                    botSocket[bot.id].on('pingInit.' + handle,function(data){
-                      client.emit('pingInit',{
-                        id: bot.id,
-                        location: bot.location,
-                        sponsor: bot.sponsor,
-                        result: data
-                      })
-                    })
-                    botSocket[bot.id].on('pingResult.' + handle,function(data){
-                      client.emit('pingResult',{
-                        id: bot.id,
-                        result: data
-                      })
-                    })
-                    botSocket[bot.id].on('pingComplete.' + handle,function(data){
-                      client.emit('pingComplete',{
-                        id: bot.id,
-                        result: data
-                      })
-                    })
+                    botSocket[bot.id].on('pingInit.' + handle,function(data){resultHandler('pingInit',data)})
+                    botSocket[bot.id].on('pingResult.' + handle,function(data){resultHandler('pingResult',data)})
+                    botSocket[bot.id].on('pingComplete.' + handle,function(data){resultHandler('pingComplete',data)})
                     botSocket[bot.id].emit('execPing',{
                       handle:handle,
                       host:data.host

@@ -1,24 +1,45 @@
 extends layout
 append js
   script(src='/js/main.js')
-  script#ping-waiting(type='text/x-handlebars-template').
-    <tr>
-      <td colspan='7'>Waiting for results...</td>
-    </tr>
-  script#ping-result(type='text/x-handlebars-template').
-    <tr>
-      {{#if ping.bot.sponsor.url}}
-        <td><a href='{{ping.bot.sponsor.url}}'>{{ping.bot.location}}</a></td>
+  script#ping-result-template(type='text/x-handlebars-template').
+    <table class="table table-bordered">
+      <tr>
+        <th style='width: 1%;'><span class='glyphicon glyphicon-link' /></th>
+        <th>Location</th>
+        <th>IP</th>
+        <th>Min (ms)</th>
+        <th>Max (ms)</th>
+        <th>Avg (ms)</th>
+        <th>Loss (%)</th>
+        <th>Options</th>
+      </tr>
+      {{#each pingResults}}
+        <tr id='{{data.id}}'>
+          <td class='pulsar'>
+            <span class='glyphicon glyphicon-heart text-danger' />
+          </td>
+          {{#if this.sponsor.url}}
+            <td>
+              <a href='{{this.sponsor.url}}'>{{this.location}}</a>
+            </td>
+          {{else}}
+            <td>{{this.location}}</td>
+          {{/if}}
+          <td>{{this.result.ip}}</td>
+          <td>{{this.result.min}}</td>
+          <td>{{this.result.max}}</td>
+          <td>{{this.result.avg}}</td>
+          <td>{{this.result.loss}}</td>
+          <td>
+            <a href='#'>Traceroute</a>
+          </td>
+        </tr>
       {{else}}
-        <td>{{ping.bot.location}}</td>
-      {{/if}
-      <td>{{ping.ip}}</td>
-      <td>{{ping.min}}</td>
-      <td>{{ping.max}}</td>
-      <td>{{ping.avg}}</td>
-      <td>{{ping.loss}}</td>
-      <td><a href='#'>Traceroute</a></td>
-    </tr>
+        <tr>
+          <td colspan='8'>Waiting for results...</td>
+        </tr>
+      {{/each}}
+    </table>
 block content
   +alerts()
   .main
@@ -30,18 +51,5 @@ block content
           option(value=row.name)= row.name
       button.btn.btn-success(type="submit") Ping
     .instructions Enter a domain or an ip address, e.g. google.com or 72.14.204.99
-  .wrapper.hidden#results
-    .results
-      table.table.table-striped
-        thead
-          tr
-            th(style='width:1%')
-              span.glyphicon.glyphicon-link
-            th Location
-            th IP
-            th Min (ms)
-            th Max (ms)
-            th Avg (ms)
-            th Loss (%)
-            th Options
-        tbody#resultBody
+  #pingResultWrapper.wrapper.hidden
+    #pingResults.results
