@@ -27,8 +27,9 @@ config.load({
   },
   bot: {
     enabled: false,
-    connect: 'http://127.0.0.1:3000',
-    secret: ''
+    connections:[
+      {uri: 'http://127.0.0.1:3000',secret: 'any_string_here'}
+    ]
   },
   main: {
     enabled: false,

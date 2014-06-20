@@ -15,6 +15,92 @@ var nPs = netPing.createSession({
   timeout: 1000
 })
 
+var conn = config.get('bot.connections')
+async.times(conn.length,function(n,next){
+  var our = {
+    tag: '[BOT:' + n + '] ',
+    uri: conn[n].uri,
+    secret: conn[n].secret,
+    connect: function(){},
+    login: function(){}
+  }
+  our.connect = function(cb){
+    console.log(our.tag + 'connecting to ' + our.uri)
+    var mux = io.connect(our.uri)
+    our.login = function(){mux.emit('botLogin',{secret: our.secret})}
+    mux.on('connect',function(){
+      console.log(our.tag + 'connected')
+      mux.on('botLoginResult',function(data){
+        if(data.error){
+          console.log(our.tag + 'ERROR: auth failed!')
+          setTimeout(our.login,10000)
+        } else {
+          console.log(our.tag + 'authorized')
+          mux.on('execPing',function(data){
+            var pingData = {
+              count: data.count || 4,
+              host: data.host,
+              ip: data.host,
+              ptr: data.host,
+              min: null,
+              avg: null,
+              max: null,
+              loss: 0
+            }
+            async.series([
+              function(next){
+                hostbyname.resolve(pingData.host,'v4',function(err,results){
+                  if(!err && results[0]) pingData.ip = results[0]
+                  next()
+                })
+              },function(next){
+                dns.reverse(pingData.ip,function(err,results){
+                  if(!err && results[0]) pingData.ptr = results[0]
+                  next()
+                })
+              },function(next){
+                mux.emit('pingInit.' + data.handle,pingData)
+                async.timesSeries(pingData.count || 1,function(seq,repeat){
+                  nPs.pingHost(pingData.ip,function(error,target,sent,received){
+                    var result = {
+                      error: error,
+                      target: target,
+                      sent: (sent) ? +sent : false,
+                      received: (received) ? +received : false,
+                      rtt: (received && sent) ? (received - sent) : false
+                    }
+                    if(result.rtt){
+                      if(null === pingData.min || result.rtt < pingData.min)
+                        pingData.min = result.rtt
+                      if(null === pingData.max || result.rtt > pingData.max)
+                        pingData.max = result.rtt
+                      pingData.avg = (null === pingData.avg) ? result.rtt : (pingData.avg + result.rtt) / 2
+                    }
+                    setTimeout(function(){repeat(null,result)},1000)
+                    mux.emit('pingResult.' + data.handle,pingData)
+                  })
+                },function(){
+                  next()
+                })
+              }
+            ],function(){
+              mux.emit('pingComplete.' + data.handle,pingData)
+            })
+          })
+        }
+        if('function' === typeof cb){
+          cb()
+          cb = null
+        }
+      })
+    })
+    our.login()
+  }
+  next(null,our)
+},function(err,set){
+  async.each(set,function(i,done){i.connect(done)})
+})
+
 /*
 //routing
 app.get('/ping',function(req,res){
@@ -85,72 +171,3 @@ app.get('/trace',function(req,res){
   )
 })
 */
-var connUrl = config.get('bot.connect')
-var muxConnect = function(){
-  console.log('[BOT] connecting to ' + connUrl)
-  var mux = io.connect(connUrl)
-  mux.on('connect',function(){
-    console.log('[BOT] connected')
-    mux.on('botLoginResult',function(data){
-      if(data.error){
-        console.log('[BOT] ERROR: auth failed!')
-        setTimeout(muxConnect,2000)
-      } else {
-        console.log('[BOT] authorized')
-        mux.on('execPing',function(data){
-          var pingData = {
-            count: data.count || 4,
-            host: data.host,
-            ip: data.host,
-            ptr: data.host,
-            min: null,
-            avg: null,
-            max: null,
-            loss: 0
-          }
-          async.series([
-            function(next){
-              hostbyname.resolve(pingData.host,'v4',function(err,results){
-                if(!err && results[0]) pingData.ip = results[0]
-                next()
-              })
-            },function(next){
-              dns.reverse(pingData.ip,function(err,results){
-                if(!err && results[0]) pingData.ptr = results[0]
-                next()
-              })
-            },function(next){
-              mux.emit('pingInit.' + data.handle,pingData)
-              async.timesSeries(pingData.count || 1,function(seq,repeat){
-                nPs.pingHost(pingData.ip,function(error,target,sent,received){
-                  var result = {
-                    error: error,
-                    target: target,
-                    sent: (sent) ? +sent : false,
-                    received: (received) ? +received : false,
-                    rtt: (received && sent) ? (received - sent) : false
-                  }
-                  if(result.rtt){
-                    if(null === pingData.min || result.rtt < pingData.min)
-                      pingData.min = result.rtt
-                    if(null === pingData.max || result.rtt > pingData.max)
-                      pingData.max = result.rtt
-                    pingData.avg = (null === pingData.avg) ? result.rtt : (pingData.avg + result.rtt) / 2
-                  }
-                  setTimeout(function(){repeat(null,result)},1000)
-                  mux.emit('pingResult.' + data.handle,pingData)
-                })
-              },function(){
-                next()
-              })
-            }
-          ],function(){
-            mux.emit('pingComplete.' + data.handle,pingData)
-          })
-        })
-      }
-    })
-    mux.emit('botLogin',{secret:config.get('bot.secret')})
-  })
-}
-muxConnect()
