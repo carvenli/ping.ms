@@ -9,6 +9,7 @@ var express = require('express')
   , RedisStore = require('connect-redis')(express)
   , async = require('async')
   , shortId = require('shortid')
+  , logger = require('../helpers/logger').create('main')
 
 //setup global tpl vars
 app.locals.app = {title: config.get('title')}
@@ -73,11 +74,11 @@ io.on('connection',function(client){
       .exec(function(err,result){
         if(err) return console.log(err)
         if(result){
-          console.log('[BOTSRV] accepted connection from "' + result.location + '"')
+          logger.info('Accepted connection from "' + result.location + '"')
           botSocket[result.id] = client
           client.emit('botLoginResult',{error:false})
         } else {
-          console.log('[BOTSRV] incoming connection failed')
+          logger.warn('Incoming connection failed')
           client.emit('botLoginResult',{error:true})
         }
       })
@@ -101,7 +102,7 @@ io.on('connection',function(client){
                 results,
                 function(bot,next){
                   if(botSocket[bot.id]){
-                    console.log('[PING] Found connected bot for ' + bot.location)
+                    logger.info('Found connected bot for ' + bot.location)
                     var handle = shortId.generate().replace(/[-_]/g,'')
                     var resultHandler = function(data,bot){
                       client.emit('pingResult',{

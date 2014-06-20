@@ -2,8 +2,7 @@
 var config = require('./config')
   , mongoose = require('mongoose')
 
-var logger = require('./helpers/logger')('main')
-logger.addConsole()
+var logger = require('./helpers/logger').create('main')
 
 //services that dont require mongoose
 logger.info('Starting services that don\'t require mongoose...')

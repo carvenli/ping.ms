@@ -136,12 +136,10 @@ exports.save = function(req,res){
       },
       //populate data
       function(next){
-        console.log(req.body)
         doc.name = req.body.name
         doc.tag = req.body.tag || req.body.name.replace(/\s+/g,'').toLowerCase()
         doc.label = req.body.label || (req.body.name + ' Ping Servers').trim()
         doc.limitForAggregate = req.body.limitForAggregate || 1
-        console.log(doc)
         next()
       },
       //save the group

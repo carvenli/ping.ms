@@ -3,11 +3,8 @@ var program = require('commander')
   , Table = require('cli-table')
   , mongoose = require('mongoose')
   , config = require('../config')
-  , logger = require('../helpers/logger')('cli')
+  , logger = require('../helpers/logger').create('Staff Manage')
   , Staff = require('../models/staff').model
-
-//log to console
-logger.addConsole()
 
 mongoose.connect(config.get('mongoose.dsn'),config.get('mongoose.options'),function(err){
   if(err) throw err

@@ -5,6 +5,7 @@ var express = require('express')
   , server = require('http').createServer(app)
   , config = require('../config')
   , routes = require('./routes')
+  , logger = require('../helpers/logger').create('admin')
   , RedisStore = require('connect-redis')(express)
 
 //global tpl vars
@@ -81,7 +82,7 @@ app.get('/pages/edit',routes.pages.form)
 app.get('/',routes.index)
 
 server.listen(config.get('admin.port'),config.get('admin.host'),function(){
-  console.log(
+  logger.info(
       'Express listening on port ' +
       (config.get('admin.host') || '0.0.0.0') +
       ':' + config.get('admin.port')

@@ -18,24 +18,25 @@ var nPs = netPing.createSession({
 var conn = config.get('bot.connections')
 async.times(conn.length,function(n,next){
   var our = {
-    tag: '[BOT:' + n + '] ',
+    tag: 'BOT:' + n,
     uri: conn[n].uri,
     secret: conn[n].secret,
     connect: function(){},
     login: function(){}
   }
+  var logger = require('../helpers/logger').create(our.tag)
   our.connect = function(cb){
-    console.log(our.tag + 'connecting to ' + our.uri)
+    logger.info('connecting to ' + our.uri)
     var mux = io.connect(our.uri)
     our.login = function(){mux.emit('botLogin',{secret: our.secret})}
     mux.on('connect',function(){
-      console.log(our.tag + 'connected')
+      logger.info('connected')
       mux.on('botLoginResult',function(data){
         if(data.error){
-          console.log(our.tag + 'ERROR: auth failed!')
+          logger.error('auth failed!')
           setTimeout(our.login,10000)
         } else {
-          console.log(our.tag + 'authorized')
+          logger.info('authorized')
           mux.on('execPing',function(data){
             var pingData = {
               count: data.count || 4,
