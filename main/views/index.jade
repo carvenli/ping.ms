@@ -1,6 +1,24 @@
 extends layout
 append js
   script(src='/js/main.js')
+  script#ping-waiting(type='text/x-handlebars-template').
+    <tr>
+      <td colspan='7'>Waiting for results...</td>
+    </tr>
+  script#ping-result(type='text/x-handlebars-template').
+    <tr>
+      {{#if ping.bot.sponsor.url}}
+        <td><a href='{{ping.bot.sponsor.url}}'>{{ping.bot.location}}</a></td>
+      {{else}}
+        <td>{{ping.bot.location}}</td>
+      {{/if}
+      <td>{{ping.ip}}</td>
+      <td>{{ping.min}}</td>
+      <td>{{ping.max}}</td>
+      <td>{{ping.avg}}</td>
+      <td>{{ping.loss}}</td>
+      <td><a href='#'>Traceroute</a></td>
+    </tr>
 block content
   +alerts()
   .main
