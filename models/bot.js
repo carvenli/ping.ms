@@ -34,7 +34,10 @@ schema = new mongoose.Schema({
     default: true,
     index: true
   },
-  hits: Number,
+  hits: {
+    type: Number,
+    default: 0
+  },
   secret: String,
   notes: String,
   metrics: {
