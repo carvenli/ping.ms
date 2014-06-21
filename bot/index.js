@@ -11,7 +11,7 @@ var nPs = netPing.createSession({
   networkProtocol: netPing.NetworkProtocol.IPv4,
   packetSize: 56,
   ttl: 255,
-  retries: 3,
+  retries: 0,
   timeout: 1000
 })
 
@@ -31,12 +31,14 @@ async.times(conn.length,function(n,next){
     our.login = function(){mux.emit('botLogin',{secret: our.secret})}
     mux.on('connect',function(){
       logger.info('connected')
+      mux.removeAllListeners('botLoginResult')
       mux.on('botLoginResult',function(data){
         if(data.error){
           logger.error('auth failed!')
           setTimeout(our.login,10000)
         } else {
           logger.info('authorized')
+          mux.removeAllListeners('execPing')
           mux.on('execPing',function(data){
             var pingData = {
               count: data.count || 4,
@@ -94,8 +96,8 @@ async.times(conn.length,function(n,next){
           cb = null
         }
       })
+      our.login()
     })
-    our.login()
   }
   next(null,our)
 },function(err,set){

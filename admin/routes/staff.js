@@ -16,7 +16,7 @@ exports.list = function(req,res){
     var start = parseInt(req.query.start,10) || 0
     var search = req.query.search || ''
     if(start < 0) start = 0
-    Model.list({start: start, limit: limit, find: search},function(err,count,results){
+    Model.list({start: start, limit: limit, search: search},function(err,count,results){
       res.render('staff/list',{
         page: list.pagination(start,count,limit),
         count: count,

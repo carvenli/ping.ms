@@ -58,7 +58,7 @@ exports.list = function(req,res){
         start: start,
         sort: 'name',
         limit: limit,
-        find: search
+        search: search
       },
       function(err,count,results){
         if(err) return res.send(err)
