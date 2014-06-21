@@ -19,8 +19,8 @@ $(document).ready(function(){
       })
     }
     $('#pingResults').html(template({pingResults: pingResults}))
-    var pulsars = $('.pulsar>span')
-    pulsars.fadeOut(1000)
+    var pulsar = $('tr#' + data.id + ' > .pulsar > span')
+    pulsar.fadeIn(0,function(){pulsar.fadeOut(1000)})
   }
   $('#ping').submit(function(e){
     e.preventDefault()
@@ -36,11 +36,9 @@ $(document).ready(function(){
   socket.on('pingResult',pingUpdate)
   socket.on('pingComplete',function(data){
     pingUpdate(data)
-    setTimeout(function(){
-      var pulsars = $('.pulsar>span')
-      pulsars.removeClass('glyphicon-heart text-danger')
-      pulsars.addClass('glyphicon-ok text-success')
-      pulsars.fadeIn(100)
-    },1000)
+    var pulsar = $('tr#' + data.id + ' > .pulsar')
+    //we replace the html here ON PURPOSE to autocancel all other previous animations
+    //do not convert to simple class refuckery, thanks
+    pulsar.html('<span class="glyphicon glyphicon-ok text-success"/>')
   })
 })
