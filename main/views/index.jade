@@ -2,44 +2,26 @@ extends layout
 append js
   script(src='/js/main.js')
   script#ping-result-template(type='text/x-handlebars-template').
-    <table class="table table-bordered">
-      <tr>
-        <th style='width: 1%;'><span class='glyphicon glyphicon-link' /></th>
-        <th>Location</th>
-        <th>IP</th>
-        <th>Min (ms)</th>
-        <th>Max (ms)</th>
-        <th>Avg (ms)</th>
-        <th>Loss (%)</th>
-        <th>Options</th>
-      </tr>
-      {{#each pingResults}}
-        <tr id='{{this.id}}'>
-          <td class='pulsar'>
-            <span class='glyphicon glyphicon-heart text-danger' />
-          </td>
-          {{#if this.sponsor.url}}
-            <td>
-              <a href='{{this.sponsor.url}}'>{{this.location}}</a>
-            </td>
-          {{else}}
-            <td>{{this.location}}</td>
-          {{/if}}
-          <td>{{this.result.ip}}</td>
-          <td>{{this.result.min}}</td>
-          <td>{{this.result.max}}</td>
-          <td>{{this.result.avg}}</td>
-          <td>{{this.result.loss}}</td>
-          <td>
-            <a href='#'>Traceroute</a>
-          </td>
-        </tr>
+    <tr id='{{data.id}}'>
+      <td class='pulsar'>
+        <span class='glyphicon glyphicon-heart text-danger' />
+      </td>
+      {{#if data.sponsor.url}}
+        <td>
+          <a href='{{data.sponsor.url}}'>{{data.location}}</a>
+        </td>
       {{else}}
-        <tr>
-          <td colspan='8'>Waiting for results...</td>
-        </tr>
-      {{/each}}
-    </table>
+        <td>{{data.location}}</td>
+      {{/if}}
+      <td class="ip">{{data.result.ip}}</td>
+      <td class="min">{{data.result.min}}</td>
+      <td class="max">{{data.result.max}}</td>
+      <td class="avg">{{data.result.avg}}</td>
+      <td class="loss">{{data.result.loss}}</td>
+      <td class="traceLink">
+        <a href='#'>Traceroute</a>
+      </td>
+    </tr>
 block content
   +alerts()
   .main
@@ -53,3 +35,18 @@ block content
     .instructions Enter a domain or an ip address, e.g. google.com or 72.14.204.99
   #pingResultWrapper.wrapper.hidden
     #pingResults.results
+      table#pingTable.table.table-bordered
+        thead
+          tr
+            th(style='width:1%;')
+              span.glyphicon.glyphicon-link
+            th Location
+            th IP
+            th Min (ms)
+            th Max (ms)
+            th Avg (ms)
+            th Loss (%)
+            th Options
+        tbody
+          tr#waiting
+            td(colspan='8') Waiting for results...
