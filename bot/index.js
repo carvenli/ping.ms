@@ -17,29 +17,27 @@ var nPs = netPing.createSession({
 
 var conn = config.get('bot.connections')
 async.times(conn.length,function(n,next){
-  var our = {
-    tag: 'BOT:' + n,
-    uri: conn[n].uri,
-    secret: conn[n].secret,
-    connect: function(){},
-    login: function(){}
-  }
-  var logger = require('../helpers/logger').create(our.tag)
-  our.connect = function(cb){
-    logger.info('connecting to ' + our.uri)
-    var mux = io.connect(our.uri)
-    our.login = function(){mux.emit('botLogin',{secret: our.secret})}
-    mux.on('connect',function(){
-      logger.info('connected')
-      mux.removeAllListeners('botLoginResult')
-      mux.on('botLoginResult',function(data){
+  conn[n].logger = require('../helpers/logger').create('BOT:' + n)
+  conn[n].mux = null
+  conn[n].login = function(){this.mux.emit('botLogin',{secret: this.secret})}
+  conn[n].connect = function(cb){
+    var self = this
+    self.logger.info('connecting to ' + self.uri)
+    self.mux = io.connect(self.uri)
+    self.mux.on('connect',function(){
+      self.logger.info('connected')
+      self.mux.removeAllListeners('botLoginResult')
+      self.mux.on('botLoginResult',function(data){
         if(data.error){
-          logger.error('auth failed!')
-          setTimeout(our.login,10000)
+          self.logger.error('auth failed!')
+          clearTimeout(self.loginTimer)
+          self.loginTimer = setTimeout(self.login,config.get('bot.loginDelay.authRetry'))
         } else {
-          logger.info('authorized')
-          mux.removeAllListeners('execPing')
-          mux.on('execPing',function(data){
+          self.logger.info('authorized')
+          clearTimeout(self.loginTimer)
+          self.loginTimer = setTimeout(self.login,config.get('bot.loginDelay.auth'))
+          self.mux.removeAllListeners('execPing')
+          self.mux.on('execPing',function(data){
             var pingData = {
               count: data.count || 4,
               host: data.host,
@@ -48,7 +46,7 @@ async.times(conn.length,function(n,next){
               min: null,
               avg: null,
               max: null,
-              loss: 0
+              loss: null
             }
             async.series([
               function(next){
@@ -62,7 +60,7 @@ async.times(conn.length,function(n,next){
                   next()
                 })
               },function(next){
-                mux.emit('pingInit.' + data.handle,pingData)
+                self.mux.emit('pingInit.' + data.handle,pingData)
                 async.timesSeries(pingData.count || 1,function(seq,repeat){
                   nPs.pingHost(pingData.ip,function(error,target,sent,received){
                     var result = {
@@ -80,14 +78,14 @@ async.times(conn.length,function(n,next){
                       pingData.avg = (null === pingData.avg) ? result.rtt : (pingData.avg + result.rtt) / 2
                     }
                     setTimeout(function(){repeat(null,result)},1000)
-                    mux.emit('pingResult.' + data.handle,pingData)
+                    self.mux.emit('pingResult.' + data.handle,pingData)
                   })
                 },function(){
                   next()
                 })
               }
             ],function(){
-              mux.emit('pingComplete.' + data.handle,pingData)
+              self.mux.emit('pingComplete.' + data.handle,pingData)
             })
           })
         }
@@ -96,10 +94,10 @@ async.times(conn.length,function(n,next){
           cb = null
         }
       })
-      our.login()
+      self.login()
     })
   }
-  next(null,our)
+  next(null,conn[n])
 },function(err,set){
   async.each(set,function(i,done){i.connect(done)})
 })
