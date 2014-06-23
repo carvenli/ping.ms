@@ -67,19 +67,21 @@ var botSocket = {}
 
 //socket.io routing
 io.on('connection',function(client){
-  client.on('botLogin',function(data,cb){
+  client.on('botLogin',function(data,reply){
     var Bot = require('../models/bot').model
     Bot
-      .findOne({active:true,secret:data.secret})
+      .findOne({secret:data.secret})
       .exec(function(err,result){
         if(err) return console.log(err)
         if(result){
-          logger.info('Accepted connection from "' + result.location + '"')
-          botSocket[result.id] = client
-          cb({error:false})
+          if(result.active){
+            logger.info('Accepted connection from "' + result.location + '"')
+            botSocket[result.id] = client
+          }
+          reply({error:false})
         } else {
-          logger.warn('Incoming connection failed')
-          cb({error:true})
+          logger.warning('Incoming connection failed')
+          reply({error:true})
         }
       })
   })
@@ -102,6 +104,7 @@ io.on('connection',function(client){
                 results,
                 function(bot,next){
                   if(botSocket[bot.id]){
+                    var bs = botSocket[bot.id]
                     logger.info('Found connected bot for ' + bot.location)
                     var handle = shortId.generate().replace(/[-_]/g,'')
                     var resultHandler = function(event,data){
@@ -109,13 +112,13 @@ io.on('connection',function(client){
                         id: bot.id,
                         location: bot.location,
                         sponsor: bot.sponsor,
-                        result: data
+                        set: data
                       })
                     }
-                    botSocket[bot.id].on('pingInit.' + handle,function(data){resultHandler('pingInit',data)})
-                    botSocket[bot.id].on('pingResult.' + handle,function(data){resultHandler('pingResult',data)})
-                    botSocket[bot.id].on('pingComplete.' + handle,function(data){resultHandler('pingComplete',data)})
-                    botSocket[bot.id].emit('execPing',{
+                    bs.on('pingInit.' + handle,function(data){resultHandler('pingInit',data)})
+                    bs.on('pingResult.' + handle,function(data){resultHandler('pingResult',data)})
+                    bs.on('pingComplete.' + handle,function(data){resultHandler('pingComplete',data)})
+                    bs.emit('execPing',{
                       handle:handle,
                       host:data.host
                     })

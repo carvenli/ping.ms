@@ -4,7 +4,7 @@ append js
   script#ping-result-template(type='text/x-handlebars-template').
     <tr id='{{data.id}}'>
       <td class='pulsar'>
-        <span class='glyphicon glyphicon-heart text-danger' />
+        <span class='glyphicon glyphicon-link text-warning' />
       </td>
       {{#if data.sponsor.url}}
         <td>
@@ -30,7 +30,7 @@ block content
       input.ping#host(type="text", name="host", size="10", value="")
       select#group(name="group")
         each row in groups
-          option(value=row.name)= row.name
+          option(value=row.tag)= row.name
       button.btn.btn-success(type="submit") Ping
     .instructions Enter a domain or an ip address, e.g. google.com or 72.14.204.99
   #pingResultWrapper.wrapper.hidden

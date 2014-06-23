@@ -70,8 +70,8 @@ schema.pre('save',function(next){
   _ref = that.get('groups')
   if((void 0) === _ref || null === _ref)
     that.groups = ''
-  if('string' !== typeof _ref)
-    that.groups = ',' + _ref.join(',') + ','
+  if('string' === typeof _ref)
+    that.groups = ',' + _ref + ','
   _ref = that.get('metrics.version')
   if((void 0) === _ref || null === _ref)
     that.metrics.version = '2.0.0'

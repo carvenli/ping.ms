@@ -1,14 +1,25 @@
 /* global socket: false, Handlebars: false */
 $(document).ready(function(){
   var template = Handlebars.compile($('#ping-result-template').html())
-  var pulsarBeat = function(id){
-    var pulsar = $('tr#' + id + '>.pulsar>span')
-    pulsar.fadeIn(0,function(){pulsar.fadeOut(1000)})
-  }
-  var pulsarFinal = function(id){
+  var pulsarBeat = function(id,failed){
+    var glyph = failed ? 'glyphicon-heart-empty' : 'glyphicon-heart'
     //we replace the html here ON PURPOSE to autocancel all other previous animations
     //do not convert to simple class refuckery, thanks
-    $('tr#' + id + ' > .pulsar').html('<span class="glyphicon glyphicon-ok text-success"/>')
+    var pulsar = $('tr#' + id + ' > .pulsar')
+    pulsar.html('<span class="glyphicon ' + glyph + ' text-danger"/>')
+    pulsar.find('span').fadeIn(0,function(){pulsar.find('span').fadeOut(1000)})
+  }
+  var pulsarFinal = function(id){
+    var row = $('tr#' + id)
+    var loss = row.find('.loss').html()
+    var glyph = 'glyphicon-question-sign text-warning'
+    if(loss === '0')
+      glyph = 'glyphicon-ok-sign text-success'
+    if(loss === '100')
+      glyph = 'glyphicon-remove-sign text-danger'
+    //we replace the html here ON PURPOSE to autocancel all other previous animations
+    //do not convert to simple class refuckery, thanks
+    $('tr#' + id + ' > .pulsar').html('<span class="glyphicon ' + glyph + '"/>')
   }
   var pingInit = function(data){
     //destroy the Waiting message if any
@@ -16,25 +27,40 @@ $(document).ready(function(){
     //dump existing if any (shouldn't be?)
     $('tr#'+data.id).remove()
     //eventually add some smart row placement here
-    if(null === data.result.min) data.result.min = '-'
-    if(null === data.result.max) data.result.max = '-'
-    if(null === data.result.avg) data.result.avg = '-'
-    if(null === data.result.loss) data.result.loss = '-'
+    data.set.min = '-'
+    data.set.max = '-'
+    data.set.avg = '-'
+    data.set.loss = '-'
     $('#pingTable > tbody').append(template({data: data}))
   }
   var pingResult = function(data){
     var row = $('tr#'+data.id)
-    if(!row.length) console.log('EPIC FAIL')
-    row.find('.ip').html(data.result.ip)
-    row.find('.min').html(data.result.min)
-    row.find('.avg').html(data.result.avg)
-    row.find('.max').html(data.result.max)
-    row.find('.loss').html(data.result.loss)
-    pulsarBeat(data.id)
+    var min = '-'
+    var max = '-'
+    var avg = '-'
+    var fails = 0
+    var currentlyFailed = false
+    data.set.results.forEach(function(e,i,o){
+      if(!e.error){
+        var rtt = e.received - e.sent
+        if('-' === min || rtt < min) min = rtt
+        if('-' === max || rtt > max) max = rtt
+        avg = ('-' === avg) ? rtt : (avg + rtt) / 2
+        currentlyFailed = false
+      } else {
+        fails++
+        currentlyFailed = true
+      }
+    })
+    var loss = (fails / data.set.results.length) * 100
+    row.find('.ip').html(data.set.ip)
+    row.find('.min').html(min)
+    row.find('.avg').html(avg)
+    row.find('.max').html(max)
+    row.find('.loss').html(loss)
+    pulsarBeat(data.id,currentlyFailed)
   }
   var pingComplete = function(data){
-    var row = $('tr#'+data.id)
-    if(!row.length) console.log('EPIC FAIL')
     pulsarFinal(data.id)
   }
   socket.on('pingInit',pingInit)
@@ -45,6 +71,7 @@ $(document).ready(function(){
     var host = $('#host').val().replace(/\s+/g,'')
     if('' === host) return(false)
     $('#pingResultWrapper').removeClass('hidden')
+    $('#pingTable > tbody').empty()
     //send the ping submission to the backend
     socket.emit('ping',{
       host: host,

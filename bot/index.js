@@ -19,6 +19,7 @@ var conn = config.get('bot.connections')
 async.times(conn.length,function(n,next){
   conn[n].logger = require('../helpers/logger').create('BOT:' + n)
   conn[n].mux = io.connect(conn[n].uri)
+  //event response handlers
   conn[n].handleLogin = function(data,cb){
     var self = this
     if(data.error){
@@ -29,16 +30,37 @@ async.times(conn.length,function(n,next){
       self.logger.info('authorized')
       clearTimeout(self.loginTimer)
       self.loginTimer = setTimeout(self.login,config.get('bot.loginDelay.auth'))
+      //individual command handlers
+      self.execResolve= self.execResolve || function(data,reply){
+        self.dnsData = {
+          host: data.host,
+          ip: data.host,
+          ptr: data.host
+        }
+        var hostToIP = function(next){
+          hostbyname.resolve(self.dnsData.host,'v4',function(err,results){
+            if(!err && results[0]) self.dnsData.ip = results[0]
+            next()
+          })
+        }
+        var ipToPTR = function(next){
+          dns.reverse(self.dnsData.ip,function(err,results){
+            if(!err && results[0]) self.dnsData.ptr = results[0]
+            next()
+          })
+        }
+        async.series([hostToIP,ipToPTR],
+          function(){reply(self.dnsData)}
+        )
+      }
       self.execPing = self.execPing || function(data){
+        if(!data.count) data.count = 4
         self.pingData = {
-          count: data.count || 4,
+          dns: self.dnsData,
           host: data.host,
           ip: data.host,
           ptr: data.host,
-          min: null,
-          avg: null,
-          max: null,
-          loss: null
+          results: []
         }
         async.series([
           function(next){
@@ -53,23 +75,16 @@ async.times(conn.length,function(n,next){
             })
           },function(next){
             self.mux.emit('pingInit.' + data.handle,self.pingData)
-            async.timesSeries(self.pingData.count || 1,function(seq,repeat){
+            async.timesSeries(data.count || 1,function(seq,repeat){
               nPs.pingHost(self.pingData.ip,function(error,target,sent,received){
                 var result = {
-                  error: error,
                   target: target,
                   sent: (sent) ? +sent : false,
                   received: (received) ? +received : false,
-                  rtt: (received && sent) ? (received - sent) : false
+                  error: error
                 }
-                if(result.rtt){
-                  if(null === self.pingData.min || result.rtt < self.pingData.min)
-                    self.pingData.min = result.rtt
-                  if(null === self.pingData.max || result.rtt > self.pingData.max)
-                    self.pingData.max = result.rtt
-                  self.pingData.avg = (null === self.pingData.avg) ? result.rtt : (self.pingData.avg + result.rtt) / 2
-                }
-                setTimeout(function(){repeat(null,result)},1000)
+                self.pingData.results.push(result)
+                setTimeout(function(){repeat()},1000)
                 self.mux.emit('pingResult.' + data.handle,self.pingData)
               })
             },function(){
@@ -77,7 +92,7 @@ async.times(conn.length,function(n,next){
             })
           }
         ],function(){
-          self.mux.emit('pingComplete.' + data.handle,self.mux.pingData)
+          self.mux.emit('pingComplete.' + data.handle,self.pingData)
         })
       }
       self.mux.removeListener('execPing',self.execPing)
