@@ -18,12 +18,11 @@ var nPs = netPing.createSession({
 var conn = config.get('bot.connections')
 async.times(conn.length,function(n,next){
   conn[n].logger = require('../helpers/logger').create('BOT:' + n)
-  conn[n].mux = null
+  conn[n].mux = io.connect(conn[n].uri)
   conn[n].login = function(){this.mux.emit('botLogin',{secret: this.secret})}
   conn[n].connect = function(cb){
     var self = this
     self.logger.info('connecting to ' + self.uri)
-    self.mux = io.connect(self.uri)
     self.mux.on('connect',function(){
       self.logger.info('connected')
       self.mux.removeAllListeners('botLoginResult')
