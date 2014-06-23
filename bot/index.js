@@ -29,9 +29,8 @@ async.times(conn.length,function(n,next){
       self.logger.info('authorized')
       clearTimeout(self.loginTimer)
       self.loginTimer = setTimeout(self.login,config.get('bot.loginDelay.auth'))
-      self.mux.removeAllListeners('execPing')
-      self.mux.on('execPing',function(data){
-        var pingData = {
+      self.execPing = self.execPing || function(data){
+        self.pingData = {
           count: data.count || 4,
           host: data.host,
           ip: data.host,
@@ -43,19 +42,19 @@ async.times(conn.length,function(n,next){
         }
         async.series([
           function(next){
-            hostbyname.resolve(pingData.host,'v4',function(err,results){
-              if(!err && results[0]) pingData.ip = results[0]
+            hostbyname.resolve(self.pingData.host,'v4',function(err,results){
+              if(!err && results[0]) self.pingData.ip = results[0]
               next()
             })
           },function(next){
-            dns.reverse(pingData.ip,function(err,results){
-              if(!err && results[0]) pingData.ptr = results[0]
+            dns.reverse(self.pingData.ip,function(err,results){
+              if(!err && results[0]) self.pingData.ptr = results[0]
               next()
             })
           },function(next){
-            self.mux.emit('pingInit.' + data.handle,pingData)
-            async.timesSeries(pingData.count || 1,function(seq,repeat){
-              nPs.pingHost(pingData.ip,function(error,target,sent,received){
+            self.mux.emit('pingInit.' + data.handle,self.pingData)
+            async.timesSeries(self.pingData.count || 1,function(seq,repeat){
+              nPs.pingHost(self.pingData.ip,function(error,target,sent,received){
                 var result = {
                   error: error,
                   target: target,
@@ -64,23 +63,25 @@ async.times(conn.length,function(n,next){
                   rtt: (received && sent) ? (received - sent) : false
                 }
                 if(result.rtt){
-                  if(null === pingData.min || result.rtt < pingData.min)
-                    pingData.min = result.rtt
-                  if(null === pingData.max || result.rtt > pingData.max)
-                    pingData.max = result.rtt
-                  pingData.avg = (null === pingData.avg) ? result.rtt : (pingData.avg + result.rtt) / 2
+                  if(null === self.pingData.min || result.rtt < self.pingData.min)
+                    self.pingData.min = result.rtt
+                  if(null === self.pingData.max || result.rtt > self.pingData.max)
+                    self.pingData.max = result.rtt
+                  self.pingData.avg = (null === self.pingData.avg) ? result.rtt : (self.pingData.avg + result.rtt) / 2
                 }
                 setTimeout(function(){repeat(null,result)},1000)
-                self.mux.emit('pingResult.' + data.handle,pingData)
+                self.mux.emit('pingResult.' + data.handle,self.pingData)
               })
             },function(){
               next()
             })
           }
         ],function(){
-          self.mux.emit('pingComplete.' + data.handle,pingData)
+          self.mux.emit('pingComplete.' + data.handle,self.mux.pingData)
         })
-      })
+      }
+      self.mux.removeListener('execPing',self.execPing)
+      self.mux.on('execPing',self.execPing)
       if('function' === typeof cb){
         cb()
         cb = null
