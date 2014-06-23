@@ -19,7 +19,7 @@ var conn = config.get('bot.connections')
 async.times(conn.length,function(n,next){
   conn[n].logger = require('../helpers/logger').create('BOT:' + n)
   conn[n].mux = io.connect(conn[n].uri)
-  conn[n].handleLogin = function(data,cb){
+  conn[n].handleLogin = function(data){
     var self = this
     if(data.error){
       self.logger.error('auth failed!')
