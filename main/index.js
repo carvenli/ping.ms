@@ -67,7 +67,7 @@ var botSocket = {}
 
 //socket.io routing
 io.on('connection',function(client){
-  client.on('botLogin',function(data){
+  client.on('botLogin',function(data,cb){
     var Bot = require('../models/bot').model
     Bot
       .findOne({active:true,secret:data.secret})
@@ -76,10 +76,10 @@ io.on('connection',function(client){
         if(result){
           logger.info('Accepted connection from "' + result.location + '"')
           botSocket[result.id] = client
-          client.emit('botLoginResult',{error:false})
+          cb({error:false})
         } else {
           logger.warn('Incoming connection failed')
-          client.emit('botLoginResult',{error:true})
+          cb({error:true})
         }
       })
   })

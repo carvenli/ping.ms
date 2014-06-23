@@ -19,81 +19,87 @@ var conn = config.get('bot.connections')
 async.times(conn.length,function(n,next){
   conn[n].logger = require('../helpers/logger').create('BOT:' + n)
   conn[n].mux = io.connect(conn[n].uri)
-  conn[n].login = function(){this.mux.emit('botLogin',{secret: this.secret})}
+  conn[n].handleLogin = function(data,cb){
+    var self = this
+    if(data.error){
+      self.logger.error('auth failed!')
+      clearTimeout(self.loginTimer)
+      self.loginTimer = setTimeout(self.login,config.get('bot.loginDelay.authRetry'))
+    } else {
+      self.logger.info('authorized')
+      clearTimeout(self.loginTimer)
+      self.loginTimer = setTimeout(self.login,config.get('bot.loginDelay.auth'))
+      self.mux.removeAllListeners('execPing')
+      self.mux.on('execPing',function(data){
+        var pingData = {
+          count: data.count || 4,
+          host: data.host,
+          ip: data.host,
+          ptr: data.host,
+          min: null,
+          avg: null,
+          max: null,
+          loss: null
+        }
+        async.series([
+          function(next){
+            hostbyname.resolve(pingData.host,'v4',function(err,results){
+              if(!err && results[0]) pingData.ip = results[0]
+              next()
+            })
+          },function(next){
+            dns.reverse(pingData.ip,function(err,results){
+              if(!err && results[0]) pingData.ptr = results[0]
+              next()
+            })
+          },function(next){
+            self.mux.emit('pingInit.' + data.handle,pingData)
+            async.timesSeries(pingData.count || 1,function(seq,repeat){
+              nPs.pingHost(pingData.ip,function(error,target,sent,received){
+                var result = {
+                  error: error,
+                  target: target,
+                  sent: (sent) ? +sent : false,
+                  received: (received) ? +received : false,
+                  rtt: (received && sent) ? (received - sent) : false
+                }
+                if(result.rtt){
+                  if(null === pingData.min || result.rtt < pingData.min)
+                    pingData.min = result.rtt
+                  if(null === pingData.max || result.rtt > pingData.max)
+                    pingData.max = result.rtt
+                  pingData.avg = (null === pingData.avg) ? result.rtt : (pingData.avg + result.rtt) / 2
+                }
+                setTimeout(function(){repeat(null,result)},1000)
+                self.mux.emit('pingResult.' + data.handle,pingData)
+              })
+            },function(){
+              next()
+            })
+          }
+        ],function(){
+          self.mux.emit('pingComplete.' + data.handle,pingData)
+        })
+      })
+    }
+  }
+  conn[n].login = function(cb){
+    var self = this
+    self.mux.emit('botLogin',{secret: self.secret},
+    function(data){self.handleLogin(data,cb)}
+  )}
   conn[n].connect = function(cb){
     var self = this
+    var done = cb
     self.logger.info('connecting to ' + self.uri)
     self.mux.on('connect',function(){
       self.logger.info('connected')
-      self.mux.removeAllListeners('botLoginResult')
-      self.mux.on('botLoginResult',function(data){
-        if(data.error){
-          self.logger.error('auth failed!')
-          clearTimeout(self.loginTimer)
-          self.loginTimer = setTimeout(self.login,config.get('bot.loginDelay.authRetry'))
-        } else {
-          self.logger.info('authorized')
-          clearTimeout(self.loginTimer)
-          self.loginTimer = setTimeout(self.login,config.get('bot.loginDelay.auth'))
-          self.mux.removeAllListeners('execPing')
-          self.mux.on('execPing',function(data){
-            var pingData = {
-              count: data.count || 4,
-              host: data.host,
-              ip: data.host,
-              ptr: data.host,
-              min: null,
-              avg: null,
-              max: null,
-              loss: null
-            }
-            async.series([
-              function(next){
-                hostbyname.resolve(pingData.host,'v4',function(err,results){
-                  if(!err && results[0]) pingData.ip = results[0]
-                  next()
-                })
-              },function(next){
-                dns.reverse(pingData.ip,function(err,results){
-                  if(!err && results[0]) pingData.ptr = results[0]
-                  next()
-                })
-              },function(next){
-                self.mux.emit('pingInit.' + data.handle,pingData)
-                async.timesSeries(pingData.count || 1,function(seq,repeat){
-                  nPs.pingHost(pingData.ip,function(error,target,sent,received){
-                    var result = {
-                      error: error,
-                      target: target,
-                      sent: (sent) ? +sent : false,
-                      received: (received) ? +received : false,
-                      rtt: (received && sent) ? (received - sent) : false
-                    }
-                    if(result.rtt){
-                      if(null === pingData.min || result.rtt < pingData.min)
-                        pingData.min = result.rtt
-                      if(null === pingData.max || result.rtt > pingData.max)
-                        pingData.max = result.rtt
-                      pingData.avg = (null === pingData.avg) ? result.rtt : (pingData.avg + result.rtt) / 2
-                    }
-                    setTimeout(function(){repeat(null,result)},1000)
-                    self.mux.emit('pingResult.' + data.handle,pingData)
-                  })
-                },function(){
-                  next()
-                })
-              }
-            ],function(){
-              self.mux.emit('pingComplete.' + data.handle,pingData)
-            })
-          })
-        }
-        if('function' === typeof cb){
-          cb()
-          cb = null
+      self.login(function(){
+        if('function' === typeof done){
+          done()
+          done = null
         }
       })
-      self.login()
     })
   }
   next(null,conn[n])
