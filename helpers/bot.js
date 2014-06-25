@@ -1,6 +1,5 @@
 'use strict';
 var io = require('socket.io-client')
-  , config = require('./../config')
   , async = require('async')
   , hostbyname = require('hostbyname')
   , dns = require('dns')
@@ -27,6 +26,7 @@ var BotSession = function(opts){
     ip: null,
     ptr: null
   }
+  that.pingResults = {}
   //setup net-ping session
   var netPing = require('net-ping')
   that.nPs = netPing.createSession({
@@ -62,47 +62,48 @@ BotSession.prototype.execResolve = function(replyFn){
   )
 }
 
-BotSession.prototype.execPing = function(opts){
+BotSession.prototype.send = function(type){
   var self = this
-  if(!opts.count) opts.count = 4
-  self.pingData = {
-    dns: self.target,
-    host: opts.host,
-    ip: opts.host,
-    ptr: opts.host,
-    results: []
-  }
+  self.emit(type + '.' + self.options.handle,
+    {
+      dnsData: self.target,
+      host: self.target.host,
+      ip: self.target.ip,
+      ptr: self.target.ptr,
+      results: self.pingResults
+    }
+  )
+}
+
+BotSession.prototype.ping = function(emit){
+  var self = this
+  self.emit = emit
   async.series([
     function(next){
-      hostbyname.resolve(self.pingData.host,'v4',function(err,results){
-        if(!err && results[0]) self.pingData.ip = results[0]
+      if(!self.target.ip)
+        self.execResolve(function(){next()})
+      else
         next()
-      })
-    },function(next){
-      dns.reverse(self.pingData.ip,function(err,results){
-        if(!err && results[0]) self.pingData.ptr = results[0]
-        next()
-      })
-    },function(next){
-      self.mux.emit('pingInit.' + opts.handle,self.pingData)
+    },
+    function(next){
+      self.send('pingInit')
       async.timesSeries(opts.count || 1,function(seq,repeat){
-        self.nPs.pingHost(self.pingData.ip,function(error,target,sent,received){
-          var result = {
+        self.nPs.pingHost(self.pingResults.ip,function(error,target,sent,received){
+          setTimeout(function(){repeat()},1000)
+          self.pingResults.push({
             target: target,
             sent: (sent) ? +sent : false,
             received: (received) ? +received : false,
             error: error
-          }
-          self.pingData.results.push(result)
-          setTimeout(function(){repeat()},1000)
-          self.mux.emit('pingResult.' + opts.handle,self.pingData)
+          })
+          self.send('pingResult')
         })
       },function(){
         next()
       })
     }
   ],function(){
-    self.mux.emit('pingComplete.' + opts.handle,self.pingData)
+    self.send('pingComplete')
   })
 }
 
@@ -124,7 +125,6 @@ var BotSocket = function(opts){
   that.options = opts
   that.logger = require('../helpers/logger').create('BOT:' + that.options.tag)
   that.auth = {
-    config: that.options.auth || config.get('bot.auth'),
     state: 'unknown',
     timer: null
   }
@@ -132,19 +132,35 @@ var BotSocket = function(opts){
   that.mux = io.connect(that.options.uri)
 }
 
+BotSocket.prototype.emit = function(type,data){
+  this.mux.emit(type,data)
+}
+
+BotSocket.prototype.execPing = function(opts){
+  var self = this
+  if(!opts.count) opts.count = 4
+  var sess = new BotSession(opts)
+  self.sessions[opts.handle] = sess
+  sess.ping(self.emit)
+}
+
 BotSocket.prototype.handleLogin = function(data,cb){
   var self = this
   if(data.error){
     self.logger.error('auth failed!')
+    self.auth.state = 'failRetry'
     clearTimeout(self.auth.timer)
     self.auth.timer = setTimeout(self.authorize,self.options.auth.failDelay)
   } else {
     self.logger.info('authorized')
+    self.auth.state = 'authorized'
     clearTimeout(self.auth.timer)
     self.auth.timer = setTimeout(self.authorize,self.options.auth.reDelay)
     //(re)map the listeners
     self.mux.removeListener('execPing',self.execPing)
     self.mux.on('execPing',self.execPing)
+    //self.mux.removeListener('execTrace',self.execTrace)
+    //self.mux.on('execTrace',self.execTrace)
     if('function' === typeof cb){
       cb()
       cb = null
@@ -187,15 +203,26 @@ BotSocket.prototype.connect = function(cb){
  */
 var Bot = function(opts){
   var that = this
+  that.options = opts
   that.logger = require('../helpers/logger').create('BOT')
   that.sockets = []
-  var conn = config.get('bot.connections')
-  async.times(conn.length,function(n,next){
-    next(null,new BotSocket(conn[n]))
-  },function(err,set){
-    that.sockets = set
-    async.each(that.sockets,function(i,done){i.connect(done)})
-  })
+}
+
+Bot.prototype.start = function(){
+  var self = this
+  async.times(
+    self.options.connections.length,
+    function(n,next){
+      var sockOpts = self.options.connections[n]
+      sockOpts.tag = n.toString()
+      sockOpts.auth = self.options.auth
+      next(null,new BotSocket(sockOpts))
+    },
+    function(err,set){
+      self.sockets = set
+      async.each(self.sockets,function(i,done){i.connect(done)})
+    }
+  )
 }
 
 

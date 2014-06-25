@@ -27,15 +27,12 @@ config.load({
   },
   bot: {
     enabled: false,
-    loginDelay: {
-      auth: 3600000, // 1 hour
-      authRetry: 10000 // 10 seconds
+    auth: {
+      reDelay: 3600000, // 1 hour
+      failDelay: 10000 // 10 seconds
     },
     connections:[
-      {
-        uri: 'http://127.0.0.1:3000',
-        secret: 'any_string_here'
-      }
+//      {uri: 'http://127.0.0.1:3000', secret: 'any_string_here'}
     ]
   },
   main: {
