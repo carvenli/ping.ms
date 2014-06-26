@@ -87,7 +87,7 @@ BotSession.prototype.ping = function(emit){
     },
     function(next){
       self.send('pingInit')
-      async.timesSeries(opts.count || 1,function(seq,repeat){
+      async.timesSeries(self.options.count || 1,function(seq,repeat){
         self.nPs.pingHost(self.pingResults.ip,function(error,target,sent,received){
           setTimeout(function(){repeat()},1000)
           self.pingResults.push({
