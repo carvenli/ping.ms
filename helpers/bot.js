@@ -150,12 +150,12 @@ BotSocket.prototype.handleLogin = function(data,cb){
     self.logger.error('auth failed!')
     self.auth.state = 'failRetry'
     clearTimeout(self.auth.timer)
-    self.auth.timer = setTimeout(self.authorize,self.options.auth.failDelay)
+    self.auth.timer = setTimeout(self.authorize.bind(self),self.options.auth.failDelay)
   } else {
     self.logger.info('authorized')
     self.auth.state = 'authorized'
     clearTimeout(self.auth.timer)
-    self.auth.timer = setTimeout(self.authorize,self.options.auth.reDelay)
+    self.auth.timer = setTimeout(self.authorize.bind(self),self.options.auth.reDelay)
     //(re)map the listeners
     self.mux.removeListener('execPing',self.execPing)
     self.mux.on('execPing',self.execPing)
@@ -170,7 +170,7 @@ BotSocket.prototype.handleLogin = function(data,cb){
 
 BotSocket.prototype.authorize = function(cb){
   var self = this
-  self.mux.emit('botLogin',{secret: self.secret},
+  self.mux.emit('botLogin',{secret: self.options.secret},
     function(data){self.handleLogin(data,cb)}
   )
 }
@@ -178,7 +178,7 @@ BotSocket.prototype.authorize = function(cb){
 BotSocket.prototype.connect = function(cb){
   var self = this
   var done = cb
-  self.logger.info('connecting to ' + self.uri)
+  self.logger.info('connecting to ' + self.options.uri)
   self.mux.on('connect',function(){
     self.logger.info('connected')
     self.authorize(function(){
