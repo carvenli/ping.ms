@@ -105,7 +105,7 @@ io.on('connection',function(client){
                 function(bot,next){
                   if(botSocket[bot.id]){
                     var bs = botSocket[bot.id]
-                    logger.info('Found connected bot for ' + bot.location)
+                    logger.info('Found connected bot for "' + bot.location + '"')
                     var handle = shortId.generate().replace(/[-_]/g,'')
                     var resultHandler = function(event,data){
                       client.emit(event,{
@@ -120,7 +120,8 @@ io.on('connection',function(client){
                     bs.on('pingComplete.' + handle,function(data){resultHandler('pingComplete',data)})
                     bs.emit('execPing',{
                       handle:handle,
-                      host:data.host
+                      host:data.host,
+                      count: data.count || 4
                     })
                   }
                   next()

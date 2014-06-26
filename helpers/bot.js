@@ -169,8 +169,8 @@ BotSocket.prototype.handleLogin = function(data,cb){
     clearTimeout(self.auth.timer)
     self.auth.timer = setTimeout(self.authorize.bind(self),self.options.auth.reDelay)
     //(re)map the listeners
-    self.mux.removeListener('execPing',self.execPing.bind(self))
-    self.mux.on('execPing',self.execPing.bind(self))
+    self.mux.removeListener('execPing',self.execPing)
+    self.mux.on('execPing',self.execPing)
     //self.mux.removeListener('execTrace',self.execTrace)
     //self.mux.on('execTrace',self.execTrace)
     if('function' === typeof cb){
@@ -188,10 +188,9 @@ BotSocket.prototype.authorize = function(cb){
   )
 }
 
-BotSocket.prototype.connect = function(cb){
+BotSocket.prototype.connect = function(done){
   var self = this
-  self.logger.info('BotSocket.connect\n',cb)
-  var done = cb
+  self.logger.info('BotSocket.connect\n',done)
   self.logger.info('connecting to ' + self.options.uri)
   self.mux.on('connect',function(){
     self.logger.info('connected')
