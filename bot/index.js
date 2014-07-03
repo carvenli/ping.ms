@@ -4,6 +4,25 @@ var async = require('async')
   , config = require('../config')
   , Bot = require('../helpers/bot.js')
 
+var propCopy = function(obj){return JSON.parse(JSON.stringify(obj))}
+
+var options = config.get('bot')
+  , sockets = []
+async.each(
+  options.connections,
+  function(conn,next){
+    var muxOpts = propCopy(conn)
+    muxOpts.auth = propCopy(options.auth)
+    muxOpts.tag = logger.tagExtend(sockets.length)
+    var mux = Bot.create(muxOpts)
+    mux.mapEvents(function(){
+      mux.connect(function(){mux.logger.info('..l..')})
+      sockets.push(mux)
+      next()
+    })
+  }
+)
+
 async.each(
   config.get('bot'),
   function(options,next){

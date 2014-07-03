@@ -10,122 +10,16 @@ var io = require('socket.io-client')
 /**
  * Utility functions
  */
-/**
- * mapEvents - stack our pass-up events on the given object
- * @param {Emitter} obj Object (Emitter-enabled) to augment
- * @param {array} [handles] List of additional handle suffixes, optional
- * @param {function} cb Callback when completed
- */
-var mapEvents = function(obj,handles,cb){
-  obj.logger.info('Mapping events')
-  if('function' === typeof handles){
-    cb = handles
-    handles = []
-  }
-  var events = [
-    'pingInit',
-    'pingResult',
-    'pingComplete'
-  ]
-  var doIt = function(a,done){
-    async.eachSeries(a,
-      function(e,next){
-        obj.logger.info('Mapped "' + e + '"')
-        obj[e] = function(data){obj.emit(data)}.bind(obj)
-        obj.on(e,obj[e])
-        next()
-      },
-      function(){
-        done()
-      }
-    )
-  }
-  if(0 < handles.length){
-    var taggedEvents = events
-    async.eachSeries(handles,
-      function(h,hNext){
-        obj.logger.info('Handle: ' + h)
-        async.eachSeries(events,
-          function(e,eNext){
-            obj.logger.info('Handle: ' + h)
-            taggedEvents.push(e + '.' + h)
-            eNext()
-          },
-          function(){hNext()}
-        )
-      },
-      function(){
-        events = taggedEvents
-        obj.logger.info(events)
-        doIt(events,cb)
-      }
-    )
-  } else doIt(events,cb)
-}
-
-/**
- * clearEvents - Clear any pass-up events on the given object
- * @param {Emitter} obj Object (Emitter-enabled) to remove events from
- * @param {array} [handles] List of additional handle suffixes, optional
- * @param {function} cb Callback when completed
- */
-var clearEvents = function(obj,handles,cb){
-  obj.logger.info('Mapping events')
-  if('function' === typeof handles){
-    cb = handles
-    handles = []
-  }
-  var events = [
-    'pingInit',
-    'pingResult',
-    'pingComplete'
-  ]
-  var doIt = function(a,done){
-    async.eachSeries(a,
-      function(e,next){
-        obj.logger.info('Mapped "' + e + '"')
-        obj[e] = function(data){obj.emit(data)}.bind(obj)
-        obj.on(e,obj[e])
-        next()
-      },
-      function(){
-        done()
-      }
-    )
-  }
-  if(0 < handles.length){
-    var taggedEvents = events
-    async.eachSeries(handles,
-      function(h,hNext){
-        obj.logger.info('Handle: ' + h)
-        async.eachSeries(events,
-          function(e,eNext){
-            obj.logger.info('Handle: ' + h)
-            taggedEvents.push(e + '.' + h)
-            eNext()
-          },
-          function(){hNext()}
-        )
-      },
-      function(){
-        events = taggedEvents
-        obj.logger.info(events)
-        doIt(events,cb)
-      }
-    )
-  } else doIt(events,cb)
-}
-
 
 /**
  * BotSession Object
- *  this gets generated within BotSocket once for each ping/trace request (target)
+ *  this gets generated within Bot once for each ping/trace request (target)
  */
 
 /**
  * Constructor
  * @param {object} opts Options object
- * @param {string} opts.tag ID from owner BotSocket instance
+ * @param {string} opts.tag ID from owner Bot instance
  * @param {string} opts.handle Handle for this session (from browser)
  * @param {string} opts.target Hostname or IP for destination
  * @constructor
@@ -236,44 +130,44 @@ BotSession.create = function(opts){
 }
 
 /**
- * BotSocket Object
- *  each Bot has a sockets Array property, which holds multiples of these
+ * Bot Object
+ *  each Bot is a socket.io client which connects to a mux (main service)
+ *  this object simply augments this socket with event handling and any
+ *  probe services we provide to the frontend.
+ *  Events are passed bidirectionally (this is an EventEmitter just like socket.io).
  */
 
 /**
  * Constructor
  * @param {object} opts Options object
- * @param {string} opts.tag Tag used for logging
- * @param {object} opts.auth [optional] Object to override auth section from config
- * @param {object} opts.auth [optional] Object to override auth section from config
  * @constructor
  */
-var BotSocket = function(opts){
+var Bot = function(opts){
   var that = this
   EventEmitter.apply(that)
   that.options = opts
-  that.logger = require('../helpers/logger').create('BOT:' + that.options.tag)
-  that.logger.info('BotSocket Constructor\n',opts)
+  that.logger = require('../helpers/logger').create(that.options.tag)
+  that.logger.info('Bot Constructor\n',opts)
   that.auth = {
     state: 'unknown',
     timer: null
   }
   that.sessions = {}
 }
-util.inherits(BotSocket,EventEmitter)
+util.inherits(Bot,EventEmitter)
 
-BotSocket.prototype.execPing = function(opts){
+Bot.prototype.execPing = function(opts){
   var self = this
-  self.logger.info('BotSocket.execPing\n',opts)
+  self.logger.info('Bot.execPing\n',opts)
   if(!opts.count) opts.count = 4
   opts.tag = self.options.tag
   self.sessions[opts.handle] = BotSession.create(opts)
   self.sessions[opts.handle].ping()
 }
 
-BotSocket.prototype.handleLogin = function(data,cb){
+Bot.prototype.handleLogin = function(data,cb){
   var self = this
-  self.logger.info('BotSocket.handleLogin\n',data,cb)
+  self.logger.info('Bot.handleLogin\n',data,cb)
   if(data.error){
     self.logger.error('auth failed!')
     self.auth.state = 'failRetry'
@@ -296,17 +190,17 @@ BotSocket.prototype.handleLogin = function(data,cb){
   }
 }
 
-BotSocket.prototype.authorize = function(cb){
+Bot.prototype.authorize = function(cb){
   var self = this
-  self.logger.info('BotSocket.authorize\n',cb)
+  self.logger.info('Bot.authorize\n',cb)
   self.emit('botLogin',{secret: self.options.secret},
     function(data){self.handleLogin(data,cb)}
   )
 }
 
-BotSocket.prototype.connect = function(done){
+Bot.prototype.connect = function(done){
   var self = this
-  self.logger.info('BotSocket.connect\n',done)
+  self.logger.info('Bot.connect\n',done)
   self.logger.info('connecting to ' + self.options.uri)
   self.mux = io.connect(self.options.uri)
   self.mux.once('connect',function(){
@@ -323,50 +217,10 @@ BotSocket.prototype.connect = function(done){
 /**
  * Create instance
  * @param {object} opts
- * @return {BotSocket}
+ * @return {Bot}
  */
-BotSocket.create = function(opts){
-  var sock = new BotSocket(opts)
-  return sock
-}
-
-
-/**
- * Bot Object
- *  this is the main, public object
- */
-
-/**
- * Constructor
- * @param {object} opts Options object
- * @constructor
- */
-var Bot = function(opts){
-  var that = this
-  that.options = opts
-  that.logger = require('../helpers/logger').create('BOT')
-  that.logger.info('Bot Constructor\n',opts)
-  that.sockets = []
-}
-
-Bot.prototype.start = function(){
-  var self = this
-  self.logger.info('Bot.start')
-  var n = 0
-  async.each(
-    self.options.connections,
-    function(conn,next){
-      var sockOpts = JSON.parse(JSON.stringify(conn))
-      sockOpts.tag = (n++).toString()
-      sockOpts.auth = JSON.parse(JSON.stringify(self.options.auth))
-      var sock = BotSocket.create(sockOpts)
-      mapEvents(sock,function(){
-        sock.connect(function(){self.logger.info('..l..')})
-        self.sockets.push(sock)
-        next()
-      })
-    }
-  )
+Bot.create = function(opts){
+  return (new Bot(opts))
 }
 
 /**
