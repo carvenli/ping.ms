@@ -77,7 +77,7 @@ BotSession.prototype.execResolve = function(replyFn){
 
 BotSession.prototype.send = function(type){
   var self = this
-  self.logger.info('BotSession.send\n',type)
+  self.logger.info('BotSession.send ' + type)
   self.emit('BotSessionMsg',
     {
       msgType: type,

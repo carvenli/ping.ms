@@ -109,6 +109,7 @@ io.on('connection',function(client){
                     logger.info('Found connected bot for "' + bot.location + '"')
                     var handle = shortId.generate().replace(/[-_]/g,'')
                     var resultHandler = function(event,data){
+                      //console.log(event,data)
                       client.emit(event,{
                         id: bot.id,
                         location: bot.location,
@@ -116,9 +117,9 @@ io.on('connection',function(client){
                         set: data
                       })
                     }
-                    bs.on('pingInit.' + handle,function(data){resultHandler('pingInit',data)})
-                    bs.on('pingResult.' + handle,function(data){resultHandler('pingResult',data)})
-                    bs.on('pingComplete.' + handle,function(data){resultHandler('pingComplete',data)})
+                    bs.on('pingInit',function(data){resultHandler('pingInit',data)})
+                    bs.on('pingResult',function(data){resultHandler('pingResult',data)})
+                    bs.on('pingComplete',function(data){resultHandler('pingComplete',data)})
                     bs.emit('execPing',{
                       handle:handle,
                       host:data.host,
