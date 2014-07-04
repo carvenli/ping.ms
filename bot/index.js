@@ -15,14 +15,12 @@ async.each(
     muxOpts.auth = propCopy(options.auth)
     muxOpts.tag = logger.tagExtend(sockets.length)
     var mux = Bot.create(muxOpts)
-    mux.mapEvents(function(){
-      mux.connect(function(){mux.logger.info('..l..')})
-      sockets.push(mux)
-      next()
-    })
+    mux.connect(function(){mux.logger.info('..l..')})
+    sockets.push(mux)
+    next()
   }
 )
-
+/*
 async.each(
   config.get('bot'),
   function(options,next){
@@ -74,3 +72,4 @@ async.each(
     if(err) logger.error(err)
   }
 )
+*/

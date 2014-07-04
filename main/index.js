@@ -78,6 +78,7 @@ io.on('connection',function(client){
             logger.info('Accepted connection from "' + result.location + '"')
             botSocket[result.id] = client
           }
+          logger.info('Denied connection from "' + result.location + '" due to !active')
           reply({error:false})
         } else {
           logger.warning('Incoming connection failed')

@@ -28,7 +28,7 @@ var BotSession = function(opts){
   var that = this
   EventEmitter.apply(that)
   that.options = opts
-  that.logger = require('../helpers/logger').create('BOT:' + that.options.tag + ':' + that.options.handle)
+  that.logger = require('../helpers/logger').create(that.options.tag)
   that.logger.info('BotSession Constructor\n',opts)
   that.target = {
     host: that.options.host,
@@ -77,8 +77,9 @@ BotSession.prototype.execResolve = function(replyFn){
 BotSession.prototype.send = function(type){
   var self = this
   self.logger.info('BotSession.send\n',type)
-  self.emit(type,
+  self.emit('BotSessionMsg',
     {
+      msgType: type,
       dnsData: self.target,
       host: self.target.host,
       ip: self.target.ip,
@@ -160,8 +161,16 @@ Bot.prototype.execPing = function(opts){
   var self = this
   self.logger.info('Bot.execPing\n',opts)
   if(!opts.count) opts.count = 4
-  opts.tag = self.options.tag
+  opts.tag = self.logger.tagExtend(opts.handle)
+  delete(opts.handle)
   self.sessions[opts.handle] = BotSession.create(opts)
+  //wire the backchannel
+  BotSession.on('BotSessionMsg',function(msg){
+    self.logger('BotSessionMsg rcv:\n',msg)
+    var type = msg.msgType
+    delete(msg.msgType)
+    self.mux.emit(type,msg)
+  })
   self.sessions[opts.handle].ping()
 }
 
@@ -193,7 +202,7 @@ Bot.prototype.handleLogin = function(data,cb){
 Bot.prototype.authorize = function(cb){
   var self = this
   self.logger.info('Bot.authorize\n',cb)
-  self.emit('botLogin',{secret: self.options.secret},
+  self.mux.emit('botLogin',{secret: self.options.secret},
     function(data){self.handleLogin(data,cb)}
   )
 }

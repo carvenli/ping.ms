@@ -46,7 +46,7 @@ var stringify = function(args){
  */
 var Logger = function(tag){
   var that = this
-  that.tag = '[' + (tag || 'oose').toUpperCase() + '] '
+  that.tag = '[' + (tag || 'oose').toUpperCase() + ']'
 }
 
 /**
@@ -58,7 +58,7 @@ Logger.prototype.tagExtend = function(subTag){
   var that = this
   if(('string' !== typeof subTag) && ('function' === typeof subTag.toString))
     subTag = subTag.toString()
-  return that.tag.replace(/^\[([^\]]+)\] $/,'$1:' + subTag)
+  return that.tag.replace(/^\[([^\]]+)\].*$/,'$1:' + subTag)
 }
 /**
  * Log stuff
