@@ -103,7 +103,7 @@ BotSession.prototype.ping = function(){
     function(next){
       self.send('pingInit')
       async.timesSeries(self.options.count || 1,function(seq,repeat){
-        self.nPs.pingHost(self.pingResults.ip,function(error,target,sent,received){
+        self.nPs.pingHost(self.target.ip,function(error,target,sent,received){
           setTimeout(function(){repeat()},1000)
           self.pingResults.push({
             target: target,
