@@ -1,6 +1,7 @@
 /* global socket: false, Handlebars: false */
 $(document).ready(function(){
-  var template = Handlebars.compile($('#ping-result-template').html())
+  var tplPingMenu = Handlebars.compile($('#ping-menu-template').html())
+  var tplPingRow = Handlebars.compile($('#ping-row-template').html())
   var pulsarBeat = function(id,failed){
     var glyph = failed ? 'glyphicon-heart-empty' : 'glyphicon-heart'
     //we replace the html here ON PURPOSE to autocancel all other previous animations
@@ -21,6 +22,18 @@ $(document).ready(function(){
     //do not convert to simple class refuckery, thanks
     $('tr#' + id + ' > .pulsar').html('<span class="glyphicon ' + glyph + '"/>')
   }
+  var dnsResults = {}
+  var dnsResult = function(data){
+    console.log(data)
+    dnsResults.host = data.host
+    dnsResults.ip = data.ip
+    dnsResults.ptr = data.ptr
+    var menu = $('#pingMenu')
+    menu.empty()
+    menu.append(tplPingRow(dnsResults))
+    $('#pingBtn').removeClass('hidden')
+  }
+  var pingResults = {}
   var pingInit = function(data){
     //destroy the Waiting message if any
     $('tr#waiting').remove()
@@ -31,7 +44,7 @@ $(document).ready(function(){
     data.set.max = '-'
     data.set.avg = '-'
     data.set.loss = '-'
-    $('#pingTable > tbody').append(template({data: data}))
+    $('#pingTable > tbody').append(tplPingRow({data: data}))
   }
   var pingResult = function(data){
     var row = $('tr#'+data.id)
@@ -63,11 +76,24 @@ $(document).ready(function(){
   var pingComplete = function(data){
     pulsarFinal(data.id)
   }
+  $('#ping').submit(function(e){
+    e.preventDefault()
+  })
+  $('#lookupBtn').click(function(e){
+    e.preventDefault()
+    var host = $('#host').val().replace(/\s+/g,'')
+    if('' === host) return(false)
+    //send the DNS resolve to the backend
+    socket.on('dnsResult',dnsResult)
+    socket.emit('resolve',{
+      host: host,
+      group: $('#group').val()
+    },dnsResult)
+  })
   socket.on('pingInit',pingInit)
   socket.on('pingResult',pingResult)
   socket.on('pingComplete',pingComplete)
-  $('#ping').submit(function(e){
-    e.preventDefault()
+  $('#pingBtn').click(function(){
     var host = $('#host').val().replace(/\s+/g,'')
     if('' === host) return(false)
     $('#pingResultWrapper').removeClass('hidden')

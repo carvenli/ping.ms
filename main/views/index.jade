@@ -1,7 +1,14 @@
 extends layout
 append js
   script(src='/js/main.js')
-  script#ping-result-template(type='text/x-handlebars-template').
+  script#ping-menu-template(type='text/x-handlebars-template').
+    <li><a class='modeAuto' href='#'>(Full Auto)</a></li>
+    <li><a class='modeAutoLock' href='#'>(Auto, same IP)</a></li>
+    <li class="divider"></li>
+    {{#each ip}}
+    <li><a class='modeForceIP' href="#">{{this}}</a></li>
+    {{/each}}
+  script#ping-row-template(type='text/x-handlebars-template').
     <tr id='{{data.id}}'>
       <td class='pulsar'>
         <span class='glyphicon glyphicon-link text-warning' />
@@ -31,7 +38,18 @@ block content
       select#group(name="group")
         each row in groups
           option(value=row.tag)= row.name
-      button.btn.btn-success(type="submit") Ping
+      button.btn.btn-success#lookupBtn(type="button") Lookup
+      button.btn.btn-success.dropdown-toggle.hidden#pingBtn(type="button", data-toggle="dropdown")
+        | Ping
+        span.caret
+      ul.dropdown-menu#pingMenu(role="menu")
+        li
+          a(href="#") (automatic)
+        li
+          a(href="#") (automatic, single IP)
+        li.divider
+        li
+          a(href="#") (try resolve first)
     .instructions Enter a domain or an ip address, e.g. google.com or 72.14.204.99
   #pingResultWrapper.wrapper.hidden
     #pingResults.results

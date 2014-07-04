@@ -86,6 +86,50 @@ io.on('connection',function(client){
         }
       })
   })
+  client.on('resolve',function(data,cb){
+    var Bot = require('../models/bot').model
+    async.series(
+      [
+        function(next){
+          var query = {active: true}
+          //filter by group if we can
+          if('All' !== data.group)
+            query.groups = new RegExp(',' + data.group + ',','i')
+          //get bots and submit queries
+          Bot
+            .find(query)
+            .sort('location')
+            .exec(function(err,results){
+              if(err) return next(err.message)
+              async.each(
+                results,
+                function(bot,next){
+                  if(botSocket[bot.id]){
+                    var bs = botSocket[bot.id]
+                    logger.info('Found connected bot for "' + bot.location + '"')
+                    var handle = shortId.generate().replace(/[-_]/g,'')
+                    bs.emit('dnsResolve',
+                      {
+                        handle:handle,
+                        host:data.host
+                      },
+                      cb
+                    )
+                  }
+                  next()
+                },
+                next
+              )
+            })
+        }
+      ],
+      function(err){
+        if(err){
+          client.emit('error',{message: err})
+        }
+      }
+    )
+  })
   client.on('ping',function(data){
     var Bot = require('../models/bot').model
     async.series(
