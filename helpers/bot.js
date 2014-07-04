@@ -3,8 +3,8 @@ var io = require('socket.io-client')
   , util = require('util')
   , EventEmitter = require('events').EventEmitter
   , async = require('async')
-  , hostbyname = require('hostbyname')
-  , dns = require('dns')
+
+var propCopy = function(obj){return JSON.parse(JSON.stringify(obj))}
 
 var netPing = require('net-ping')
 var netPingSession = netPing.createSession({
@@ -41,53 +41,20 @@ var BotSession = function(opts){
   that.logger.info('BotSession Constructor\n',opts)
   that.target = {
     host: that.options.host,
-    ip: null,
-    ptr: null
+    ip: [],
+    ptr: []
   }
   that.pingResults = []
   that.nPs = netPingSession
 }
 util.inherits(BotSession,EventEmitter)
 
-BotSession.prototype.targetHostToIP = function(next){
-  var self = this
-  self.logger.info('BotSession.targetHostToIP\n',next)
-  hostbyname.resolve(self.target.host,'v4',function(err,results){
-    if(!err && results[0]) self.target.ip = results[0]
-    next()
-  })
-}
-
-BotSession.prototype.targetIpToPtr = function(next){
-  var self = this
-  self.logger.info('BotSession.targetIpToPtr\n',next)
-  dns.reverse(self.target.ip,function(err,results){
-    if(!err && results[0]) self.target.ptr = results[0]
-    next()
-  })
-}
-
-BotSession.prototype.execResolve = function(replyFn){
-  var self = this
-  self.logger.info('BotSession.execResolve\n',replyFn)
-  async.series([self.targetHostToIP.bind(self),self.targetIpToPtr.bind(self)],
-    function(){replyFn(self.target)}
-  )
-}
-
-BotSession.prototype.send = function(type){
+BotSession.prototype.send = function(type,data){
   var self = this
   self.logger.info('BotSession.send ' + type)
-  self.emit('BotSessionMsg',
-    {
-      msgType: type,
-      dnsData: self.target,
-      host: self.target.host,
-      ip: self.target.ip,
-      ptr: self.target.ptr,
-      results: self.pingResults
-    }
-  )
+  var pkt = propCopy(data)
+  pkt.msgType = type
+  self.emit('BotSessionMsg',pkt)
 }
 
 BotSession.prototype.ping = function(){
@@ -95,23 +62,26 @@ BotSession.prototype.ping = function(){
   self.logger.info('BotSession.ping')
   async.series([
     function(next){
-      if(!self.target.ip)
-        self.execResolve(function(){next()})
-      else
-        next()
+      if(0 === self.target.ip.length){
+        var DNS = require('../helpers/dns.js').create(self.target.host)
+        DNS.resolve(function(results){
+          self.target.ip = results.ip
+          self.target.ptr = results.ptr
+          self.send('dnsResolve',self.target)
+          next()
+        })
+      } else next()
     },
     function(next){
-      self.send('pingInit')
       async.timesSeries(self.options.count || 1,function(seq,repeat){
         self.nPs.pingHost(self.target.ip,function(error,target,sent,received){
           setTimeout(function(){repeat()},1000)
-          self.pingResults.push({
+          self.send('pingResult',{
             target: target,
             sent: (sent) ? +sent : false,
             received: (received) ? +received : false,
             error: error
           })
-          self.send('pingResult')
         })
       },function(){
         next()
@@ -235,6 +205,6 @@ Bot.create = function(opts){
 
 /**
  * Export module
- * @type {exports.Logger}
+ * @type {Bot}
  */
 module.exports = Bot
