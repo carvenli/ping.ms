@@ -5,7 +5,16 @@ var io = require('socket.io-client')
   , async = require('async')
   , hostbyname = require('hostbyname')
   , dns = require('dns')
-  , netPing = require('net-ping')
+
+var netPing = require('net-ping')
+var netPingSession = netPing.createSession({
+  _debug: false,
+  networkProtocol: netPing.NetworkProtocol.IPv4,
+  packetSize: 56,
+  ttl: 255,
+  retries: 0,
+  timeout: 1000
+})
 
 /**
  * Utility functions
@@ -35,15 +44,8 @@ var BotSession = function(opts){
     ip: null,
     ptr: null
   }
-  that.pingResults = {}
-  that.nPs = netPing.createSesssion({
-    _debug: false,
-    networkProtocol: netPing.NetworkProtocol.IPv4,
-    packetSize: 56,
-    ttl: 255,
-    retries: 0,
-    timeout: 1000
-  })
+  that.pingResults = []
+  that.nPs = netPingSession
 }
 util.inherits(BotSession,EventEmitter)
 
@@ -165,7 +167,7 @@ Bot.prototype.execPing = function(opts){
   self.sessions[opts.handle] = BotSession.create(opts)
   //wire the backchannel
   self.sessions[opts.handle].on('BotSessionMsg',function(msg){
-    self.logger('BotSessionMsg rcv:\n',msg)
+    //self.logger('BotSessionMsg rcv:\n',msg)
     var type = msg.msgType
     delete(msg.msgType)
     self.mux.emit(type,msg)
