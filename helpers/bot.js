@@ -37,7 +37,7 @@ var BotSession = function(opts){
   }
   that.pingResults = {}
   //setup net-ping session
-  that.nPs = netPing.createSession({
+  that.nPs = netPing.createSesssion({
     _debug: false,
     networkProtocol: netPing.NetworkProtocol.IPv4,
     packetSize: 56,
@@ -45,6 +45,7 @@ var BotSession = function(opts){
     retries: 0,
     timeout: 1000
   })
+  console.trace('bot session constructor finished')
 }
 util.inherits(BotSession,EventEmitter)
 
@@ -163,7 +164,10 @@ Bot.prototype.execPing = function(opts){
   if(!opts.count) opts.count = 4
   opts.tag = self.logger.tagExtend(opts.handle)
   delete(opts.handle)
-  self.sessions[opts.handle] = BotSession.create(opts)
+  console.trace('bot session creatings')
+  //self.sessions[opts.handle] = BotSession.create(opts)
+  var session = BotSession.create(opts)
+  console.trace('bot session created')
   //wire the backchannel
   BotSession.on('BotSessionMsg',function(msg){
     self.logger('BotSessionMsg rcv:\n',msg)
@@ -171,6 +175,7 @@ Bot.prototype.execPing = function(opts){
     delete(msg.msgType)
     self.mux.emit(type,msg)
   })
+  console.trace('bot session ping')
   self.sessions[opts.handle].ping()
 }
 
