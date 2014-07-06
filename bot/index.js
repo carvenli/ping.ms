@@ -14,8 +14,7 @@ async.each(
     var muxOpts = propCopy(conn)
     muxOpts.auth = propCopy(options.auth)
     muxOpts.tag = logger.tagExtend(sockets.length)
-    var mux = Bot.create(muxOpts)
-    mux.connect(function(){
+    var mux = Bot.create(muxOpts,function(){
       //handle ping requests
       mux.on('ping',function(data){
         var ping = mux.ping({

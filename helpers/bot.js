@@ -145,36 +145,28 @@ Bot.prototype.execPing = function(opts){
   self.sessions[opts.handle].ping()
 }
 
-Bot.prototype.handleLogin = function(data,cb){
-  var self = this
-  self.logger.info('Bot.handleLogin\n',data,cb)
-  if(data.error){
-    self.logger.error('auth failed!')
-    self.auth.state = 'failRetry'
-    clearTimeout(self.auth.timer)
-    self.auth.timer = setTimeout(self.authorize.bind(self),self.options.auth.failDelay)
-  } else {
-    self.logger.info('authorized')
-    self.auth.state = 'authorized'
-    clearTimeout(self.auth.timer)
-    self.auth.timer = setTimeout(self.authorize.bind(self),self.options.auth.reDelay)
-    //(re)map the listeners
-    self.mux.removeListener('execPing',self.execPing.bind(self))
-    self.mux.on('execPing',self.execPing.bind(self))
-    //self.mux.removeListener('execTrace',self.execTrace)
-    //self.mux.on('execTrace',self.execTrace)
-    if('function' === typeof cb){
-      cb()
-      cb = null
-    }
-  }
-}
-
 Bot.prototype.authorize = function(secret,cb){
   var self = this
-  self.logger.info('Bot.authorize\n',cb)
   self.emit('authorize',{secret: secret},
-    function(data){self.handleLogin(data,cb)}
+    function(data){
+      if(data.error){
+        self.logger.error('auth failed!')
+        self.auth.state = 'failRetry'
+        clearTimeout(self.auth.timer)
+        var authRetry = function(){self.authorize(secret,cb)}
+        self.auth.timer = setTimeout(authRetry,self.options.auth.failDelay)
+      } else {
+        self.logger.info('authorized')
+        self.auth.state = 'authorized'
+        clearTimeout(self.auth.timer)
+        var authRetry = function(){self.authorize(secret)}
+        self.auth.timer = setTimeout(authRetry,self.options.auth.reDelay)
+        if('function' === typeof cb){
+          cb()
+          cb = null
+        }
+      }
+    }
   )
 }
 
@@ -199,12 +191,15 @@ Bot.prototype.connect = function(done){
 }
 
 /**
- * Create instance
- * @param {object} opts
+ * Create instance and connect
+ * @param {object} opts Options
+ * @param {function} connectCb Callback for authorized connect
  * @return {Bot}
  */
-Bot.create = function(opts){
-  return (new Bot(opts))
+Bot.create = function(opts,connectCb){
+  var b = new Bot(opts)
+  b.connect(opts.secret,connectCb)
+  return b
 }
 
 /**
