@@ -119,7 +119,6 @@ var Bot = function(opts){
   EventEmitter.apply(that)
   that.options = opts
   that.logger = require('../helpers/logger').create(that.options.tag)
-  that.logger.info('Bot Constructor\n',opts)
   that.auth = {
     state: 'unknown',
     timer: null
@@ -137,56 +136,44 @@ Bot.prototype.execPing = function(opts){
   self.sessions[opts.handle] = BotSession.create(opts)
   //wire the backchannel
   self.sessions[opts.handle].on('BotSessionMsg',function(msg){
-    //self.logger('BotSessionMsg rcv:\n',msg)
-    var type = msg.msgType
-    delete(msg.msgType)
-    self.mux.emit(type,msg)
+    msg.handle = opts.handle
+    self.emit('sessionMsg',msg)
   })
   self.sessions[opts.handle].ping()
 }
 
-Bot.prototype.authorize = function(secret,cb){
+Bot.prototype.authorize = function(secret){
   var self = this
   self.emit('authorize',{secret: secret},
     function(data){
+      var authRetry = function(){self.authorize(secret)}
       if(data.error){
         self.logger.error('auth failed!')
         self.auth.state = 'failRetry'
         clearTimeout(self.auth.timer)
-        var authRetry = function(){self.authorize(secret,cb)}
         self.auth.timer = setTimeout(authRetry,self.options.auth.failDelay)
+        self.emit('authFail')
       } else {
         self.logger.info('authorized')
         self.auth.state = 'authorized'
         clearTimeout(self.auth.timer)
-        var authRetry = function(){self.authorize(secret)}
         self.auth.timer = setTimeout(authRetry,self.options.auth.reDelay)
-        if('function' === typeof cb){
-          cb()
-          cb = null
-        }
+        self.emit('authSuccess')
       }
     }
   )
 }
 
-Bot.prototype.connect = function(done){
+Bot.prototype.connect = function(){
   var self = this
-  self.logger.info('Bot.connect\n',done)
   self.logger.info('connecting to ' + self.options.uri)
   self.mux = io.connect(self.options.uri)
   self.mux.once('connect',function(){
     self.logger.info('connected')
     self.on('authorize',function(data,cb){
-      self.logger.info('authorize',data,cb)
       self.mux.emit('authorize',data,cb)
     })
-    self.authorize(self.options.secret,function(){
-      if('function' === typeof done){
-        done()
-        done = null
-      }
-    })
+    self.authorize(self.options.secret)
   })
 }
 
@@ -198,7 +185,8 @@ Bot.prototype.connect = function(done){
  */
 Bot.create = function(opts,connectCb){
   var b = new Bot(opts)
-  b.connect(opts.secret,connectCb)
+  b.on('authSuccess',connectCb)
+  b.connect(opts.secret)
   return b
 }
 
