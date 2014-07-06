@@ -67,7 +67,7 @@ var botSocket = {}
 
 //socket.io routing
 io.on('connection',function(client){
-  client.on('botLogin',function(data,reply){
+  client.on('authorize',function(data,reply){
     var Bot = require('../models/bot').model
     Bot
       .findOne({secret:data.secret})

@@ -15,61 +15,47 @@ async.each(
     muxOpts.auth = propCopy(options.auth)
     muxOpts.tag = logger.tagExtend(sockets.length)
     var mux = Bot.create(muxOpts)
-    mux.connect(function(){mux.logger.info('..l..')})
-    sockets.push(mux)
-    next()
-  }
-)
-/*
-async.each(
-  config.get('bot'),
-  function(options,next){
-    var bot = new Bot()
-    bot.connect(options.host,options.secret,function(err,socket){
-      if(err) return next(err)
-      next()
+    mux.connect(function(){
       //handle ping requests
-      socket.on('ping',function(data){
-        var ping = bot.ping({
+      mux.on('ping',function(data){
+        var ping = mux.ping({
           host: data.host
         })
         ping.on('error',function(err){
-          socket.emit('error',err)
+          mux.emit('error',err)
         })
         ping.on('resolve',function(res){
-          socket.emit('dnsResolve',res)
+          mux.emit('dnsResolve',res)
         })
         ping.on('init',function(res){
-          socket.emit('pingInit',res)
+          mux.emit('pingInit',res)
         })
         ping.on('result',function(res){
-          socket.emit('pingResult',res)
+          mux.emit('pingResult',res)
         })
         ping.on('complete',function(res){
-          socket.emit('pingComplete',res)
+          mux.emit('pingComplete',res)
         })
         ping.exec()
       })
       //handle trace requests
-      socket.on('traceroute',function(data){
-        var trace = bot.trace({
+      mux.on('traceroute',function(data){
+        var trace = mux.trace({
           host: data.host
         })
         trace.on('error',function(err){
-          socket.emit('error',err)
+          mux.emit('error',err)
         })
         trace.on('resolve',function(res){
-          socket.emit('dnsResolve',res)
+          mux.emit('dnsResolve',res)
         })
         trace.on('hop',function(res){
-          socket.emit('traceHop',res)
+          mux.emit('traceHop',res)
         })
         trace.exec()
       })
+      next()
     })
-  },
-  function(err){
-    if(err) logger.error(err)
+    sockets.push(mux)
   }
 )
-*/

@@ -170,10 +170,10 @@ Bot.prototype.handleLogin = function(data,cb){
   }
 }
 
-Bot.prototype.authorize = function(cb){
+Bot.prototype.authorize = function(secret,cb){
   var self = this
   self.logger.info('Bot.authorize\n',cb)
-  self.mux.emit('botLogin',{secret: self.options.secret},
+  self.emit('authorize',{secret: secret},
     function(data){self.handleLogin(data,cb)}
   )
 }
@@ -185,7 +185,11 @@ Bot.prototype.connect = function(done){
   self.mux = io.connect(self.options.uri)
   self.mux.once('connect',function(){
     self.logger.info('connected')
-    self.authorize(function(){
+    self.on('authorize',function(data,cb){
+      self.logger.info('authorize',data,cb)
+      self.mux.emit('authorize',data,cb)
+    })
+    self.authorize(self.options.secret,function(){
       if('function' === typeof done){
         done()
         done = null
