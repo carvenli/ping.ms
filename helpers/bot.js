@@ -173,6 +173,9 @@ Bot.prototype.connect = function(){
     self.on('authorize',function(data,cb){
       self.mux.emit('authorize',data,cb)
     })
+    self.on('sessionMsg',function(data,cb){
+      self.mux.emit('sessionMsg',data,cb)
+    })
     self.authorize(self.options.secret)
   })
 }
@@ -185,7 +188,8 @@ Bot.prototype.connect = function(){
  */
 Bot.create = function(opts,connectCb){
   var b = new Bot(opts)
-  b.on('authSuccess',connectCb)
+  if('function' === typeof connectCb)
+    b.on('authSuccess',connectCb)
   b.connect(opts.secret)
   return b
 }
