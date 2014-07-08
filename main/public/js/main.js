@@ -1,6 +1,5 @@
 /* global socket: false, Handlebars: false */
 $(document).ready(function(){
-  var tplPingMenu = Handlebars.compile($('#ping-menu-template').html())
   var tplPingRow = Handlebars.compile($('#ping-row-template').html())
   var pulsarBeat = function(id,failed){
     var glyph = failed ? 'glyphicon-heart-empty' : 'glyphicon-heart'
@@ -23,16 +22,6 @@ $(document).ready(function(){
     $('tr#' + id + ' > .pulsar').html('<span class="glyphicon ' + glyph + '"/>')
   }
   var dnsResults = {}
-  var dnsResult = function(data){
-    console.log(data)
-    dnsResults.host = data.host
-    dnsResults.ip = data.ip
-    dnsResults.ptr = data.ptr
-    var menu = $('#pingMenu')
-    menu.empty()
-    menu.append(tplPingRow(dnsResults))
-    $('#pingBtn').removeClass('hidden')
-  }
   var pingResults = {}
   var pingInit = function(data){
     //destroy the Waiting message if any
@@ -44,6 +33,7 @@ $(document).ready(function(){
     data.set.max = '-'
     data.set.avg = '-'
     data.set.loss = '-'
+    pingResults[data.id] = []
     $('#pingTable > tbody').append(tplPingRow({data: data}))
   }
   var pingResult = function(data){
@@ -53,7 +43,8 @@ $(document).ready(function(){
     var avg = '-'
     var fails = 0
     var currentlyFailed = false
-    data.set.results.forEach(function(e,i,o){
+    pingResults[data.id].push(data)
+    pingResults.forEach(function(e,i,o){
       if(!e.error){
         var rtt = e.received - e.sent
         if('-' === min || rtt < min) min = rtt
@@ -65,7 +56,7 @@ $(document).ready(function(){
         currentlyFailed = true
       }
     })
-    var loss = (fails / data.set.results.length) * 100
+    var loss = (fails / pingResults.length) * 100
     row.find('.ip').html(data.set.ip)
     row.find('.min').html(min)
     row.find('.avg').html(avg)
@@ -78,30 +69,26 @@ $(document).ready(function(){
   }
   $('#ping').submit(function(e){
     e.preventDefault()
-  })
-  $('#lookupBtn').click(function(e){
-    e.preventDefault()
-    var host = $('#host').val().replace(/\s+/g,'')
-    if('' === host) return(false)
-    //send the DNS resolve to the backend
-    socket.on('dnsResult',dnsResult)
-    socket.emit('resolve',{
-      host: host,
-      group: $('#group').val()
-    },dnsResult)
-  })
-  socket.on('pingInit',pingInit)
-  socket.on('pingResult',pingResult)
-  socket.on('pingComplete',pingComplete)
-  $('#pingBtn').click(function(){
     var host = $('#host').val().replace(/\s+/g,'')
     if('' === host) return(false)
     $('#pingResultWrapper').removeClass('hidden')
     $('#pingTable > tbody').empty()
-    //send the ping submission to the backend
-    socket.emit('ping',{
+    var commonArgs = {
       host: host,
       group: $('#group').val()
+    }
+    //send the DNS resolve to the backend
+    socket.on('dnsResult',function(data){
+      console.log(data)
+      dnsResults.host = data.host
+      dnsResults.ip = data.ip
+      dnsResults.ptr = data.ptr
+      pingInit({})
+      //send the ping submission to the backend
+      socket.on('pingResult',pingResult)
+      socket.on('pingComplete',pingComplete)
+      socket.emit('ping',commonArgs)
     })
+    socket.emit('resolve',commonArgs)
   })
 })

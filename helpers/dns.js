@@ -1,7 +1,7 @@
 'use strict';
 var async = require('async')
 
-var propCopy = function(obj){return JSON.parse(JSON.stringify(obj))}
+
 
 /**
  * Constructor
@@ -35,6 +35,23 @@ var targetIpToPtr = function(ip,cb){
   )
 }
 
+DNS.prototype.ipToPtr = function(ip,replyFn){
+  var self = this
+  self.logger.info('DNS.ipToPtr"' + self.host + '"\n',replyFn)
+  async.waterfall(
+    [
+      function(next){
+        targetIpToPtr(ip,
+          function(err,ptr){
+            next(err,ptr)
+          }
+        )
+      }
+    ],
+    function(err,results){replyFn(results)}
+  )
+}
+
 DNS.prototype.resolve = function(replyFn){
   var self = this
   self.logger.info('DNS.resolve "' + self.host + '"\n',replyFn)
@@ -53,6 +70,7 @@ DNS.prototype.resolve = function(replyFn){
   )
 }
 
+
 /**
  * Create instance
  * @param {string} host
@@ -61,6 +79,7 @@ DNS.prototype.resolve = function(replyFn){
 DNS.create = function(host){
   return (new DNS(host))
 }
+
 
 /**
  * Export module

@@ -1,8 +1,8 @@
 'use strict';
 var io = require('socket.io-client')
   , util = require('util')
-  , EventEmitter = require('events').EventEmitter
   , async = require('async')
+  , EventEmitter = require('events').EventEmitter
 
 var propCopy = function(obj){return JSON.parse(JSON.stringify(obj))}
 
@@ -25,12 +25,11 @@ var netPingSession = netPing.createSession({
  *  this gets generated within Bot once for each ping/trace request (target)
  */
 
+
+
 /**
  * Constructor
  * @param {object} opts Options object
- * @param {string} opts.tag ID from owner Bot instance
- * @param {string} opts.handle Handle for this session (from browser)
- * @param {string} opts.target Hostname or IP for destination
  * @constructor
  */
 var BotSession = function(opts){
@@ -54,7 +53,27 @@ BotSession.prototype.send = function(type,data){
   self.logger.info('BotSession.send ' + type)
   var pkt = propCopy(data)
   pkt.msgType = type
-  self.emit('BotSessionMsg',pkt)
+  self.emit('sessionMsg',pkt)
+}
+
+BotSession.prototype.resolve = function(){
+  var self = this
+  self.logger.info('BotSession.resolve')
+  async.series([
+    function(next){
+      if(0 === self.target.ip.length){
+        var DNS = require('../helpers/dns.js').create(self.target.host)
+        DNS.resolve(function(results){
+          self.target.ip = results.ip
+          self.target.ptr = results.ptr
+          self.send('resolve',self.target)
+          next()
+        })
+      } else next()
+    }
+  ],function(){
+    self.send('resolve')
+  })
 }
 
 BotSession.prototype.ping = function(){
@@ -92,6 +111,7 @@ BotSession.prototype.ping = function(){
   })
 }
 
+
 /**
  * Create instance
  * @param {object} opts
@@ -108,6 +128,8 @@ BotSession.create = function(opts){
  *  probe services we provide to the frontend.
  *  Events are passed bidirectionally (this is an EventEmitter just like socket.io).
  */
+
+
 
 /**
  * Constructor
@@ -180,6 +202,7 @@ Bot.prototype.connect = function(){
   })
 }
 
+
 /**
  * Create instance and connect
  * @param {object} opts Options
@@ -193,6 +216,7 @@ Bot.create = function(opts,connectCb){
   b.connect(opts.secret)
   return b
 }
+
 
 /**
  * Export module

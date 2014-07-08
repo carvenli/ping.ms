@@ -11,6 +11,8 @@ var express = require('express')
   , shortId = require('shortid')
   , logger = require('../helpers/logger').create('main')
 
+var generateHandle = function(){return shortId.generate().replace(/[-_]/g,'').toUpperCase()}
+
 //setup global tpl vars
 app.locals.app = {title: config.get('title')}
 
@@ -68,8 +70,7 @@ var botSocket = {}
 //socket.io routing
 io.on('connection',function(client){
   client.on('authorize',function(data,reply){
-    var Bot = require('../models/bot').model
-    Bot
+    require('../models/bot').model
       .findOne({secret:data.secret})
       .exec(function(err,result){
         if(err) return console.log(err)
@@ -77,50 +78,54 @@ io.on('connection',function(client){
           if(result.active){
             logger.info('Accepted connection from "' + result.location + '"')
             botSocket[result.id] = client
+            reply({error:false})
+          } else {
+            logger.info('Denied connection from "' + result.location + '" due to !active')
+            botSocket[result.id] = false
+            reply({error:true,reason:'notActive'})
           }
-          logger.info('Denied connection from "' + result.location + '" due to !active')
-          reply({error:false})
         } else {
           logger.warning('Incoming connection failed')
-          reply({error:true})
+          reply({error:true,reason:'badSecret'})
         }
       })
   })
+  var groupAction = function(group,action,next){
+    var query = {active: true}
+    //filter by group if we can
+    if('All' !== group)
+      query.groups = new RegExp(',' + group + ',','i')
+    //get bots and submit queries
+    require('../models/bot').model
+      .find(query)
+      .sort('location')
+      .exec(function(err,results){
+        if(err) return next(err.message)
+        async.each(
+          results,
+          function(bot,next){
+            if(botSocket[bot.id]){
+              var handle = generateHandle()
+              logger.info('Found connected bot for "' + bot.location + '", assigned handle "' + handle + '"')
+              var bs = botSocket[bot.id]
+              action(handle,bs)
+            }
+            next()
+          },
+          next
+        )
+      })
+  }
   client.on('resolve',function(data,cb){
-    var Bot = require('../models/bot').model
     async.series(
       [
         function(next){
-          var query = {active: true}
-          //filter by group if we can
-          if('All' !== data.group)
-            query.groups = new RegExp(',' + data.group + ',','i')
-          //get bots and submit queries
-          Bot
-            .find(query)
-            .sort('location')
-            .exec(function(err,results){
-              if(err) return next(err.message)
-              async.each(
-                results,
-                function(bot,next){
-                  if(botSocket[bot.id]){
-                    var bs = botSocket[bot.id]
-                    logger.info('Found connected bot for "' + bot.location + '"')
-                    var handle = shortId.generate().replace(/[-_]/g,'')
-                    bs.emit('dnsResolve',
-                      {
-                        handle:handle,
-                        host:data.host
-                      },
-                      cb
-                    )
-                  }
-                  next()
-                },
-                next
-              )
-            })
+          groupAction(data.group,function(handle,bs){
+            bs.emit('resolve',{
+                  handle: handle,
+                  host: data.host
+                },cb)
+          },next)
         }
       ],
       function(err){
@@ -131,7 +136,6 @@ io.on('connection',function(client){
     )
   })
   client.on('ping',function(data){
-    var Bot = require('../models/bot').model
     async.series(
       [
         function(next){
@@ -140,7 +144,7 @@ io.on('connection',function(client){
           if('All' !== data.group)
             query.groups = new RegExp(',' + data.group + ',','i')
           //get bots and submit queries
-          Bot
+          require('../models/bot').model
             .find(query)
             .sort('location')
             .exec(function(err,results){
@@ -150,10 +154,10 @@ io.on('connection',function(client){
                 function(bot,next){
                   if(botSocket[bot.id]){
                     var bs = botSocket[bot.id]
-                    logger.info('Found connected bot for "' + bot.location + '"')
-                    var handle = shortId.generate().replace(/[-_]/g,'')
+                    var handle = generateHandle()
+                    logger.info('Found connected bot for "' + bot.location + '", assigned handle "' + handle + '"')
                     var resultHandler = function(event,data){
-                      //console.log(event,data)
+                      console.log('resultHandler:',event,data)
                       client.emit(event,{
                         id: bot.id,
                         location: bot.location,
@@ -161,6 +165,7 @@ io.on('connection',function(client){
                         set: data
                       })
                     }
+                    bs.on('sessionMsg',function(data){resultHandler('pingInit',data)})
                     bs.on('pingInit',function(data){resultHandler('pingInit',data)})
                     bs.on('pingResult',function(data){resultHandler('pingResult',data)})
                     bs.on('pingComplete',function(data){resultHandler('pingComplete',data)})
