@@ -1,5 +1,45 @@
 'use strict';
 var async = require('async')
+  , hostbyname = require('hostbyname')
+  , dns = require('dns')
+  , Logger = require('../helpers/logger')
+
+
+/**
+ * Resolve a host to IP
+ * @param {string} host
+ * @param {function} done
+ */
+var hostToIp = function(host,done){
+  hostbyname.resolve(host,'v4',function(err,results){
+    if(err) return done(err)
+    done(null,results || [])
+  })
+}
+
+
+/**
+ * Resolve an IP to a PTR
+ * @param {array|string} ip
+ * @param {function} done
+ */
+var ipToPtr = function(ip,done){
+  var ptr = {}
+  if(!(ip instanceof Array)) ip = [ip]
+  async.each(
+    ip,
+    function(i,next){
+      dns.reverse(i,function(err,result){
+        if(err) return next(err)
+        ptr[i] = result || 'none'
+        next()
+      })
+    },
+    function(err){
+      done(err,ptr)
+    }
+  )
+}
 
 
 
@@ -10,63 +50,57 @@ var async = require('async')
  */
 var DNS = function(host){
   var that = this
-  that.logger = require('../helpers/logger').create('DNS')
+  that.logger = Logger.create('DNS')
   that.host = host.toString()
 }
 
-var targetHostToIp = function(host,cb){
-  require('hostbyname').resolve(host,'v4',function(err,results){
-    var ip = [host]
-    if(!err && results.length) ip = results
-    cb(null,ip)
-  })
-}
 
-var targetIpToPtr = function(ip,cb){
-  var dns = require('dns')
-    , ptr = []
-  async.each(ip,function(i,next){
-    dns.reverse(i,function(err,results){
-      if(!err && results.length) ptr = results
-      next(null,ptr)
-    })
-  },
-    function(err,results){cb(null,results)}
-  )
-}
-
-DNS.prototype.ipToPtr = function(ip,replyFn){
+/**
+ * Resolve an IP to PTR
+ * @param {array|string} ip
+ * @param {function} done
+ */
+DNS.prototype.ptr = function(ip,done){
   var self = this
-  self.logger.info('DNS.ipToPtr"' + self.host + '"\n',replyFn)
-  async.waterfall(
+  if(!(ip instanceof Array)) ip = [ip]
+  self.logger.info('DNS.ipToPtr"' + ip.join(',') + '"\n')
+  async.series(
     [
       function(next){
-        targetIpToPtr(ip,
-          function(err,ptr){
-            next(err,ptr)
-          }
-        )
+        ipToPtr(ip,function(err,ptr){
+          next(err,ptr)
+        })
       }
     ],
-    function(err,results){replyFn(results)}
+    done
   )
 }
 
-DNS.prototype.resolve = function(replyFn){
+
+/**
+ * Resolve a host
+ * @param {function} done
+ */
+DNS.prototype.resolve = function(done){
   var self = this
-  self.logger.info('DNS.resolve "' + self.host + '"\n',replyFn)
+  self.logger.info('DNS.resolve "' + self.host + '"\n')
   async.waterfall(
     [
-      function(next){targetHostToIp(self.host,next)},
+      //resolve the host to ip
+      function(next){
+        hostToIp(self.host,next)
+      },
       function(ip,next){
-        targetIpToPtr(ip,
-          function(err,ptr){
-            next(err,{host:self.host,ip:ip,ptr:ptr})
-          }
-        )
+        ipToPtr(ip,function(err,ptr){
+          next(err,{
+            host: self.host,
+            ip: ip,
+            ptr: ptr
+          })
+        })
       }
     ],
-    function(err,results){replyFn(results)}
+    done
   )
 }
 
@@ -77,7 +111,7 @@ DNS.prototype.resolve = function(replyFn){
  * @return {DNS}
  */
 DNS.create = function(host){
-  return (new DNS(host))
+  return new DNS(host)
 }
 
 

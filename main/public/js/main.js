@@ -78,17 +78,17 @@ $(document).ready(function(){
       group: $('#group').val()
     }
     //send the DNS resolve to the backend
-    socket.on('dnsResult',function(data){
+    //socket.on('dnsResult',)
+    //send the ping submission to the backend
+    socket.on('pingResult',pingResult)
+    socket.on('pingComplete',pingComplete)
+    socket.emit('resolve',commonArgs,function(data){
       console.log(data)
       dnsResults.host = data.host
       dnsResults.ip = data.ip
       dnsResults.ptr = data.ptr
       pingInit({})
-      //send the ping submission to the backend
-      socket.on('pingResult',pingResult)
-      socket.on('pingComplete',pingComplete)
       socket.emit('ping',commonArgs)
     })
-    socket.emit('resolve',commonArgs)
   })
 })

@@ -10,10 +10,15 @@ var express = require('express')
   , async = require('async')
   , shortId = require('shortid')
   , logger = require('../helpers/logger').create('main')
+var Bot = require('../models/bot').model
 
 var generateHandle = function(){return shortId.generate().replace(/[-_]/g,'').toUpperCase()}
 
-//setup global tpl vars
+
+/**
+ * Local tpl vars
+ * @type {{title: *}}
+ */
 app.locals.app = {title: config.get('title')}
 
 // middleware stack
@@ -67,75 +72,105 @@ app.get('/bots',routes.bot)
 //connected bots table
 var botSocket = {}
 
+
+/**
+ * Iterate a group of bots with a user defined handler function
+ * @param {string} group
+ * @param {function} action
+ * @param {function} next
+ */
+var groupAction = function(group,action,next){
+  var query = {active: true}
+  //filter by group if we can
+  if('All' !== group)
+    query.groups = new RegExp(',' + group + ',','i')
+  //get bots and submit queries
+  var q = Bot.find(query)
+  q.sort('location')
+  q.exec(function(err,results){
+    if(err) return next(err.message)
+    async.each(
+      results,
+      function(bot,next){
+        if(botSocket[bot.id]){
+          var handle = generateHandle()
+          logger.info('Found connected bot for "' + bot.location + '", assigned handle "' + handle + '"')
+          var bs = botSocket[bot.id]
+          action(bot,handle,bs,next)
+        } else next()
+      },
+      next
+    )
+  })
+}
+
 //socket.io routing
 io.on('connection',function(client){
-  client.on('authorize',function(data,reply){
-    require('../models/bot').model
-      .findOne({secret:data.secret})
-      .exec(function(err,result){
-        if(err) return console.log(err)
-        if(result){
-          if(result.active){
-            logger.info('Accepted connection from "' + result.location + '"')
-            botSocket[result.id] = client
-            reply({error:false})
-          } else {
-            logger.info('Denied connection from "' + result.location + '" due to !active')
-            botSocket[result.id] = false
-            reply({error:true,reason:'notActive'})
-          }
-        } else {
-          logger.warning('Incoming connection failed')
-          reply({error:true,reason:'badSecret'})
-        }
-      })
-  })
-  var groupAction = function(group,action,next){
-    var query = {active: true}
-    //filter by group if we can
-    if('All' !== group)
-      query.groups = new RegExp(',' + group + ',','i')
-    //get bots and submit queries
-    require('../models/bot').model
-      .find(query)
-      .sort('location')
-      .exec(function(err,results){
-        if(err) return next(err.message)
-        async.each(
-          results,
-          function(bot,next){
-            if(botSocket[bot.id]){
-              var handle = generateHandle()
-              logger.info('Found connected bot for "' + bot.location + '", assigned handle "' + handle + '"')
-              var bs = botSocket[bot.id]
-              action(handle,bs)
-            }
-            next()
-          },
-          next
-        )
-      })
-  }
-  client.on('resolve',function(data,cb){
+  /**
+   * Authorize incoming bot connections
+   */
+  client.on('authorize',function(data,done){
     async.series(
       [
+        //lookup bot
         function(next){
-          groupAction(data.group,function(handle,bs){
-            bs.emit('resolve',{
-                  handle: handle,
-                  host: data.host
-                },cb)
-          },next)
+          Bot.findOne({secret: data.secret},function(err,result){
+            if(err) return next({message: err.message, reason: 'generalFailure'})
+            if(!result) return next({message: 'Bot not found, bad secret', reason: 'badSecret'})
+            if(result && !result.active)
+              return next({message: 'Bot found, however inactive', reason: 'notActive'},result)
+            //auth accepted
+            next(null,result)
+          })
         }
       ],
-      function(err){
+      function(err,results){
         if(err){
-          client.emit('error',{message: err})
+          logger.warning('Bot authorize failed: ' + err.message)
+          return done({error: true, reason: err.reason})
         }
+        logger.info('Accepted connection from "' + results[0].location + '"')
+        botSocket[results[0].id] = client
+        done({error:false})
       }
     )
   })
+  /**
+   * Resolve an IP to domain and respond with the individual bot responses
+   */
+  client.on('resolve',function(data,done){
+    var results = {}
+    async.series(
+      [
+        function(next){
+          groupAction(
+            data.group,
+            function(bot,handle,socket,next){
+              var query = {
+                handle: handle,
+                host: data.host
+              }
+              socket.emit('resolve',query,function(data){
+                if(data.error) return next(data.error)
+                results[bot.id] = data
+                next()
+              })
+            },
+            next
+          )
+        }
+      ],
+      function(err){
+        if(err) return done({error: err})
+        done({results: results})
+      }
+    )
+  })
+  /**
+   * Ping a host from the browser
+   */
   client.on('ping',function(data){
+    console.log(data)
     async.series(
       [
         function(next){
@@ -169,6 +204,7 @@ io.on('connection',function(client){
                     bs.on('pingInit',function(data){resultHandler('pingInit',data)})
                     bs.on('pingResult',function(data){resultHandler('pingResult',data)})
                     bs.on('pingComplete',function(data){resultHandler('pingComplete',data)})
+                    console.log('exec ping')
                     bs.emit('execPing',{
                       handle:handle,
                       host:data.host,

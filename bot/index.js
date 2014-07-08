@@ -3,7 +3,6 @@ var async = require('async')
   , logger = require('../helpers/logger').create('bot')
   , config = require('../config')
   , Bot = require('../helpers/bot.js')
-
 var propCopy = function(obj){return JSON.parse(JSON.stringify(obj))}
 
 var options = config.get('bot')
@@ -16,8 +15,12 @@ async.each(
     muxOpts.tag = logger.tagExtend(sockets.length)
     var mux = Bot.create(muxOpts)
     mux.once('authSuccess',function(){
-      mux.on('resolve',function(data){mux.logger.info(data)})
-
+      mux.on('resolve',function(data,done){
+        mux.resolve(data.handle,data.host,function(err,result){
+          if(err) return done({error: err})
+          done(result)
+        })
+      })
       //handle ping requests
       mux.on('ping',function(data){
         var ping = mux.ping({
