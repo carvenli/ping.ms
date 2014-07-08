@@ -15,6 +15,27 @@ var netPingSession = netPing.createSession({
 })
 
 
+/**
+ * Ping a host
+ * @param {string} ip
+ * @param {function} done
+ * @return {*}
+ */
+var pingHost = function(ip,done){
+  if(!ip) return done('IP not valid')
+  //use net-ping to see if our ip is alive
+  netPingSession.pingHost(ip,function(err,target,sent,received){
+    //notify userspace we have a ping result
+    var res = {
+      target: target,
+      sent: (sent) ? +sent : false,
+      received: (received)? +received : false
+    }
+    done(err,res)
+  })
+}
+
+
 
 /**
  * BotSession Object
@@ -27,7 +48,6 @@ var BotSession = function(opts){
   that.options = opts
   that.logger = Logger.create(that.options.tag)
   that.logger.info('BotSession Constructor')
-  that.nPs = netPingSession
 }
 
 
@@ -59,44 +79,20 @@ BotSession.prototype.resolve = function(host,done){
 /**
  * Ping an IP
  * @param {string} ip
- * @param {function} onResult
  * @param {function} done
  */
-BotSession.prototype.ping = function(ip,onResult,done){
+BotSession.prototype.ping = function(ip,done){
   var self = this
   self.logger.info('BotSession.ping: ' + ip)
   async.series(
     [
       function(next){
-        if(!ip) return next('IP not valid')
-        next()
-      },
-      function(next){
-        async.timesSeries(
-            self.options.count || 1,
-          function(seq,repeat){
-            //register our timeout to send the next packet now
-            setTimeout(function(){repeat()},1000)
-            //use net-ping to see if our ip is alive
-            self.nPs.pingHost(ip,function(err,target,sent,received){
-              //notify userspace we have a ping result
-              onResult(
-                err,
-                {
-                  target: target,
-                  seq: seq,
-                  sent: (sent) ? +sent : false,
-                  received: (received)? + received : false
-                }
-              )
-            })
-          },
-          next
-        )
+        pingHost(ip,next)
       }
     ],
-    function(err){
-      done(err)
+    function(err,results){
+      if(err) return done(err)
+      done(null,results[0])
     }
   )
 }

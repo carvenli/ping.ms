@@ -169,61 +169,45 @@ io.on('connection',function(client){
   /**
    * Ping a host from the browser
    */
-  client.on('ping',function(data){
+  client.on('ping',function(data,done){
+    var handle = generateHandle()
+    botSocket[data.bot].emit('ping',{handle: handle, ip: data.ip},function(data){
+      if(data.error) return done({error: data.error})
+      done({result: data})
+    })
+    /*
     console.log(data)
     async.series(
       [
         function(next){
-          var query = {active: true}
-          //filter by group if we can
-          if('All' !== data.group)
-            query.groups = new RegExp(',' + data.group + ',','i')
-          //get bots and submit queries
-          require('../models/bot').model
-            .find(query)
-            .sort('location')
-            .exec(function(err,results){
-              if(err) return next(err.message)
-              async.each(
-                results,
-                function(bot,next){
-                  if(botSocket[bot.id]){
-                    var bs = botSocket[bot.id]
-                    var handle = generateHandle()
-                    logger.info('Found connected bot for "' + bot.location + '", assigned handle "' + handle + '"')
-                    var resultHandler = function(event,data){
-                      console.log('resultHandler:',event,data)
-                      client.emit(event,{
-                        id: bot.id,
-                        location: bot.location,
-                        sponsor: bot.sponsor,
-                        set: data
-                      })
-                    }
-                    bs.on('sessionMsg',function(data){resultHandler('pingInit',data)})
-                    bs.on('pingInit',function(data){resultHandler('pingInit',data)})
-                    bs.on('pingResult',function(data){resultHandler('pingResult',data)})
-                    bs.on('pingComplete',function(data){resultHandler('pingComplete',data)})
-                    console.log('exec ping')
-                    bs.emit('execPing',{
-                      handle:handle,
-                      host:data.host,
-                      count: data.count || 4
-                    })
-                  }
-                  next()
-                },
-                next
-              )
-            })
+          groupAction(
+            data.group,
+            function(bot,handle,socket,next){
+              var query = {
+                ip: data.ip,
+                handle: handle
+              }
+              socket.emit('ping',query,function(data){
+                console.log(bot.location + 'ping complete',data)
+                if(data.error) return next(data.error)
+                client.emit(handle + ':ping:result',{
+                  id: bot.id,
+                  location: bot.location,
+                  sponsor: bot.sponsor,
+                  set: data
+                })
+                next()
+              })
+            },
+            next
+          )
         }
       ],
       function(err){
-        if(err){
-          client.emit('error',{message: err})
-        }
+        if(err) client.emit('error',{message: err})
       }
     )
+    */
   })
 })
 

@@ -1,4 +1,4 @@
-/* global socket: false, Handlebars: false */
+/* global socket: false, Handlebars: false, console: false */
 $(document).ready(function(){
   var tplPingRow = Handlebars.compile($('#ping-row-template').html())
   var pulsarBeat = function(id,failed){
@@ -67,6 +67,20 @@ $(document).ready(function(){
   var pingComplete = function(data){
     pulsarFinal(data.id)
   }
+  /**
+   * Ping a Host with a Bot
+   * @param {string} id  Bot id
+   * @param {string} ip
+   * @param {function} done
+   */
+  var pingHost = function(id,ip,done){
+    if(!done) done = function(){}
+    console.log('sending ping request for ' + ip + ' to ' + id)
+    socket.emit('ping',{bot: id, ip: ip},function(result){
+      console.log('got ping result from ' + id,result)
+      done(result)
+    })
+  }
   $('#ping').submit(function(e){
     e.preventDefault()
     var host = $('#host').val().replace(/\s+/g,'')
@@ -80,15 +94,16 @@ $(document).ready(function(){
     //send the DNS resolve to the backend
     //socket.on('dnsResult',)
     //send the ping submission to the backend
-    socket.on('pingResult',pingResult)
-    socket.on('pingComplete',pingComplete)
+    //socket.on('pingResult',pingResult)
+    //socket.on('pingComplete',pingComplete)
     socket.emit('resolve',commonArgs,function(data){
-      console.log(data)
-      dnsResults.host = data.host
-      dnsResults.ip = data.ip
-      dnsResults.ptr = data.ptr
-      pingInit({})
-      socket.emit('ping',commonArgs)
+      dnsResults = data.results
+      console.log('got resolve results',dnsResults)
+      for(var i in dnsResults){
+        if(dnsResults.hasOwnProperty(i))
+          pingHost(i,dnsResults[i].ip[0])
+      }
+      //pingInit({})
     })
   })
 })

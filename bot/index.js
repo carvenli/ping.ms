@@ -15,6 +15,7 @@ async.each(
     muxOpts.tag = logger.tagExtend(sockets.length)
     var mux = Bot.create(muxOpts)
     mux.once('authSuccess',function(){
+      //handle resolve requests
       mux.on('resolve',function(data,done){
         mux.resolve(data.handle,data.host,function(err,result){
           if(err) return done({error: err})
@@ -22,27 +23,13 @@ async.each(
         })
       })
       //handle ping requests
-      mux.on('ping',function(data){
-        var ping = mux.ping({
-          host: data.host
+      mux.on('ping',function(data,done){
+        mux.ping(data.handle,data.ip,function(err,result){
+          if(err) return done({error: err})
+          done(result)
         })
-        ping.on('error',function(err){
-          mux.emit('error',err)
-        })
-        ping.on('resolve',function(res){
-          mux.emit('dnsResolve',res)
-        })
-        ping.on('init',function(res){
-          mux.emit('pingInit',res)
-        })
-        ping.on('result',function(res){
-          mux.emit('pingResult',res)
-        })
-        ping.on('complete',function(res){
-          mux.emit('pingComplete',res)
-        })
-        ping.exec()
       })
+      /**
       //handle trace requests
       mux.on('traceroute',function(data){
         var trace = mux.trace({
@@ -59,8 +46,9 @@ async.each(
         })
         trace.exec()
       })
+      **/
+      sockets.push(mux)
       next()
     })
-    sockets.push(mux)
   }
 )

@@ -25,28 +25,23 @@ var Bot = function(opts){
     state: 'unknown',
     timer: null
   }
-  that.sessions = {}
 }
 util.inherits(Bot,EventEmitter)
 
 
 /**
  * Use bot session to execute a ping request
- * @param {object} opts
+ * @param {string} handle
+ * @param {string} ip
+ * @param {function} done
  */
-Bot.prototype.ping = function(opts){
+Bot.prototype.ping = function(handle,ip,done){
   var self = this
-  self.logger.info('Bot.ping\n',opts)
-  if(!opts.count) opts.count = 4
-  opts.tag = self.logger.tagExtend(opts.handle)
-  delete(opts.handle)
-  self.sessions[opts.handle] = BotSession.create(opts)
-  //wire the backchannel
-  self.sessions[opts.handle].on('BotSessionMsg',function(msg){
-    msg.handle = opts.handle
-    self.emit('sessionMsg',msg)
+  self.logger.info('Bot.ping: ' + ip)
+  var session = new BotSession({
+    tag: self.logger.tagExtend(handle)
   })
-  self.sessions[opts.handle].ping()
+  session.ping(ip,done)
 }
 
 
@@ -105,12 +100,12 @@ Bot.prototype.connect = function(){
   self.mux.once('connect',function(){
     //map events from our local emitter back to mux
     self.logger.info('connected')
-    self.on('sessionMsg',function(data,cb){
-      self.mux.emit('sessionMsg',data,cb)
-    })
     //listen for events from mux
     self.mux.on('resolve',function(data,cb){
       self.emit('resolve',data,cb)
+    })
+    self.mux.on('ping',function(data,cb){
+      self.emit('ping',data,cb)
     })
     self.authorize(self.options.secret)
   })

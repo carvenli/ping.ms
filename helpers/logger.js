@@ -49,17 +49,21 @@ var Logger = function(tag){
   that.tag = '[' + (tag || 'oose').toUpperCase() + ']'
 }
 
+
 /**
  * tagExtend utility function for generating child logger instance tags
  * @param {multiple} subTag String or something which has toString()
  * @return {string} newTag Augmented current tag with : and subTag injected
  */
 Logger.prototype.tagExtend = function(subTag){
+  if(undefined === subTag) subTag = 'noTag'
   var that = this
   if(('string' !== typeof subTag) && ('function' === typeof subTag.toString))
     subTag = subTag.toString()
   return that.tag.replace(/^\[([^\]]+)\].*$/,'$1:' + subTag)
 }
+
+
 /**
  * Log stuff
  */
