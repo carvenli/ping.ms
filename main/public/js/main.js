@@ -30,11 +30,11 @@ $(document).ready(function(){
    */
   var pulsarFinal = function(id){
     var row = $('tr#' + id)
-    var loss = row.find('.loss').html()
+    var loss = +row.find('.loss').html()
     var glyph = 'glyphicon-question-sign text-warning'
-    if(loss === '0')
+    if(loss === 0)
       glyph = 'glyphicon-ok-sign text-success'
-    if(loss === '100')
+    if(loss === 100)
       glyph = 'glyphicon-remove-sign text-danger'
     //we replace the html here ON PURPOSE to autocancel all other previous animations
     //do not convert to simple class refuckery, thanks
@@ -146,9 +146,9 @@ $(document).ready(function(){
   var pingTableRowUpdate = function(index,pingResult){
     var row = pingTable.find('tr#' + index)
     row.find('.min').html(pingResult.min)
-    row.find('.avg').html(pingResult.avg)
+    row.find('.avg').html(pingResult.avg.toPrecision(5))
     row.find('.max').html(pingResult.max)
-    row.find('.loss').html((pingResult.fails / pingResult.total) * 100)
+    row.find('.loss').html(((pingResult.fails / pingResult.total) * 100).toPrecision(3))
     pulsarBeat(index,pingResult.currentlyFailed)
   }
 
