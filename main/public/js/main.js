@@ -36,15 +36,15 @@ $(document).ready(function(){
     pingResults[data.id] = []
     //$('#pingTable > tbody').append(tplPingRow({data: data}))
   }
+  var pingAgain = function(){}
   var pingResult = function(data){
-    var row = $('tr#'+data.id)
     var min = '-'
     var max = '-'
     var avg = '-'
     var fails = 0
     var currentlyFailed = false
     pingResults[data.id].push(data)
-    pingResults.forEach(function(e,i,o){
+    pingResults[data.id].forEach(function(e){
       if(!e.error){
         var rtt = e.received - e.sent
         if('-' === min || rtt < min) min = rtt
@@ -56,13 +56,13 @@ $(document).ready(function(){
         currentlyFailed = true
       }
     })
-    var loss = (fails / pingResults.length) * 100
-    row.find('.ip').html(data.set.ip)
-    row.find('.min').html(min)
-    row.find('.avg').html(avg)
-    row.find('.max').html(max)
-    row.find('.loss').html(loss)
-    pulsarBeat(data.id,currentlyFailed)
+    pingTableRowUpdate(data.id,{
+      min: min, max: max, avg: avg,
+      fails: fails, total: pingResults[data.id].length,
+      currentlyFailed: currentlyFailed
+    })
+    console.log(pingResults)
+    pingHost(data.id,pingResults[data.id][0].target,pingResult)
   }
   var pingComplete = function(data){
     pulsarFinal(data.id)
@@ -78,33 +78,32 @@ $(document).ready(function(){
     for (var i = 0; i < rows.length; i++){ pingTable.append(rows[i]) }
   }
   var pingTableInit = function(){
-    pingTableSort()
-/*
-    pingTable.find('tr').each(function(){
-      if(
-        !(
-          ('waiting' === $(this).attr('id')) ||
-          ('ping-row-template' === $(this).attr('id'))
-          )
-        ) $(this).remove()
-    })
-*/
+    pingTable.find('tr:gt(1)').each(function(){ $(this).remove() })
     $('#pingResultWrapper').removeClass('hidden')
   }
   var pingTableRowInit = function(index,dnsResult){
-    var prevRow = pingTable.find('tr').last()
-    pingTable.find('tr').each(function(){
-      if(
-        !(
-          ('waiting' === $(this).attr('id')) ||
-          ('ping-row-template' === $(this).attr('id'))
-        )
-      ){
-        if(index > prevRow.attr('id'))
-        prevRow = $(this)
-      }
-    })
-    $('#pingResultWrapper').removeClass('hidden')
+    pingTable.find('tr#waiting').addClass('hidden')
+    pingResults[index] = []
+    var newRow = $('#ping-row-template').clone()
+    newRow.attr('id',index)
+    if(dnsResult.sponsor.url){
+      var link = newRow.find('td.location > a')
+      link.attr('href',dnsResult.sponsor.url)
+      link.html(dnsResult.location)
+    } else
+      newRow.find('td.location').html(dnsResult.location)
+    newRow.find('td.ip').html(dnsResult.ip[0])
+    pingTable.append(newRow)
+    pingTableSort()
+    pingTable.find('tr#' + index).removeClass('hidden')
+  }
+  var pingTableRowUpdate = function(index,pingResult){
+    var row = pingTable.find('tr#' + index)
+    row.find('.min').html(pingResult.min)
+    row.find('.avg').html(pingResult.avg)
+    row.find('.max').html(pingResult.max)
+    row.find('.loss').html((pingResult.fails / pingResult.total) * 100)
+    pulsarBeat(index,pingResult.currentlyFailed)
   }
   /**
    * Ping a Host with a Bot
@@ -116,8 +115,9 @@ $(document).ready(function(){
     if(!done) done = function(){}
     console.log('sending ping request for ' + ip + ' to ' + id)
     socket.emit('ping',{bot: id, ip: ip},function(result){
-      console.log('got ping result from ' + id,result)
-      done(result)
+      console.log('got ping result from ' + id,result.result)
+      result.result.id = id
+      done(result.result)
     })
   }
   $('#ping').submit(function(e){
@@ -140,7 +140,7 @@ $(document).ready(function(){
       for(var i in dnsResults){
         if(dnsResults.hasOwnProperty(i)){
           pingTableRowInit(i,dnsResults[i])
-          pingHost(i,dnsResults[i].ip[0])
+          pingHost(i,dnsResults[i].ip[0],pingResult)
         }
       }
       //pingInit({})

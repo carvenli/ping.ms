@@ -153,6 +153,8 @@ io.on('connection',function(client){
               socket.emit('resolve',query,function(data){
                 if(data.error) return next(data.error)
                 results[bot.id] = data
+                results[bot.id].location = bot.location
+                results[bot.id].sponsor = bot.sponsor
                 next()
               })
             },
