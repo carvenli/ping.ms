@@ -83,7 +83,7 @@ DNS.prototype.ptr = function(ip,done){
  */
 DNS.prototype.resolve = function(done){
   var self = this
-  self.logger.info('DNS.resolve "' + self.host)
+  self.logger.info('DNS.resolve: ' + self.host)
   async.waterfall(
     [
       //resolve the host to ip

@@ -1,27 +1,7 @@
 extends layout
 append js
+  script(src='//bowercdn.net/c/async-0.9.0/lib/async.js')
   script(src='/js/main.js')
-  script#ping-row-template(type='text/x-handlebars-template').
-    <tr id='{{data.id}}'>
-      <td class='pulsar'>
-        <span class='glyphicon glyphicon-link text-warning' />
-      </td>
-      {{#if data.sponsor.url}}
-        <td>
-          <a href='{{data.sponsor.url}}'>{{data.location}}</a>
-        </td>
-      {{else}}
-        <td>{{data.location}}</td>
-      {{/if}}
-      <td class="ip">{{data.result.ip}}</td>
-      <td class="min">{{data.result.min}}</td>
-      <td class="max">{{data.result.max}}</td>
-      <td class="avg">{{data.result.avg}}</td>
-      <td class="loss">{{data.result.loss}}</td>
-      <td class="traceLink">
-        <a href='#'>Traceroute</a>
-      </td>
-    </tr>
 block content
   +alerts()
   .main
@@ -50,3 +30,39 @@ block content
         tbody
           tr#waiting
             td(colspan='8') Waiting for results...
+          tr.hidden#ping-row-template
+            td.pulsar
+              span.glyphicon.glyphicon-link.text-warning
+            td.location
+              a(href="#") -
+            td.ip -
+            td.min -
+            td.max -
+            td.avg -
+            td.loss -
+            td.traceLink
+              a(href="#") Traceroute
+          tr#test234235
+            td.pulsar
+              span.glyphicon.glyphicon-link.text-warning
+            td.location
+              a(href="#") Test 1
+            td.ip -
+            td.min -
+            td.max -
+            td.avg -
+            td.loss -
+            td.traceLink
+              a(href="#") Traceroute
+          tr#test182763
+            td.pulsar
+              span.glyphicon.glyphicon-link.text-warning
+            td.location
+              a(href="#") Test 2
+            td.ip -
+            td.min -
+            td.max -
+            td.avg -
+            td.loss -
+            td.traceLink
+              a(href="#") Traceroute

@@ -1,6 +1,6 @@
-/* global socket: false, Handlebars: false, console: false */
+/* global socket: false, console: false, async: false */
 $(document).ready(function(){
-  var tplPingRow = Handlebars.compile($('#ping-row-template').html())
+  //var tplPingRow = Handlebars.compile($('#ping-row-template').html())
   var pulsarBeat = function(id,failed){
     var glyph = failed ? 'glyphicon-heart-empty' : 'glyphicon-heart'
     //we replace the html here ON PURPOSE to autocancel all other previous animations
@@ -34,7 +34,7 @@ $(document).ready(function(){
     data.set.avg = '-'
     data.set.loss = '-'
     pingResults[data.id] = []
-    $('#pingTable > tbody').append(tplPingRow({data: data}))
+    //$('#pingTable > tbody').append(tplPingRow({data: data}))
   }
   var pingResult = function(data){
     var row = $('tr#'+data.id)
@@ -67,6 +67,45 @@ $(document).ready(function(){
   var pingComplete = function(data){
     pulsarFinal(data.id)
   }
+  var pingTable = $('#pingTable > tbody')
+  var pingTableSort = function(){
+    var comparisonFn = function(){
+      return function(a,b){
+        return $(a).attr('id').localeCompare($(b).attr('id'))
+      }
+    }
+    var rows = pingTable.find('tr:gt(1)').toArray().sort(comparisonFn())
+    for (var i = 0; i < rows.length; i++){ pingTable.append(rows[i]) }
+  }
+  var pingTableInit = function(){
+    pingTableSort()
+/*
+    pingTable.find('tr').each(function(){
+      if(
+        !(
+          ('waiting' === $(this).attr('id')) ||
+          ('ping-row-template' === $(this).attr('id'))
+          )
+        ) $(this).remove()
+    })
+*/
+    $('#pingResultWrapper').removeClass('hidden')
+  }
+  var pingTableRowInit = function(index,dnsResult){
+    var prevRow = pingTable.find('tr').last()
+    pingTable.find('tr').each(function(){
+      if(
+        !(
+          ('waiting' === $(this).attr('id')) ||
+          ('ping-row-template' === $(this).attr('id'))
+        )
+      ){
+        if(index > prevRow.attr('id'))
+        prevRow = $(this)
+      }
+    })
+    $('#pingResultWrapper').removeClass('hidden')
+  }
   /**
    * Ping a Host with a Bot
    * @param {string} id  Bot id
@@ -85,8 +124,7 @@ $(document).ready(function(){
     e.preventDefault()
     var host = $('#host').val().replace(/\s+/g,'')
     if('' === host) return(false)
-    $('#pingResultWrapper').removeClass('hidden')
-    $('#pingTable > tbody').empty()
+    pingTableInit()
     var commonArgs = {
       host: host,
       group: $('#group').val()
@@ -100,8 +138,10 @@ $(document).ready(function(){
       dnsResults = data.results
       console.log('got resolve results',dnsResults)
       for(var i in dnsResults){
-        if(dnsResults.hasOwnProperty(i))
+        if(dnsResults.hasOwnProperty(i)){
+          pingTableRowInit(i,dnsResults[i])
           pingHost(i,dnsResults[i].ip[0])
+        }
       }
       //pingInit({})
     })
