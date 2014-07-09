@@ -1,6 +1,5 @@
 /* global socket: false, console: false, async: false */
 $(document).ready(function(){
-  //var tplPingRow = Handlebars.compile($('#ping-row-template').html())
   var pulsarBeat = function(id,failed){
     var glyph = failed ? 'glyphicon-heart-empty' : 'glyphicon-heart'
     //we replace the html here ON PURPOSE to autocancel all other previous animations
