@@ -26,22 +26,21 @@ cd $stagingFolder
 
 echo "Removing version control"
 rm -rf $stagingFolder/ping.ms/.git
+rm -f $stagingFolder/ping.ms/.gitignore
 
 echo "Removing non bot releated code"
-rm -f $stagingFolder/ping.ms/ping.ms-release.sh
+rm -f $stagingFolder/ping.ms/ping.ms-bot-build.sh
+rm -f $stagingFolder/ping.ms/.gjslintrc
+rm -f $stagingFolder/ping.ms/.jshintignore
+rm -f $stagingFolder/ping.ms/.jshintrc
 rm -rf $stagingFolder/ping.ms/admin
 rm -rf $stagingFolder/ping.ms/bin
 rm -rf $stagingFolder/ping.ms/main
 rm -rf $stagingFolder/ping.ms/models
 
-echo "Copying in node bin"
-mkdir bin
-cp `which node` bin
-
-echo "Executing NPM install"
-cd $stagingFolder/ping.ms
-npm install > /dev/null
-cd $stagingFolder
+echo "Replacing package.json"
+rm $stagingFolder/ping.ms/package.json
+mv $stagingFolder/ping.ms/package.bot.json $stagingFolder/ping.ms/package.json
 
 echo "Creating tarball"
 tar -czf $stagingFolder.tar.gz -C $stagingFolder *
