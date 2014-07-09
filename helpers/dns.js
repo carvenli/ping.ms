@@ -61,9 +61,9 @@ var DNS = function(host){
  * @param {function} done
  */
 DNS.prototype.ptr = function(ip,done){
-  var self = this
+  var that = this
   if(!(ip instanceof Array)) ip = [ip]
-  self.logger.info('DNS.ipToPtr"' + ip.join(',') + '"\n')
+  that.logger.info('DNS.ipToPtr"' + ip.join(',') + '"\n')
   async.series(
     [
       function(next){
@@ -82,18 +82,18 @@ DNS.prototype.ptr = function(ip,done){
  * @param {function} done
  */
 DNS.prototype.resolve = function(done){
-  var self = this
-  self.logger.info('DNS.resolve: ' + self.host)
+  var that = this
+  that.logger.info('DNS.resolve: ' + that.host)
   async.waterfall(
     [
       //resolve the host to ip
       function(next){
-        hostToIp(self.host,next)
+        hostToIp(that.host,next)
       },
       function(ip,next){
         ipToPtr(ip,function(err,ptr){
           next(err,{
-            host: self.host,
+            host: that.host,
             ip: ip,
             ptr: ptr
           })

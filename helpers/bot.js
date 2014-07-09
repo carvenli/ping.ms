@@ -25,23 +25,49 @@ var Bot = function(opts){
     state: 'unknown',
     timer: null
   }
+  that.sessions = {}
 }
 util.inherits(Bot,EventEmitter)
 
 
 /**
- * Use bot session to execute a ping request
+ * Start pinging a host
  * @param {string} handle
  * @param {string} ip
  * @param {function} done
  */
-Bot.prototype.ping = function(handle,ip,done){
-  var self = this
-  self.logger.info('Bot.ping: ' + ip)
+Bot.prototype.pingStart = function(handle,ip,done){
+  var that = this
+  that.logger.info('Bot.pingStart[' + handle + ']: ' + ip)
   var session = new BotSession({
-    tag: self.logger.tagExtend(handle)
+    tag: that.logger.tagExtend(handle)
   })
-  session.ping(ip,done)
+  //we need to handle result events and redistribute them
+  session.on('pingError',function(err){
+    that.emit('pingError:' + handle,err)
+  })
+  session.on('pingResult',function(result){
+    that.emit('pingResult:' + handle,result)
+  })
+  //start the ping session
+  session.pingStart(handle,ip,done)
+  //save the session so we can stop it
+  that.sessions[handle] = session
+}
+
+
+/**
+ * Stop pinging a host
+ * @param {string} handle
+ * @param {function} done
+ * @return {*}
+ */
+Bot.prototype.pingStop = function(handle,done){
+  var that = this
+  that.logger.info('Bot.pingStop: ' + handle)
+  //find the session
+  if(!that.sessions[handle]) return done('Session doesnt exist: ' + handle)
+  that.sessions[handle].pingStop(done)
 }
 
 
@@ -52,10 +78,10 @@ Bot.prototype.ping = function(handle,ip,done){
  * @param {function} done
  */
 Bot.prototype.resolve = function(handle,host,done){
-  var self = this
-  self.logger.info('Bot.resolve: ' + host)
+  var that = this
+  that.logger.info('Bot.resolve: ' + host)
   var session = BotSession.create({
-    tag: self.logger.tagExtend(handle)
+    tag: that.logger.tagExtend(handle)
   })
   session.resolve(host,done)
 }
@@ -66,24 +92,24 @@ Bot.prototype.resolve = function(handle,host,done){
  * @param {string} secret
  */
 Bot.prototype.authorize = function(secret){
-  var self = this
-  self.mux.emit(
+  var that = this
+  that.mux.emit(
     'authorize',
     {secret: secret},
     function(data){
-      var authRetry = function(){self.authorize(secret)}
+      var authRetry = function(){that.authorize(secret)}
       if(data.error){
-        self.logger.error('auth failed!')
-        self.auth.state = 'failRetry'
-        clearTimeout(self.auth.timer)
-        self.auth.timer = setTimeout(authRetry,self.options.auth.failDelay)
-        self.emit('authFail')
+        that.logger.error('auth failed!')
+        that.auth.state = 'failRetry'
+        clearTimeout(that.auth.timer)
+        that.auth.timer = setTimeout(authRetry,that.options.auth.failDelay)
+        that.emit('authFail')
       } else {
-        self.logger.info('authorized')
-        self.auth.state = 'authorized'
-        clearTimeout(self.auth.timer)
-        self.auth.timer = setTimeout(authRetry,self.options.auth.reDelay)
-        self.emit('authSuccess')
+        that.logger.info('authorized')
+        that.auth.state = 'authorized'
+        clearTimeout(that.auth.timer)
+        that.auth.timer = setTimeout(authRetry,that.options.auth.reDelay)
+        that.emit('authSuccess')
       }
     }
   )
@@ -94,20 +120,22 @@ Bot.prototype.authorize = function(secret){
  * Connect to mux
  */
 Bot.prototype.connect = function(){
-  var self = this
-  self.logger.info('connecting to ' + self.options.uri)
-  self.mux = io.connect(self.options.uri)
-  self.mux.once('connect',function(){
-    //map events from our local emitter back to mux
-    self.logger.info('connected')
+  var that = this
+  that.logger.info('connecting to ' + that.options.uri)
+  that.mux = io.connect(that.options.uri)
+  that.mux.once('connect',function(){
+    that.logger.info('connected')
     //listen for events from mux
-    self.mux.on('resolve',function(data,cb){
-      self.emit('resolve',data,cb)
+    that.mux.on('resolve',function(data,cb){
+      that.emit('resolve',data,cb)
     })
-    self.mux.on('ping',function(data,cb){
-      self.emit('ping',data,cb)
+    that.mux.on('pingStart',function(data,cb){
+      that.emit('pingStart',data,cb)
     })
-    self.authorize(self.options.secret)
+    that.mux.on('pingStop',function(data,cb){
+      that.emit('pingStop',data,cb)
+    })
+    that.authorize(that.options.secret)
   })
 }
 

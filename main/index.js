@@ -152,9 +152,11 @@ io.on('connection',function(client){
               }
               socket.emit('resolve',query,function(data){
                 if(data.error) return next(data.error)
-                results[bot.id] = data
-                results[bot.id].location = bot.location
-                results[bot.id].sponsor = bot.sponsor
+                var result = data
+                result.location = bot.location
+                result.sponsor = bot.sponsor
+                result.handle = generateHandle()
+                results[bot.id] = result
                 next()
               })
             },
@@ -169,47 +171,37 @@ io.on('connection',function(client){
     )
   })
   /**
-   * Ping a host from the browser
+   * Start pinging a host from the browser
    */
-  client.on('ping',function(data,done){
-    var handle = generateHandle()
-    botSocket[data.bot].emit('ping',{handle: handle, ip: data.ip},function(data){
-      if(data.error) return done({error: data.error})
+  client.on('pingStart',function(data,done){
+    //setup result handlers
+    botSocket[data.bot].on('pingError:' + data.handle,function(err){
+      client.emit('pingError:' + data.handle,err)
+    })
+    botSocket[data.bot].on('pingResult:' + data.handle,function(result){
+      //salt bot id back in for mapping on the frontend
+      result.id = data.bot
+      client.emit('pingResult:' + data.handle,result)
+    })
+    //start the ping session
+    botSocket[data.bot].emit('pingStart',{handle: data.handle, ip: data.ip},function(data){
+      if(data && data.error) return done({error: data.error})
       done({result: data})
     })
-    /*
-    console.log(data)
-    async.series(
-      [
-        function(next){
-          groupAction(
-            data.group,
-            function(bot,handle,socket,next){
-              var query = {
-                ip: data.ip,
-                handle: handle
-              }
-              socket.emit('ping',query,function(data){
-                console.log(bot.location + 'ping complete',data)
-                if(data.error) return next(data.error)
-                client.emit(handle + ':ping:result',{
-                  id: bot.id,
-                  location: bot.location,
-                  sponsor: bot.sponsor,
-                  set: data
-                })
-                next()
-              })
-            },
-            next
-          )
-        }
-      ],
-      function(err){
-        if(err) client.emit('error',{message: err})
-      }
-    )
-    */
+  })
+  /**
+   * Stop pinging a host from the browser
+   */
+  client.on('pingStop',function(data,done){
+    if(!data.bot || !botSocket[data.bot]) return done('Bot socket doesnt exist')
+    //remove result listeners
+    botSocket[data.bot].removeAllListeners('pingError:' + data.handle)
+    botSocket[data.bot].removeAllListeners('pingResult:' + data.handle)
+    //stop the ping session
+    botSocket[data.bot].emit('pingStop',{handle: data.handle},function(data){
+      if(data && data.error) return done({error: data.error})
+      done({result: data})
+    })
   })
 })
 

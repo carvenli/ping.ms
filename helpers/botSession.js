@@ -1,7 +1,9 @@
 'use strict';
 var async = require('async')
+  , util = require('util')
   , Logger = require('../helpers/logger')
   , DNS = require('../helpers/dns.js')
+var EventEmitter = require('events').EventEmitter
 
 //setup our netPing session early and save it for reuse privately
 var netPing = require('net-ping')
@@ -45,10 +47,14 @@ var pingHost = function(ip,done){
  */
 var BotSession = function(opts){
   var that = this
+  EventEmitter.apply(that)
   that.options = opts
   that.logger = Logger.create(that.options.tag)
   that.logger.info('BotSession Constructor')
+  that.pingTarget = null
+  that.pingTimeout = null
 }
+util.inherits(BotSession,EventEmitter)
 
 
 /**
@@ -57,8 +63,8 @@ var BotSession = function(opts){
  * @param {function} done
  */
 BotSession.prototype.resolve = function(host,done){
-  var self = this
-  self.logger.info('BotSession.resolve: ' + host)
+  var that = this
+  that.logger.info('BotSession.resolve: ' + host)
   async.series(
     [
       function(next){
@@ -77,24 +83,36 @@ BotSession.prototype.resolve = function(host,done){
 
 
 /**
- * Ping an IP
+ * Start pinging an IP
+ * @param {handle} handle
  * @param {string} ip
  * @param {function} done
  */
-BotSession.prototype.ping = function(ip,done){
-  var self = this
-  self.logger.info('BotSession.ping: ' + ip)
-  async.series(
-    [
-      function(next){
-        pingHost(ip,next)
-      }
-    ],
-    function(err,results){
-      if(err) return done(err)
-      done(null,results[0])
-    }
-  )
+BotSession.prototype.pingStart = function(handle,ip,done){
+  var that = this
+  that.pingTarget = ip
+  that.logger.info('BotSession.pingStart[' + handle + ']: ' + ip)
+  done()
+  var ping = function(){
+    that.pingTimeout = setTimeout(ping,1000)
+    pingHost(ip,function(err,result){
+      if(err) return that.emit('pingError',err)
+      that.emit('pingResult',result)
+    })
+  }
+  ping()
+}
+
+
+/**
+ * Stop pinging an IP
+ * @param {function} done
+ */
+BotSession.prototype.pingStop = function(done){
+  var that = this
+  that.logger.info('BotSession.pingStop: ' + that.pingTarget)
+  clearTimeout(that.pingTimeout)
+  done()
 }
 
 

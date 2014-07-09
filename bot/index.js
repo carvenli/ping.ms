@@ -23,30 +23,31 @@ async.each(
         })
       })
       //handle ping requests
-      mux.on('ping',function(data,done){
-        mux.ping(data.handle,data.ip,function(err,result){
+      mux.on('pingStart',function(data,done){
+        //redistribute events back to the client
+        mux.on('pingError:' + data.handle,function(err){
+          mux.mux.emit('pingError:' + data.handle,err)
+        })
+        mux.on('pingResult:' + data.handle,function(result){
+          mux.mux.emit('pingResult:' + data.handle,result)
+        })
+        //start the ping session
+        mux.pingStart(data.handle,data.ip,function(err,result){
           if(err) return done({error: err})
           done(result)
         })
       })
-      /**
-      //handle trace requests
-      mux.on('traceroute',function(data){
-        var trace = mux.trace({
-          host: data.host
+      //handle ping requests
+      mux.on('pingStop',function(data,done){
+        //clear event listeners
+        mux.removeAllListeners('pingResult:' + data.handle)
+        mux.removeAllListeners('pingError:' + data.handle)
+        //stop the ping session
+        mux.pingStop(data.handle,function(err,result){
+          if(err) return done({error: err})
+          done(result)
         })
-        trace.on('error',function(err){
-          mux.emit('error',err)
-        })
-        trace.on('resolve',function(res){
-          mux.emit('dnsResolve',res)
-        })
-        trace.on('hop',function(res){
-          mux.emit('traceHop',res)
-        })
-        trace.exec()
       })
-      **/
       sockets.push(mux)
       next()
     })
