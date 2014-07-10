@@ -1,9 +1,11 @@
 #!/bin/bash
 
 scratch="/tmp/ping.ms-install"
+destination="/opt/ping.ms"
 
 echo "Sanitizing"
 rm -rf $scratch
+mkdir -p $scratch
 
 echo "Installing packages"
 yum -y update
@@ -12,7 +14,6 @@ yum -y install python26
 
 if [ -z $(which node) ]; then
   echo "Downloading node source"
-  mkdir $scratch
   cd $scratch
   wget -O $scratch/node.tar.gz "http://nodejs.org/dist/v0.10.29/node-v0.10.29.tar.gz"
 
@@ -29,7 +30,7 @@ if [ -z $(which node) ]; then
 fi
 
 echo "Downloading Ping.ms"
-wget -O $scratch/ping.ms.tar.gz  "http://ping.ms/ping.ms-bot-latest-unix-x86_64.tar.gz"
+wget -O $scratch/ping.ms.tar.gz  "http://ping.ms/downloads/ping.ms-bot-latest-unix-x86_64.tar.gz"
 
 echo "Extracting Ping.ms"
 mkdir $scratch/ping.ms
@@ -39,24 +40,33 @@ echo "Installing Dependencies for Ping.ms"
 cd $scratch/ping.ms
 npm --python=python2.6 install
 
+if [ "$(npm -g ls | grep pm2 | wc -l)" -eq 0 ]; then
+  echo "Install pm2"
+  npm -g install pm2
+  npm -g update pm2
+fi
+pm2 delete ping.ms-bot
+
 echo "Move completed installation to final destination"
-cp -a $script/ping.ms $destination
+if [ -f "$destination/config.local.js" ]; then
+  cp $destination/config.local.js $scratch
+fi
+rm -rf $destination
+mv $scratch/ping.ms $destination
+if [ -f "$scratch/config.local.js" ]; then
+  cp $scratch/config.local.js $destination
+fi
 
-echo "Install pm2"
-npm -g install pm2
-npm -g update pm2
-
-if [ $(users | grep node | wc -l) -eq 0 ]; then
+if [ $(cat /etc/passwd | grep ^node | wc -l) -eq 0 ]; then
   echo "Create user and log folder"
-  groupadd node
-  useradd -m -s /bin/bash -G node node
+  useradd -m -s /bin/bash node
   mkdir -p /var/log/node/ping.ms
   chown -R node:node /var/log/node
+  chown -R node:node $destination
 fi
 
 echo "Stop any existing bot instance"
 cd $destination
-pm2 delete ping.ms-bot
 NODE_ENV=production pm2 start app.js -u node -o /var/log/node/ping.ms/bot-out -e /var/log/node/ping.ms/bot-error -i 1 -n ping.ms-bot
 
 echo "Complete"
