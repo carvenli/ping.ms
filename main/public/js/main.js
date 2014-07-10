@@ -2,9 +2,11 @@
 $(document).ready(function(){
   //activate the examples
   $('.example').each(function(){
-    $(this).click(function(){
+    $(this).click(function(e){
+      e.preventDefault()
       $('form > #host').val($(this).text())
       $('form').submit()
+      return false
     })
   })
   //storage vars

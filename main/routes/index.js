@@ -63,7 +63,8 @@ exports.bot = function(req,res){
         return
       }
       res.render('bots',{
-        bots: results[0]
+        bots: results[0],
+        pageTitle: 'Bot List'
       })
     }
   )

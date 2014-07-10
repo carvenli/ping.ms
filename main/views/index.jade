@@ -12,9 +12,9 @@ block content
           option(value=row.tag)= row.name
       button.btn.btn-success#pingBtn(type="submit") Ping
     .instructions Enter a hostname or an IP address, e.g.
-      span.example#host google.com
+      a.example#host(href="#") google.com
       | or
-      span.example#ip= exampleIp
+      a.example#ip(href="#")= exampleIp
   #pingResultWrapper.wrapper.hidden
     #pingResults.results
       table#pingTable.table.table-bordered
