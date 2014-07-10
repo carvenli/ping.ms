@@ -8,7 +8,7 @@ config = new ObjectManage()
 //dist config schema
 config.load({
   title: 'ping.ms',
-  version: '2.0.0',
+  version: '2.0.1',
   mongoose: {
     enabled: false,
     name: 'ping-ms',

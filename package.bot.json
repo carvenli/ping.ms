@@ -2,7 +2,7 @@
   "author": "ping.ms <admins@ping.ms>",
   "name": "ping.ms-bot",
   "description": "ping.ms bot",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "homepage": "http://ping.ms/",
   "repository": {
     "type": "git",
