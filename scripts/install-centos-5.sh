@@ -46,6 +46,7 @@ if [ "$(npm -g ls | grep pm2 | wc -l)" -eq 0 ]; then
   npm -g update pm2
 fi
 pm2 delete ping.ms-bot
+pm2 kill
 
 echo "Move completed installation to final destination"
 if [ -f "$destination/config.local.js" ]; then
