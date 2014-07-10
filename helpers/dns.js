@@ -92,7 +92,8 @@ DNS.prototype.resolve = function(done){
       },
       function(ip,next){
         ipToPtr(ip,function(err,ptr){
-          next(err,{
+          if(err) ptr = ip
+          next(null,{
             host: that.host,
             ip: ip,
             ptr: ptr
