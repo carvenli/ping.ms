@@ -3,7 +3,7 @@
 #vars
 version="$1"
 destination="$2"
-brach="stable"
+branch="stable"
 arch=`uname -m`
 target="unix"
 file="ping.ms-bot-$version-$target-$arch.tar.gz"
