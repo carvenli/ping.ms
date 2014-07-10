@@ -31,7 +31,8 @@ exports.index = function(req,res){
       groups.unshift({name: 'All'})
       res.render('index',{
         groups: groups,
-        pageTitle: 'Online Ping Test, Online Trace Route, Internet Test'
+        pageTitle: 'Online Ping Test, Online Trace Route, Internet Test',
+        exampleIp: req.headers['x-forwarded-for'] || req.connection.remoteAddress
       })
     }
   )

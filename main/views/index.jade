@@ -4,14 +4,17 @@ append js
 block content
   +alerts()
   .main
-    p.site-description Free online ping test and traceroute service with multiple locations worldwide
+    p.site-description Free online ping test service with multiple locations worldwide
     form#ping(action="#", method="post")
       input.ping#host(type="text", name="host", size="10", value="")
       select#group(name="group")
         each row in groups
           option(value=row.tag)= row.name
       button.btn.btn-success#pingBtn(type="submit") Ping
-    .instructions Enter a domain or an ip address, e.g. google.com or 72.14.204.99
+    .instructions Enter a hostname or an IP address, e.g.
+      span.example#host google.com
+      | or
+      span.example#ip= exampleIp
   #pingResultWrapper.wrapper.hidden
     #pingResults.results
       table#pingTable.table.table-bordered

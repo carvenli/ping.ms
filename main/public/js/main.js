@@ -1,6 +1,12 @@
 /* global socket: false, console: false, alert: false */
 $(document).ready(function(){
-
+  //activate the examples
+  $('.example').each(function(){
+    $(this).click(function(){
+      $('form > #host').val($(this).text())
+      $('form').submit()
+    })
+  })
   //storage vars
   var dnsResults = {}
   var pingResults = {}
