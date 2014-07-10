@@ -1,6 +1,5 @@
 'use strict';
 var config = require('./config')
-  , mongoose = require('mongoose')
 
 var logger = require('./helpers/logger').create('main')
 
@@ -13,6 +12,7 @@ if(config.get('bot.enabled')){
 }
 
 if(config.get('mongoose.enabled')){
+  var mongoose = require('mongoose')
   //services that do require mongoose
   logger.info('Starting services that do require mongoose...')
   //connect to mongoose first
