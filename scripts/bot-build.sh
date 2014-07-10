@@ -21,7 +21,7 @@ if [ -z $destination ]; then
   if [ -d "/opt/ping.ms/main/public/downloads" ]; then
     linkToLatest=1
     destination="/opt/ping.ms/main/public/downloads"
-    latestDestination="$(dirname $destination)/ping.ms-bot-latest-$target-$arch.tar.gz"
+    latestDestination="$destination/ping.ms-bot-latest-$target-$arch.tar.gz"
   else
     destination="$stagingFolder/$file"
   fi

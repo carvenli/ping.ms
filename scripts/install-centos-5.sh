@@ -29,7 +29,7 @@ if [ -z $(which node) ]; then
 fi
 
 echo "Downloading Ping.ms"
-wget -O $scratch/ping.ms.tar.gz  "http://hq.esited.com/ping.ms-bot-latest-unix-x86_64.tar.gz"
+wget -O $scratch/ping.ms.tar.gz  "http://ping.ms/ping.ms-bot-latest-unix-x86_64.tar.gz"
 
 echo "Extracting Ping.ms"
 mkdir $scratch/ping.ms
