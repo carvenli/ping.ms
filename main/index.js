@@ -188,7 +188,7 @@ io.on('connection',function(client){
                 var result = data
                 result.location = bot.location
                 result.sponsor = bot.sponsor
-                //result.handle = generateHandle()
+                result.handle = handle
                 results[bot.id] = result
                 next()
               })
