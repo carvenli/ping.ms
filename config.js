@@ -2,13 +2,14 @@
 var ObjectManage = require('object-manage')
   , fs = require('fs')
   , config
+require('pkginfo')(module,'version')
 
 //setup config object
 config = new ObjectManage()
 //dist config schema
 config.load({
   title: 'ping.ms',
-  version: '2.0.2',
+  version: module.exports.version,
   mongoose: {
     enabled: false,
     name: 'ping-ms',
