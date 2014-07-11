@@ -92,7 +92,7 @@ Bot.prototype.authorize = function(secret){
   var that = this
   that.mux.emit(
     'authorize',
-    {secret: secret},
+    {secret: secret,version:that.options.version},
     function(data){
       var authRetry = function(){that.authorize(secret)}
       if(data.error){

@@ -11,6 +11,7 @@ var express = require('express')
 //global tpl vars
 app.locals.pretty = true
 app.locals.version = config.get('version')
+app.locals.moment = require('moment')
 
 app.set('views',__dirname + '/' + 'views')
 app.set('view engine','jade')

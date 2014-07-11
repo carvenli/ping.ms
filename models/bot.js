@@ -12,17 +12,6 @@ schema = new mongoose.Schema({
     required: true,
     index: true
   },
-  host: {
-    type: String,
-    unique: true,
-    required: true,
-    index: true
-  },
-  port: {
-    type: Number,
-    required: true,
-    default: 4176
-  },
   groups: String,
   sponsor: {
     name: String,
@@ -42,7 +31,7 @@ schema = new mongoose.Schema({
   notes: String,
   metrics: {
     dateCreated: {
-      label: 'Creation Date',
+      label: 'Created',
       type: Date,
       default: Date.now,
       required: true,
@@ -53,6 +42,11 @@ schema = new mongoose.Schema({
       type: Date,
       default: Date.now,
       required: true,
+      index: true
+    },
+    dateSeen: {
+      label: 'Last Seen',
+      type: Date,
       index: true
     },
     version: String

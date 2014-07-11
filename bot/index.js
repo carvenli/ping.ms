@@ -13,6 +13,7 @@ async.each(
     var muxOpts = propCopy(conn)
     muxOpts.auth = propCopy(options.auth)
     muxOpts.tag = logger.tagExtend(sockets.length)
+    muxOpts.version = config.get('version')
     var mux = Bot.create(muxOpts)
     mux.once('authSuccess',function(){
       //handle resolve requests

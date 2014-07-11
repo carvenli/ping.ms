@@ -12,13 +12,12 @@ block content
             th
               input#toggle(type='checkbox')
             th Location
-            th Host
-            th Port
             th Groups
             th Sponsor
             th Hits
             th Created
             th Updated
+            th Seen
             th Version
             th Active
         tbody
@@ -28,9 +27,6 @@ block content
                 input(type='checkbox', name='remove[]', value=row.id)
               td(style='white-space:nowrap;')
                 a(href='/bots/edit?id=#{row.id}')= row.location
-              td
-                a(href='/bots/edit?id=#{row.id}')= row.host
-              td= row.port
               td
                 if(!row.groups.length)
                   span.label.label-default (none)
@@ -43,6 +39,11 @@ block content
               td= row.hits
               td(style='white-space:nowrap;')= (new Date(row.metrics.dateCreated)).toLocaleString().replace(/\s+\([^)]+\)$/,'')
               td(style='white-space:nowrap;')= (new Date(row.metrics.dateModified)).toLocaleString().replace(/\s+\([^)]+\)$/,'')
+              td(style='white-space:nowrap;')
+                if row.metrics.dateSeen
+                  | #{moment(row.metrics.dateSeen).diff(new Date(),'seconds')} sec
+                else
+                  | (never)
               td(style='white-space:nowrap;')= row.metrics.version
               td
                 span.glyphicon.glyphicon-align-center(class='glyphicon-'+(row.active?'ok-circle text-success':'ban-circle text-danger'))

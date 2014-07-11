@@ -147,6 +147,9 @@ io.on('connection',function(client){
           Bot.findOne({secret: data.secret},function(err,result){
             if(err) return next({message: err.message, reason: 'generalFailure'})
             if(!result) return next({message: 'Bot not found, bad secret', reason: 'badSecret'})
+            result.metrics.version = data.version
+            result.metrics.dateSeen = new Date()
+            Bot.findByIdAndUpdate(result.id,{$set:{metrics: result.toJSON().metrics}},function(){})
             if(result && !result.active)
               return next({message: 'Bot found, however inactive', reason: 'notActive'},result)
             //auth accepted
@@ -185,7 +188,7 @@ io.on('connection',function(client){
                 var result = data
                 result.location = bot.location
                 result.sponsor = bot.sponsor
-                result.handle = generateHandle()
+                //result.handle = generateHandle()
                 results[bot.id] = result
                 next()
               })

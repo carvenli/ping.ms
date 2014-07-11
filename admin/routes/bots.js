@@ -37,6 +37,7 @@ var groupList = function(next){
   )
 }
 
+
   /**
  * List bots
  * @param {object} req
@@ -147,11 +148,7 @@ exports.save = function(req,res){
       },
       //populate data
       function(next){
-        var defaultPort = 4176
         doc.location = req.body.location
-        doc.host = req.body.host
-        if(!doc.port && !req.body.port) doc.port = defaultPort
-        if(req.body.port) doc.port = (0 < req.body.port < 65536) ? req.body.port : defaultPort
         doc.secret = req.body.secret || doc.secret || ''
         doc.groups = req.body.groups || ''
         doc.notes = req.body.notes || ''
