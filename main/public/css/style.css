@@ -114,9 +114,9 @@ select {
   -moz-border-radius: 10px;
   -webkit-border-radius: 10px;
   font-size: 14px;
-  background: #000;
-  color: #fff;
+  background: #fff;
+  color: #000;
 }
 .bots h2 {
-  color:#0f0;
+  color:#034500;
 }
