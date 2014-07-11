@@ -149,7 +149,8 @@ io.on('connection',function(client){
             if(!result) return next({message: 'Bot not found, bad secret', reason: 'badSecret'})
             result.metrics.version = data.version
             result.metrics.dateSeen = new Date()
-            Bot.findByIdAndUpdate(result.id,{$set:{metrics: result.toJSON().metrics}},function(){})
+            client.metrics = result.toJSON().metrics
+            Bot.findByIdAndUpdate(result.id,{$set:{metrics: client.metrics}},function(){})
             if(result && !result.active)
               return next({message: 'Bot found, however inactive', reason: 'notActive'},result)
             //auth accepted
@@ -228,6 +229,8 @@ io.on('connection',function(client){
             botSocket[data.bot].removeAllListeners('pingError:' + data.handle)
             botSocket[data.bot].removeAllListeners('pingResult:' + data.handle)
             logger.info('Ping stopped: ' + data.handle)
+            botSocket[data.bot].metrics.dateSeen = new Date()
+            Bot.findByIdAndUpdate(data.bot,{$set:{metrics: botSocket[data.bot].metrics}},function(){})
           }
         })
         //start the ping session
