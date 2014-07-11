@@ -19,12 +19,10 @@ Thanks
 
 ## Bot Installation
 
-### CentOS 5
+### CentOS 5/6
 
 ```
-$ wget http://ping.ms/downloads/scripts/install-centos-5.sh
-$ chmod +x install-centos-5.sh
-$ ./install-centos-5.sh
+$ wget http://ping.ms/downloads/scripts/install-centos-5.sh -O - | bash -
 ```
 
 Populate the config file to **/opt/ping.ms/config.local.js**
@@ -46,6 +44,14 @@ Restart the bot
 
 ```
 $ pm2 restart ping.ms-bot
+```
+
+## Bot Update
+
+### CentOS 5/6
+
+```
+$ wget http://ping.ms/downloads/scripts/update-centos-5.sh -O - | bash -
 ```
 
 ## Release Procedure
