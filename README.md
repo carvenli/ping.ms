@@ -46,7 +46,7 @@ Restart the bot
 $ pm2 restart ping.ms-bot
 ```
 
-## Bot UPdate
+## Bot Update
 
 ### CentOS 5/6
 
