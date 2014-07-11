@@ -66,10 +66,6 @@ Bot.prototype.pingStop = function(handle){
   that.logger.info('Bot.pingStop: ' + handle)
   //find the session
   if(!that.sessions[handle]) return false
-  that.sessions[handle].on('pingEnd',function(){
-    that.emit('pingEnd:' + handle)
-    that.logger.info('Bot.pingEnd[' + handle + ']')
-  })
   that.sessions[handle].pingStop()
 }
 

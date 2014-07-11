@@ -204,6 +204,12 @@ io.on('connection',function(client){
         //salt bot id back in for mapping on the frontend
         result.id = data.bot
         client.emit('pingResult:' + data.handle,result)
+        if(result.stopped){
+          //remove result listeners
+          botSocket[data.bot].removeAllListeners('pingError:' + data.handle)
+          botSocket[data.bot].removeAllListeners('pingResult:' + data.handle)
+          logger.info('Ping stopped: ' + data.handle,Object.keys(botSocket[data.bot]))
+        }
       })
       //start the ping session
       botSocket[data.bot].emit('pingStart',{handle: data.handle, ip: data.ip},function(data){
@@ -217,16 +223,6 @@ io.on('connection',function(client){
    */
   client.on('pingStop',function(data){
     if(!data.bot || !botSocket[data.bot]) return false
-    //remove result listeners
-    logger.info(Object.keys(botSocket[data.bot]._events))
-    botSocket[data.bot].removeAllListeners('pingError:' + data.handle)
-    botSocket[data.bot].removeAllListeners('pingResult:' + data.handle)
-    logger.info(Object.keys(botSocket[data.bot]._events))
-    botSocket[data.bot].once('pingEnd:' + data.handle,function(){
-      logger.info('pingEnd passed') //it never makes it here WTFWTFWTF
-      client.emit('pingEnd:' + data.handle)
-    })
-    logger.info(Object.keys(botSocket[data.bot]._events))
     //stop the ping session
     botSocket[data.bot].emit('pingStop',{handle: data.handle})
   })

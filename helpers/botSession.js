@@ -84,7 +84,7 @@ BotSession.prototype.resolve = function(host,done){
 
 /**
  * Start pinging an IP
- * @param {handle} handle
+ * @param {string} handle
  * @param {string} ip
  * @param {function} done
  */
@@ -109,9 +109,10 @@ BotSession.prototype.pingStart = function(handle,ip,done){
  */
 BotSession.prototype.pingStop = function(){
   var that = this
+  that.stopped = true
   that.logger.info('BotSession.pingStop: ' + that.pingTarget)
   clearTimeout(that.pingTimeout)
-  that.emit('pingEnd')
+  that.emit('pingResult',{stopped:true})
 }
 
 

@@ -147,7 +147,7 @@ $(document).ready(function(){
    */
   var pingTableRowUpdate = function(index,pingResult){
     var row = pingTable.find('tr#' + index)
-    row.find('.ip').html(pingResult.ip)
+    row.find('.ip').html(pingResult.target)
     row.find('.min').html(pingResult.min)
     row.find('.avg').html(pingResult.avg.toPrecision(5))
     row.find('.max').html(pingResult.max)
