@@ -168,19 +168,19 @@ $(document).ready(function(){
     if(!done) done = function(){}
     //console.log('sending pingStart request for ' + ip + ' to ' + id + ' with handle ' + handle)
     //setup result handlers
-    socket.on('pingError:' + handle,function(err){
-      //alert(err)
-    })
     //console.log('listening for ' + 'pingResult:' + handle)
     socket.on('pingResult:' + handle,function(result){
-      if(++resultCount > 4)
-        pingStop(handle,result.id,function(){})
+      if(result && result.error) return console.log('ping error: ' + result.error)
+      if(++resultCount > 4 && !result.stopped)
+        pingStop(handle,result.id)
+      if(result.stopped){
+        pulsarFinal(result.id)
+        socket.removeAllListeners('pingResult:' + handle)
+        return
+      }
       pingResult(result)
     })
-    socket.emit('pingStart',{handle: handle, bot: id, ip: ip},function(result){
-      if(result.error) return done(result.error)
-      done(null,result)
-    })
+    socket.emit('pingStart',{handle: handle, bot: id, ip: ip})
   }
 
 
@@ -188,15 +188,8 @@ $(document).ready(function(){
    * Stop a ping session
    * @param {string} handle
    * @param {string} id
-   * @param {function} done
    */
   var pingStop = function(handle,id){
-    socket.once('pingEnd:' + handle,function(){
-      console.log('pingEnd: ' + handle)
-      socket.removeAllListeners('pingError:' + handle)
-      socket.removeAllListeners('pingResult:' + handle)
-      pulsarFinal(id)
-    })
     socket.emit('pingStop',{handle: handle, bot: id})
   }
 
@@ -230,7 +223,7 @@ $(document).ready(function(){
     if('' === host) return(false)
     pingTableInit()
     dnsResolve(host,group,function(err,results){
-      if(err) return alert(err)
+      if(err) return console.log('dns resolve error: ' + results)
       //console.log('got resolve results',results)
       dnsResults = results
       for(var i in dnsResults){

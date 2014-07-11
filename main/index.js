@@ -104,6 +104,36 @@ var groupAction = function(group,action,next){
   })
 }
 
+
+/**
+ * Clear any existing ping events registered
+ * @param {object} data
+ * @param {function} next
+ */
+var pingSanitize = function(data,next){
+  var re = /^(.*):([^:]*)$/
+  var currentSourceId = data.handle.replace(re,'$1')
+  async.each(
+    Object.keys(botSocket[data.bot]._events),
+    function(ev,next){
+      var test = /^ping(Error|Result):(.*)$/
+      if(!ev.match(test)) return next()
+      ev = ev.replace(test,'$2')
+      var sourceId = ev.replace(re,'$1')
+      if(sourceId !== currentSourceId) return next()
+      var handle = ev.replace(re,'$1:$2')
+      logger.info('KILLING ' + handle)
+      //botSocket[data.bot].emit('pingStop',{handle: m[1]}
+      botSocket[data.bot].removeAllListeners('pingError:' + handle)
+      botSocket[data.bot].removeAllListeners('pingResult:' + handle)
+      //stop the ping session
+      botSocket[data.bot].emit('pingStop',{handle: handle})
+      next()
+    },
+    next
+  )
+}
+
 //socket.io routing
 io.on('connection',function(client){
   /**
@@ -173,56 +203,40 @@ io.on('connection',function(client){
   /**
    * Start pinging a host from the browser
    */
-  client.on('pingStart',function(data,done){
-    var re = /^(.*):([^:]*)$/
-    var currentSourceId = data.handle.replace(re,'$1')
-    async.each(Object.keys(botSocket[data.bot]._events),function(ev,next){
-      var test = /^ping(Error|Result):(.*)$/
-      if(ev.match(test)){
-        ev = ev.replace(test,'$2')
-        var sourceId = ev.replace(re,'$1')
-        if(sourceId === currentSourceId){
-          var handle = ev.replace(re,'$1:$2')
-          logger.info('KILLING ' + handle)
-          //botSocket[data.bot].emit('pingStop',{handle: m[1]}
-          botSocket[data.bot].removeAllListeners('pingError:' + handle)
-          botSocket[data.bot].removeAllListeners('pingResult:' + handle)
-          //stop the ping session
-          botSocket[data.bot].emit('pingStop',{handle: handle},function(){next()})
-        } else {
-          next()
+  client.on('pingStart',function(data){
+    async.series(
+      [
+        function(next){
+          pingSanitize(data,next)
         }
-      } else {
-        next()
+      ]
+      ,function(err){
+        if(err){
+          client.emit('pingResult:' + data.handle,{error: err})
+          return
+        }
+        //setup result handlers
+        botSocket[data.bot].on('pingResult:' + data.handle,function(result){
+          //salt bot id back in for mapping on the frontend
+          result.id = data.bot
+          client.emit('pingResult:' + data.handle,result)
+          //remove result listeners when the last event arrives
+          if(result.stopped){
+            botSocket[data.bot].removeAllListeners('pingError:' + data.handle)
+            botSocket[data.bot].removeAllListeners('pingResult:' + data.handle)
+            logger.info('Ping stopped: ' + data.handle)
+          }
+        })
+        //start the ping session
+        botSocket[data.bot].emit('pingStart',{handle: data.handle, ip: data.ip})
       }
-    },function(){
-      //setup result handlers
-      botSocket[data.bot].on('pingError:' + data.handle,function(err){
-        client.emit('pingError:' + data.handle,err)
-      })
-      botSocket[data.bot].on('pingResult:' + data.handle,function(result){
-        //salt bot id back in for mapping on the frontend
-        result.id = data.bot
-        client.emit('pingResult:' + data.handle,result)
-        if(result.stopped){
-          //remove result listeners
-          botSocket[data.bot].removeAllListeners('pingError:' + data.handle)
-          botSocket[data.bot].removeAllListeners('pingResult:' + data.handle)
-          logger.info('Ping stopped: ' + data.handle,Object.keys(botSocket[data.bot]))
-        }
-      })
-      //start the ping session
-      botSocket[data.bot].emit('pingStart',{handle: data.handle, ip: data.ip},function(data){
-        if(data && data.error) return done({error: data.error})
-        done({result: data})
-      })
-    })
+    )
   })
   /**
    * Stop pinging a host from the browser
    */
   client.on('pingStop',function(data){
-    if(!data.bot || !botSocket[data.bot]) return false
+    if(!data.bot || !botSocket[data.bot]) return
     //stop the ping session
     botSocket[data.bot].emit('pingStop',{handle: data.handle})
   })

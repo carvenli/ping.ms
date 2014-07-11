@@ -39,20 +39,17 @@ util.inherits(Bot,EventEmitter)
 Bot.prototype.pingStart = function(handle,ip,done){
   var that = this
   that.logger.info('Bot.pingStart[' + handle + ']: ' + ip)
-  var session = new BotSession({
+  var session = that.sessions[handle] = new BotSession({
     tag: that.logger.tagExtend(handle)
   })
   //we need to handle result events and redistribute them
-  session.on('pingError',function(err){
-    that.emit('pingError:' + handle,err)
-  })
   session.on('pingResult',function(result){
+    //tear down the session in the event of an error or being stopped
+    if(result.stopped || result.error) delete that.sessions[handle]
     that.emit('pingResult:' + handle,result)
   })
   //start the ping session
   session.pingStart(handle,ip,done)
-  //save the session so we can stop it
-  that.sessions[handle] = session
 }
 
 
@@ -65,7 +62,8 @@ Bot.prototype.pingStop = function(handle){
   var that = this
   that.logger.info('Bot.pingStop: ' + handle)
   //find the session
-  if(!that.sessions[handle]) return false
+  if(!that.sessions[handle])
+    return that.emit('pingResult:' + handle,{stopped: true})
   that.sessions[handle].pingStop()
 }
 

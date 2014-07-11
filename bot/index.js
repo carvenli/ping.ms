@@ -23,30 +23,17 @@ async.each(
         })
       })
       //handle ping requests
-      mux.on('pingStart',function(data,done){
+      mux.on('pingStart',function(data){
         //redistribute events back to the client
-        mux.on('pingError:' + data.handle,function(err){
-          mux.mux.emit('pingError:' + data.handle,err)
-        })
         mux.on('pingResult:' + data.handle,function(result){
           mux.mux.emit('pingResult:' + data.handle,result)
         })
         //start the ping session
-        mux.pingStart(data.handle,data.ip,function(err,result){
-          if(err) return done({error: err})
-          done(result)
-        })
+        mux.pingStart(data.handle,data.ip)
       })
-      //handle ping requests
-      mux.on('pingStop',function(data,done){
-        //clear event listeners
-        mux.removeAllListeners('pingResult:' + data.handle)
-        mux.removeAllListeners('pingError:' + data.handle)
-        //stop the ping session
-        mux.pingStop(data.handle,function(err,result){
-          if(err) return done({error: err})
-          done(result)
-        })
+      //stop the ping session
+      mux.on('pingStop',function(data){
+        mux.pingStop(data.handle)
       })
       sockets.push(mux)
       next()
