@@ -1,4 +1,4 @@
-/* global socket: false, console: false, alert: false */
+/* global socket: false, console: false, alert: false, sourceId: false */
 $(document).ready(function(){
   //activate the examples
   $('.example').each(function(){
@@ -51,21 +51,14 @@ $(document).ready(function(){
 
 
   /**
-   * Init the ping table
-   * @param {object} data
+   * Show/Hide the "Waiting" message
+   * @param {Boolean} bool true to show, false to hide
    */
-  var pingInit = function(data){
-    //destroy the Waiting message if any
-    $('tr#waiting').remove()
-    //dump existing if any (shouldn't be?)
-    $('tr#'+data.id).remove()
-    //eventually add some smart row placement here
-    data.set.min = '-'
-    data.set.max = '-'
-    data.set.avg = '-'
-    data.set.loss = '-'
-    pingResults[data.id] = []
-    //$('#pingTable > tbody').append(tplPingRow({data: data}))
+  var setWaiting = function(bool){
+    if(!!bool)
+      pingTable.find('tr#waiting').removeClass('hidden')
+    else
+      pingTable.find('tr#waiting').addClass('hidden')
   }
 
 
@@ -115,10 +108,11 @@ $(document).ready(function(){
 
 
   /**
-   * Seed the ping result table
+   * Init the ping table
    */
   var pingTableInit = function(){
     pingTable.find('tr:gt(1)').each(function(){ $(this).remove() })
+    setWaiting(true)
     $('#pingResultWrapper').removeClass('hidden')
   }
 
@@ -129,7 +123,7 @@ $(document).ready(function(){
    * @param {object} dnsResult
    */
   var pingTableRowInit = function(index,dnsResult){
-    pingTable.find('tr#waiting').addClass('hidden')
+    setWaiting(false)
     pingResults[index] = []
     var newRow = $('#ping-row-template').clone()
     newRow.attr('id',index)
@@ -153,6 +147,7 @@ $(document).ready(function(){
    */
   var pingTableRowUpdate = function(index,pingResult){
     var row = pingTable.find('tr#' + index)
+    row.find('.ip').html(pingResult.ip)
     row.find('.min').html(pingResult.min)
     row.find('.avg').html(pingResult.avg.toPrecision(5))
     row.find('.max').html(pingResult.max)
@@ -169,25 +164,23 @@ $(document).ready(function(){
    * @param {function} done
    */
   var pingStart = function(handle,id,ip,done){
+    var resultCount = 0
     if(!done) done = function(){}
-    console.log('sending pingStart request for ' + ip + ' to ' + id + ' with handle ' + handle)
+    //console.log('sending pingStart request for ' + ip + ' to ' + id + ' with handle ' + handle)
     //setup result handlers
     socket.on('pingError:' + handle,function(err){
-      alert(err)
+      //alert(err)
     })
-    console.log('listening for ' + 'pingResult:' + handle)
+    //console.log('listening for ' + 'pingResult:' + handle)
     socket.on('pingResult:' + handle,function(result){
+      if(++resultCount > 4)
+        pingStop(handle,result.id,function(){})
       pingResult(result)
     })
     socket.emit('pingStart',{handle: handle, bot: id, ip: ip},function(result){
       if(result.error) return done(result.error)
       done(null,result)
     })
-    setTimeout(function(){
-      pingStop(handle,id,function(){
-        pulsarFinal(id)
-      })
-    },5000)
   }
 
 
@@ -197,14 +190,14 @@ $(document).ready(function(){
    * @param {string} id
    * @param {function} done
    */
-  var pingStop = function(handle,id,done){
-    var query = {handle: handle, bot: id}
-    socket.removeListener('pingError:' + handle)
-    socket.removeListener('pingResult:' + handle)
-    socket.emit('pingStop',query,function(result){
-      if(result.error) return done(result.error)
-      done(null,result)
+  var pingStop = function(handle,id){
+    socket.once('pingEnd:' + handle,function(){
+      console.log('pingEnd: ' + handle)
+      socket.removeAllListeners('pingError:' + handle)
+      socket.removeAllListeners('pingResult:' + handle)
+      pulsarFinal(id)
     })
+    socket.emit('pingStop',{handle: handle, bot: id})
   }
 
 
@@ -238,12 +231,12 @@ $(document).ready(function(){
     pingTableInit()
     dnsResolve(host,group,function(err,results){
       if(err) return alert(err)
-      console.log('got resolve results',results)
+      //console.log('got resolve results',results)
       dnsResults = results
       for(var i in dnsResults){
         if(dnsResults.hasOwnProperty(i)){
           pingTableRowInit(i,dnsResults[i])
-          pingStart(dnsResults[i].handle,i,dnsResults[i].ip[0])
+          pingStart(sourceId + ':' + dnsResults[i].handle,i,dnsResults[i].ip[0])
         }
       }
     })

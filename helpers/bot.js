@@ -59,15 +59,18 @@ Bot.prototype.pingStart = function(handle,ip,done){
 /**
  * Stop pinging a host
  * @param {string} handle
- * @param {function} done
  * @return {*}
  */
-Bot.prototype.pingStop = function(handle,done){
+Bot.prototype.pingStop = function(handle){
   var that = this
   that.logger.info('Bot.pingStop: ' + handle)
   //find the session
-  if(!that.sessions[handle]) return done('Session doesnt exist: ' + handle)
-  that.sessions[handle].pingStop(done)
+  if(!that.sessions[handle]) return false
+  that.sessions[handle].on('pingEnd',function(){
+    that.emit('pingEnd:' + handle)
+    that.logger.info('Bot.pingEnd[' + handle + ']')
+  })
+  that.sessions[handle].pingStop()
 }
 
 
@@ -122,9 +125,18 @@ Bot.prototype.authorize = function(secret){
 Bot.prototype.connect = function(){
   var that = this
   that.logger.info('connecting to ' + that.options.uri)
-  that.mux = io.connect(that.options.uri)
-  that.mux.once('connect',function(){
+  that.mux = io.connect(that.options.uri,{
+    reconnection: true,
+    reconnectionDelay: 300,
+    reconnectionDelayMax: 1000,
+    timeout: 10000,
+    autoConnect: true
+  })
+  that.mux.on('connect',function(){
     that.logger.info('connected')
+    that.authorize(that.options.secret)
+  })
+  that.mux.once('connect',function(){
     //listen for events from mux
     that.mux.on('resolve',function(data,cb){
       that.emit('resolve',data,cb)
@@ -132,10 +144,9 @@ Bot.prototype.connect = function(){
     that.mux.on('pingStart',function(data,cb){
       that.emit('pingStart',data,cb)
     })
-    that.mux.on('pingStop',function(data,cb){
-      that.emit('pingStop',data,cb)
+    that.mux.on('pingStop',function(data){
+      that.emit('pingStop',data)
     })
-    that.authorize(that.options.secret)
   })
 }
 

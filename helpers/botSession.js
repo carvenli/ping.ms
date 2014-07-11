@@ -106,13 +106,12 @@ BotSession.prototype.pingStart = function(handle,ip,done){
 
 /**
  * Stop pinging an IP
- * @param {function} done
  */
-BotSession.prototype.pingStop = function(done){
+BotSession.prototype.pingStop = function(){
   var that = this
   that.logger.info('BotSession.pingStop: ' + that.pingTarget)
   clearTimeout(that.pingTimeout)
-  done()
+  that.emit('pingEnd')
 }
 
 

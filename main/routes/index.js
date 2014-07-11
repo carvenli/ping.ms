@@ -1,5 +1,6 @@
 'use strict';
 var async = require('async')
+  , shortId = require('shortid')
 var Group = require('../../models/group').model
 var Bot = require('../../models/bot').model
 
@@ -30,6 +31,7 @@ exports.index = function(req,res){
       var groups = results[0]
       groups.unshift({name: 'All'})
       res.render('index',{
+        sourceId: (req.sessionID + ':' + shortId.generate().replace(/[-_]/g,'')).toUpperCase(),
         groups: groups,
         pageTitle: 'Online Ping Test, Online Trace Route, Internet Test',
         exampleIp: req.headers['x-forwarded-for'] || req.connection.remoteAddress
