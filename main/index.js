@@ -20,6 +20,7 @@ var generateHandle = function(){return shortId.generate().replace(/[-_]/g,'').to
  * @type {{title: *}}
  */
 app.locals.app = {title: config.get('title')}
+app.locals.moment = require('moment')
 
 // middleware stack
 app.set('views',__dirname + '/' + 'views')

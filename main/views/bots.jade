@@ -7,9 +7,15 @@ block content
         th Location
         th Sponsor
         th Active
+        th Seen
       each row in bots
         tr
           td= row.location
           td
             a(href=row.sponsor.url)=row.sponsor.name
           td= row.active ? 'Yes' : 'No'
+          td(style='white-space:nowrap;')
+            if row.metrics.dateSeen
+              = moment(row.metrics.dateSeen).fromNow()
+            else
+              | (never)
