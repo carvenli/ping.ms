@@ -1,14 +1,5 @@
 /* global socket: false, console: false, alert: false, sourceId: false */
 $(document).ready(function(){
-  //activate the examples
-  $('.example').each(function(){
-    $(this).click(function(e){
-      e.preventDefault()
-      $('form > #host').val($(this).text())
-      $('form').submit()
-      return false
-    })
-  })
   //storage vars
   var dnsResults = {}
   var pingResults = {}
@@ -88,7 +79,7 @@ $(document).ready(function(){
   }
 
   var setError = function(bool){
-    var el = $('form > input#host')
+    var el = $('form#ping > input#host')
     if(!!bool)
       el.addClass('error')
     else
@@ -268,6 +259,7 @@ $(document).ready(function(){
     var host = $('#host').val().replace(/\s+/g,'')
     var group = $('#group').val()
     if('' === host) return(false)
+    window.location.hash = '#' + host
     botList(function(err,results){
       if(err) return false
       pingTableInit(results)
@@ -284,4 +276,20 @@ $(document).ready(function(){
       })
     })
   })
+  //action handlers
+  var launchPing = function(host){
+    $('form#ping > input#host').val(host)
+    $('form#ping').submit()
+  }
+  //activate the examples
+  $('.example').each(function(){
+    $(this).click(function(e){
+      e.preventDefault()
+      launchPing($(this).text())
+      return false
+    })
+  })
+  //handle hash auto-launching
+  var m = window.location.hash.replace(/^#/,'')
+  if(m) launchPing(m)
 })
