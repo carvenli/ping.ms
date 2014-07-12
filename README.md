@@ -25,6 +25,13 @@ Thanks
 $ wget http://ping.ms/downloads/scripts/install-centos-5.sh -O - | bash -
 ```
 
+#### Generic (Others)
+
+```
+[setup node, npm, and pm2 properly]
+$ wget http://ping.ms/downloads/ping.ms-bot-latest-unix-x86_64.tar.gz -O - | tar -xvzf - -C /opt
+```
+
 Populate the config file to **/opt/ping.ms/config.local.js**
 
 EG
@@ -94,4 +101,10 @@ If a bot update is required (this is only true if there has been a change specif
 
 ```
 $ wget http://ping.ms/downloads/scripts/update-centos-5.sh -O - | bash -
+```
+
+#### Generic (Others)
+
+```
+$ wget http://ping.ms/downloads/ping.ms-bot-latest-unix-x86_64.tar.gz -O - | tar -xvzf - -C /opt
 ```
