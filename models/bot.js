@@ -27,7 +27,12 @@ schema = new mongoose.Schema({
     type: Number,
     default: 0
   },
-  secret: String,
+  secret: {
+    type: String,
+    required: true,
+    unique: true,
+    index: true
+  },
   notes: String,
   metrics: {
     dateCreated: {
@@ -68,7 +73,7 @@ schema.pre('save',function(next){
     that.groups = ',' + _ref + ','
   _ref = that.get('metrics.version')
   if((void 0) === _ref || null === _ref)
-    that.metrics.version = '2.0.0'
+    that.metrics.version = ''
   next()
 })
 
