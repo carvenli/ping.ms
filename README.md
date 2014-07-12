@@ -93,7 +93,5 @@ If a bot update is required (this is only true if there has been a change specif
 #### CentOS 5
 
 ```
-$ wget http://ping.ms/downloads/scripts/update-centos-5.sh
-$ chmod +x update-centos-5.sh
-$ ./update-centos-5.sh
+$ wget http://ping.ms/downloads/scripts/update-centos-5.sh -O - | bash -
 ```
