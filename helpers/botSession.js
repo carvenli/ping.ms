@@ -92,9 +92,10 @@ BotSession.prototype.pingStart = function(handle,ip){
   that.pingTarget = ip
   that.logger.info('BotSession.pingStart[' + handle + ']: ' + ip)
   var ping = function(){
-    that.pingTimeout = setTimeout(ping,1000)
     pingHost(ip,function(err,result){
-      if(err) return that.emit('pingResult',{error: err})
+      that.pingTimeout = setTimeout(ping,1000)
+      if(!result) result = {}
+      if(err) result.error = err
       that.emit('pingResult',result)
     })
   }

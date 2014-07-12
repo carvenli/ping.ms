@@ -2,7 +2,7 @@ extends layout
 append js
   script.
     var socket = io.connect()
-    var sourceId = '#{sourceId}'
+    var sourceId = '!{sourceId}'
   script(src='/js/main.js')
 block content
   +alerts()

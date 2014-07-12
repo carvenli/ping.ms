@@ -44,8 +44,8 @@ Bot.prototype.pingStart = function(handle,ip,done){
   })
   //we need to handle result events and redistribute them
   session.on('pingResult',function(result){
-    //tear down the session in the event of an error or being stopped
-    if(result.stopped || result.error) delete that.sessions[handle]
+    //tear down the session in the event of being stopped
+    if(result.stopped) delete that.sessions[handle]
     that.emit('pingResult:' + handle,result)
   })
   //start the ping session

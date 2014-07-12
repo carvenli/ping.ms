@@ -73,6 +73,7 @@ input, textarea, select {
   -webkit-border-radius: 5px;
 }
 input.ping {
+  background: #fff;
   padding: 7px;
   border: 1px solid #333;
   font: 16px arial,helvetica,sans-serif;
@@ -81,6 +82,9 @@ input.ping {
   border-radius: 5px;
   -moz-border-radius: 5px;
   -webkit-border-radius: 5px;
+}
+input.ping.error {
+  background: #fcc;
 }
 select {
   width: auto;

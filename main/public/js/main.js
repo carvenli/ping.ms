@@ -51,14 +51,112 @@ $(document).ready(function(){
 
 
   /**
+   * Show/Hide an element
+   * @param {Element} el DOM element to set visibility on
+   * @param {Boolean} bool true to show, false to hide
+   */
+  var setVisible = function(el,bool){
+    if(!!bool)
+      el.removeClass('hidden')
+    else
+      el.addClass('hidden')
+  }
+
+  /**
+   * Show/Hide the Results area
+   * @param {Boolean} bool true to show, false to hide
+   */
+  var setResults = function(bool){
+    setVisible($('#pingResultWrapper'),bool)
+  }
+
+  /**
    * Show/Hide the "Waiting" message
    * @param {Boolean} bool true to show, false to hide
    */
   var setWaiting = function(bool){
+    setVisible(pingTable.find('tr#waiting'),bool)
+  }
+
+  /**
+   * Show/Hide a specific results row
+   * @param {string} id the id attr of the <tr>
+   * @param {Boolean} bool true to show, false to hide
+   */
+  var setResultsRow = function(id,bool){
+    setVisible(pingTable.find('tr#' + id),bool)
+  }
+
+  var setError = function(bool){
+    var el = $('form > input#host')
     if(!!bool)
-      pingTable.find('tr#waiting').removeClass('hidden')
+      el.addClass('error')
     else
-      pingTable.find('tr#waiting').addClass('hidden')
+      el.removeClass('error')
+  }
+
+  /**
+   * Init the ping table
+   */
+  var pingTableInit = function(bots){
+    setError(false)
+    setResults(false)
+    pingTable.find('tr:gt(1)').each(function(){ $(this).remove() })
+    for (var i = 0; i < bots.length; i++){
+      var newRow = $('#ping-row-template').clone()
+      newRow.attr('id',bots[i]._id)
+      if(bots[i].sponsor.url){
+        var link = newRow.find('td.location > a')
+        link.attr('href',bots[i].sponsor.url)
+        link.html(bots[i].location)
+      } else
+        newRow.find('td.location').html(bots[i].location)
+      pingTable.append(newRow)
+      setResultsRow(bots[i]._id,false)
+    }
+    setWaiting(true)
+    setResults(true)
+  }
+
+
+  /**
+   * Handle DNS errors
+   */
+  var pingTableDnsError = function(err){
+    setError(true)
+    setResults(false)
+    setWaiting(true)
+  }
+
+
+  /**
+   * Seed a ping result row
+   * @param {string} index
+   * @param {object} dnsResult
+   */
+  var pingTableRowInit = function(index,dnsResult){
+    setWaiting(false)
+    pingResults[index] = []
+    var row = pingTable.find('tr#' + index)
+    row.find('td.ip').html(dnsResult.ip[0])
+    setResultsRow(index,true)
+  }
+
+
+  /**
+   * Update a ping result row
+   * @param {string} index
+   * @param {object} pingResult
+   */
+  var pingTableRowUpdate = function(index,pingResult){
+    var row = pingTable.find('tr#' + index)
+    if('-' !== pingResult.avg) pingResult.avg = pingResult.avg.toPrecision(5)
+    row.find('.ip').html(pingResult.target)
+    row.find('.min').html(pingResult.min)
+    row.find('.avg').html(pingResult.avg)
+    row.find('.max').html(pingResult.max)
+    row.find('.loss').html(((pingResult.fails / pingResult.total) * 100).toPrecision(3))
+    pulsarBeat(index,pingResult.currentlyFailed)
   }
 
 
@@ -71,7 +169,7 @@ $(document).ready(function(){
     var max = '-'
     var avg = '-'
     var fails = 0
-    var currentlyFailed = false
+    var currentlyFailed = true
     pingResults[data.id].push(data)
     pingResults[data.id].forEach(function(e){
       if(!e.error){
@@ -82,77 +180,14 @@ $(document).ready(function(){
         currentlyFailed = false
       } else {
         fails++
-        currentlyFailed = true
       }
     })
     pingTableRowUpdate(data.id,{
+      target: data.target,
       min: min, max: max, avg: avg,
       fails: fails, total: pingResults[data.id].length,
       currentlyFailed: currentlyFailed
     })
-  }
-
-
-  /**
-   * Sort the ping table
-   */
-  var pingTableSort = function(){
-    var comparisonFn = function(){
-      return function(a,b){
-        return $(a).attr('id').localeCompare($(b).attr('id'))
-      }
-    }
-    var rows = pingTable.find('tr:gt(1)').toArray().sort(comparisonFn())
-    for (var i = 0; i < rows.length; i++){ pingTable.append(rows[i]) }
-  }
-
-
-  /**
-   * Init the ping table
-   */
-  var pingTableInit = function(){
-    pingTable.find('tr:gt(1)').each(function(){ $(this).remove() })
-    setWaiting(true)
-    $('#pingResultWrapper').removeClass('hidden')
-  }
-
-
-  /**
-   * Seed a ping result row
-   * @param {string} index
-   * @param {object} dnsResult
-   */
-  var pingTableRowInit = function(index,dnsResult){
-    setWaiting(false)
-    pingResults[index] = []
-    var newRow = $('#ping-row-template').clone()
-    newRow.attr('id',index)
-    if(dnsResult.sponsor.url){
-      var link = newRow.find('td.location > a')
-      link.attr('href',dnsResult.sponsor.url)
-      link.html(dnsResult.location)
-    } else
-      newRow.find('td.location').html(dnsResult.location)
-    newRow.find('td.ip').html(dnsResult.ip[0])
-    pingTable.append(newRow)
-    pingTableSort()
-    pingTable.find('tr#' + index).removeClass('hidden')
-  }
-
-
-  /**
-   * Update a ping result row
-   * @param {string} index
-   * @param {object} pingResult
-   */
-  var pingTableRowUpdate = function(index,pingResult){
-    var row = pingTable.find('tr#' + index)
-    row.find('.ip').html(pingResult.target)
-    row.find('.min').html(pingResult.min)
-    row.find('.avg').html(pingResult.avg.toPrecision(5))
-    row.find('.max').html(pingResult.max)
-    row.find('.loss').html(((pingResult.fails / pingResult.total) * 100).toPrecision(3))
-    pulsarBeat(index,pingResult.currentlyFailed)
   }
 
 
@@ -164,13 +199,12 @@ $(document).ready(function(){
    * @param {function} done
    */
   var pingStart = function(handle,id,ip,done){
-    var resultCount = 0
+    var resultCount = 1
     if(!done) done = function(){}
     //console.log('sending pingStart request for ' + ip + ' to ' + id + ' with handle ' + handle)
     //setup result handlers
     //console.log('listening for ' + 'pingResult:' + handle)
     socket.on('pingResult:' + handle,function(result){
-      if(result && result.error) return console.log('ping error: ' + result.error)
       if(++resultCount > 4 && !result.stopped)
         pingStop(handle,result.id)
       if(result.stopped){
@@ -195,6 +229,19 @@ $(document).ready(function(){
 
 
   /**
+   * Get current Bot listing through the backend
+   * @param {string} group
+   * @param {function} done
+   */
+  var botList = function(done){
+    socket.emit('botList',function(data){
+      if(data.error) return done(data.error)
+      done(null,data.results)
+    })
+  }
+
+
+  /**
    * Resolve a host through the backend
    * @param {string} host
    * @param {string} group
@@ -207,7 +254,7 @@ $(document).ready(function(){
     }
     //send the DNS resolve to the backend
     socket.emit('resolve',query,function(data){
-      if(data.error) return done(data.error)
+      if(data.error) return done(data.error,data.results)
       done(null,data.results)
     })
   }
@@ -221,17 +268,20 @@ $(document).ready(function(){
     var host = $('#host').val().replace(/\s+/g,'')
     var group = $('#group').val()
     if('' === host) return(false)
-    pingTableInit()
-    dnsResolve(host,group,function(err,results){
-      if(err) return console.log('dns resolve error: ' + results)
-      //console.log('got resolve results',results)
-      dnsResults = results
-      for(var i in dnsResults){
-        if(dnsResults.hasOwnProperty(i)){
-          pingTableRowInit(i,dnsResults[i])
-          pingStart(sourceId + ':' + dnsResults[i].handle,i,dnsResults[i].ip[0])
+    botList(function(err,results){
+      if(err) return false
+      pingTableInit(results)
+      dnsResolve(host,group,function(err,results){
+        if(!results) results = {}
+        if(err) return pingTableDnsError(err)
+        dnsResults = results
+        for(var i in dnsResults){
+          if(dnsResults.hasOwnProperty(i)){
+            pingTableRowInit(i,dnsResults[i])
+            pingStart(sourceId + ':' + dnsResults[i].handle,i,dnsResults[i].ip[0])
+          }
         }
-      }
+      })
     })
   })
 })

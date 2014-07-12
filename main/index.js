@@ -173,6 +173,15 @@ io.on('connection',function(client){
   /**
    * Resolve an IP to domain and respond with the individual bot responses
    */
+  client.on('botList',function(done){
+      Bot.find({active:true}).select('-secret').sort('groups location').exec(function(err,results){
+        if(err) return done({error: err})
+        done({results: results})
+      })
+  })
+  /**
+   * Resolve an IP to domain and respond with the individual bot responses
+   */
   client.on('resolve',function(data,done){
     var results = {}
     async.series(
@@ -188,8 +197,6 @@ io.on('connection',function(client){
               socket.emit('resolve',query,function(data){
                 if(data.error) return next(data.error)
                 var result = data
-                result.location = bot.location
-                result.sponsor = bot.sponsor
                 result.handle = handle
                 results[bot.id] = result
                 next()

@@ -27,7 +27,7 @@ async.each(
       mux.on('pingStart',function(data){
         //redistribute events back to the client
         mux.on('pingResult:' + data.handle,function(result){
-          if(result.stopped || result.error) mux.removeAllListeners('pingResult:' + data.handle)
+          if(result.stopped) mux.removeAllListeners('pingResult:' + data.handle)
           mux.mux.emit('pingResult:' + data.handle,result)
         })
         //start the ping session
