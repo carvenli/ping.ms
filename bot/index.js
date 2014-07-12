@@ -15,6 +15,7 @@ async.each(
     muxOpts.tag = logger.tagExtend(sockets.length)
     muxOpts.version = config.get('version')
     var mux = Bot.create(muxOpts)
+    sockets.push(mux)
     mux.once('authSuccess',function(){
       //handle resolve requests
       mux.on('resolve',function(data,done){
@@ -37,7 +38,6 @@ async.each(
       mux.on('pingStop',function(data){
         mux.pingStop(data.handle)
       })
-      sockets.push(mux)
       next()
     })
   }

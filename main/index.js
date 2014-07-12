@@ -243,6 +243,8 @@ io.on('connection',function(client){
         })
         //start the ping session
         botSocket[data.bot].emit('pingStart',{handle: data.handle, ip: data.ip})
+        //tally a hit
+        Bot.findByIdAndUpdate(data.bot,{$inc:{hits: 1}},function(){})
       }
     )
   })
