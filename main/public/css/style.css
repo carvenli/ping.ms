@@ -24,14 +24,25 @@ a:hover {
 #header {
   margin-bottom: 0;
 }
+#footer {
+  padding-top: 4px;
+}
 #footer div {
-  padding: 5px;
+  padding: 0 16px;
+  vertical-align: top;
 }
 #footer .links {
   font-size: 11px;
+  display: inline-block;
+  width: 256px;
+  float: left;
 }
 #footer .links a {
   margin: 3px;
+}
+#footer .share {
+  font-size: 11px;
+  float: right!important;
 }
 #logo {
   width: 320px;
