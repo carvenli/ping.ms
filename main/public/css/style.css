@@ -19,7 +19,7 @@ a:hover {
 .right {
   text-align: right;
 }
-#header, #footer, .site-description, .wrapper, .main {
+#header, #footer, .site-description, .wrapper, .main, .bots {
   width: 720px;
   margin: 0 auto;
   overflow: hidden;
@@ -135,7 +135,6 @@ select {
 
 .bots {
   padding: 15px;
-  width: 850px;
   margin: auto;
   border: 1px solid #cbcbcb;
   border-radius: 10px;
@@ -146,5 +145,6 @@ select {
   color: #000;
 }
 .bots h2 {
+  margin-top: 0;
   color:#034500;
 }

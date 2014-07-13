@@ -166,16 +166,6 @@ $(document).ready(function(){
   }
 
   /**
-   * Sanitize group to 'all' if group is not available on form
-   * @param {string} group
-   * @return {string}
-   */
-  var pingFormGroupSanitize = function(group){
-    var rv = (undefined === $('form#ping option:eq(' + group + ')').val()) ? 'all' : group
-    return(rv)
-  }
-
-  /**
    * Hash parser splits host and optionally group out of a location.hash string
    * @param {string} hash
    * @return {object}
@@ -212,14 +202,34 @@ $(document).ready(function(){
     rv = rv + hashInfo.host
     return(rv)
   }
-  var hashSet = function(thing){
+  /**
+   * Sanitize group to 'all' if group is not available on form
+   * @param {string} group
+   * @return {string}
+   */
+  var pingFormGroupSanitize = function(group){
+    var rv = (undefined === $('form#ping option:eq(' + group + ')').val()) ? 'all' : group
+    return(rv)
+  }
+  /**
+   * Submit the form after filling it in using current hash
+   */
+  var pingFormSubmit = function(){
+    var hash = hashParse()
+    if(hash){
+      $('form#ping > input#host').val(hash.host)
+      $('form#ping option:eq(' + hash.group.toLowerCase() + ')').prop('selected',true)
+      $('form#ping').submit()
+    }
+  }
+  var hashSet = function(thing,force){
     var hash = ''
     if(!thing) thing = {}
     if('object' === typeof thing)
       hash = hashBuild(thing)
     if('string' === typeof thing)
       hash = hashBuild(hashParse(thing))
-    if((hash !== hashBuild(hashParse())) || (/^#all@/i).test(location.hash)){
+    if(force || (hash !== hashBuild(hashParse())) || (/^#all@/i).test(location.hash)){
       if(hash !== location.hash){
         location.hash = hash.replace(/^#all@/i,'#') || ''
         return(true)
@@ -231,6 +241,7 @@ $(document).ready(function(){
           window.location.href = window.location.href.replace(/#.*$/,'#')
       }
       location.hash = hash
+      if(force) pingFormSubmit()
       return true
     } else
       return false
@@ -239,7 +250,7 @@ $(document).ready(function(){
     var hashInfo = hashParse(hash)
     if('all' === hashInfo.group)
       hashInfo.group = $('#group').val()
-    hashSet(hashInfo)
+    hashSet(hashInfo,true)
   }
 
   /**
@@ -377,13 +388,6 @@ $(document).ready(function(){
     })
   })
   //handle hash auto-launching
-  $(window).hashchange(function(){
-    var hash = hashParse()
-    if(hash){
-      $('form#ping > input#host').val(hash.host)
-      $('form#ping option:eq(' + hash.group.toLowerCase() + ')').prop('selected',true)
-      $('form#ping').submit()
-    }
-  })
+  $(window).hashchange(pingFormSubmit)
   $(window).hashchange()
 })
