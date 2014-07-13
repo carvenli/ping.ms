@@ -83,7 +83,7 @@ var botSocket = {}
 var groupAction = function(group,action,next){
   var query = {active: true}
   //filter by group if we can
-  if('All' !== group)
+  if('all' !== group.toLowerCase())
     query.groups = new RegExp(',' + group + ',','i')
   //get bots and submit queries
   var q = Bot.find(query)
@@ -118,7 +118,7 @@ var pingSanitize = function(data,next){
     Object.keys(botSocket[data.bot]._events),
     function(ev,next){
       var test = /^ping(Error|Result):(.*)$/
-      if(!ev.match(test)) return next()
+      if(!test.test(ev)) return next()
       ev = ev.replace(test,'$2')
       var sourceId = ev.replace(re,'$1')
       if(sourceId !== currentSourceId) return next()
@@ -173,11 +173,17 @@ io.on('connection',function(client){
   /**
    * Resolve an IP to domain and respond with the individual bot responses
    */
-  client.on('botList',function(done){
-      Bot.find({active:true}).select('-secret').sort('groups location').exec(function(err,results){
-        if(err) return done({error: err})
-        done({results: results})
-      })
+  client.on('botList',function(opts,done){
+    var query = {active: true}
+    //filter by group if we can
+    if(opts.group){
+      if('all' !== opts.group.toLowerCase())
+        query.groups = new RegExp(',' + opts.group + ',','i')
+    }
+    Bot.find(query).select('-secret').sort('groups location').exec(function(err,results){
+      if(err) return done({error: err})
+      done({results: results})
+    })
   })
   /**
    * Resolve an IP to domain and respond with the individual bot responses

@@ -1,5 +1,6 @@
 extends layout
 append js
+  script(src='//bowercdn.net/c/jquery-hashchange-0310f3847f9010faefa0b6abfcf56e8103096192/jquery.ba-hashchange.min.js')
   script.
     var socket = io.connect()
     var sourceId = '!{sourceId}'
@@ -27,10 +28,10 @@ block content
               span.glyphicon.glyphicon-link
             th Location
             th IP
-            th Min (ms)
-            th Max (ms)
-            th Avg (ms)
-            th Loss (%)
+            th.right Min (ms)
+            th.right Max (ms)
+            th.right Avg (ms)
+            th.right Loss (%)
         tbody
           tr#waiting
             td(colspan='8') Waiting for results...
@@ -40,7 +41,7 @@ block content
             td.location
               a(href="#") -
             td.ip -
-            td.min -
-            td.max -
-            td.avg -
-            td.loss -
+            td.min.right -
+            td.max.right -
+            td.avg.right -
+            td.loss.right -

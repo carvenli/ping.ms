@@ -1,4 +1,4 @@
-/* global socket: false, console: false, alert: false, sourceId: false */
+/* global socket: false, console: false, sourceId: false */
 $(document).ready(function(){
   //storage vars
   var dnsResults = {}
@@ -54,11 +54,25 @@ $(document).ready(function(){
   }
 
   /**
+   * Show/Hide an element using slide
+   * @param {Element} el DOM element to set visibility on
+   * @param {Boolean} bool true to show, false to hide
+   */
+  var setVisibleSlide = function(el,bool){
+    if(!!bool){
+      el.removeClass('hidden')
+      el.slideUp(0,function(){el.slideDown(150)})
+    } else{
+      el.slideUp(0)
+    }
+  }
+
+  /**
    * Show/Hide the Results area
    * @param {Boolean} bool true to show, false to hide
    */
   var setResults = function(bool){
-    setVisible($('#pingResultWrapper'),bool)
+    setVisibleSlide($('#pingResultWrapper'),bool)
   }
 
   /**
@@ -78,7 +92,8 @@ $(document).ready(function(){
     setVisible(pingTable.find('tr#' + id),bool)
   }
 
-  var setError = function(bool){
+  var setError = function(bool,err){
+    if(err) bool = true
     var el = $('form#ping > input#host')
     if(!!bool)
       el.addClass('error')
@@ -114,7 +129,7 @@ $(document).ready(function(){
    * Handle DNS errors
    */
   var pingTableDnsError = function(err){
-    setError(true)
+    setError(true,err)
     setResults(false)
     setWaiting(true)
   }
@@ -150,6 +165,82 @@ $(document).ready(function(){
     pulsarBeat(index,pingResult.currentlyFailed)
   }
 
+  /**
+   * Sanitize group to 'all' if group is not available on form
+   * @param {string} group
+   * @return {string}
+   */
+  var pingFormGroupSanitize = function(group){
+    var rv = (undefined === $('form#ping option:eq(' + group + ')').val()) ? 'all' : group
+    return(rv)
+  }
+
+  /**
+   * Hash parser splits host and optionally group out of a location.hash string
+   * @param {string} hash
+   * @return {object}
+   */
+  var hashParse = function(hash){
+    hash = hash || location.hash.toString()
+    if((!hash) || ('#' === hash)) return(false)
+    hash = hash.replace(/#/,'')
+    var rv = {group: 'all', host: hash}
+    var m = hash.split('@')
+    if(1 < m.length){
+      rv.group = m[0]
+      rv.host = m[1]
+    }
+    return(rv)
+  }
+
+  /**
+   * Hash builder makes location.hash string from optional object
+   * @param {object} [hashInfo] Default if not given is current form state
+   * @return {string}
+   */
+  var hashBuild = function(hashInfo){
+    var rv = ''
+    hashInfo = hashInfo || {}
+    if(!hashInfo.host)
+      hashInfo.host = $('#host').val().replace(/\s+/g,'')
+    if(!hashInfo.group)
+      hashInfo.group = $('#group').val()
+    if(!(/\./).test(hashInfo.host)) return(rv)
+    rv = '#'
+    if(0 < hashInfo.group.length && 'all' !== hashInfo.group)
+      rv = rv + hashInfo.group + '@'
+    rv = rv + hashInfo.host
+    return(rv)
+  }
+  var hashSet = function(thing){
+    var hash = ''
+    if(!thing) thing = {}
+    if('object' === typeof thing)
+      hash = hashBuild(thing)
+    if('string' === typeof thing)
+      hash = hashBuild(hashParse(thing))
+    if((hash !== hashBuild(hashParse())) || (/^#all@/i).test(location.hash)){
+      if(hash !== location.hash){
+        location.hash = hash.replace(/^#all@/i,'#') || ''
+        return(true)
+      }
+      if(!hash){
+        if(window.history && window.history.pushState)
+          window.history.pushState('',document.title,window.location.pathname)
+        else
+          window.location.href = window.location.href.replace(/#.*$/,'#')
+      }
+      location.hash = hash
+      return true
+    } else
+      return false
+  }
+  var launchPing = function(hash){
+    var hashInfo = hashParse(hash)
+    if('all' === hashInfo.group)
+      hashInfo.group = $('#group').val()
+    hashSet(hashInfo)
+  }
 
   /**
    * Parse a ping result
@@ -187,11 +278,9 @@ $(document).ready(function(){
    * @param {string} handle
    * @param {string} id  Bot id
    * @param {string} ip
-   * @param {function} done
    */
-  var pingStart = function(handle,id,ip,done){
+  var pingStart = function(handle,id,ip){
     var resultCount = 1
-    if(!done) done = function(){}
     //console.log('sending pingStart request for ' + ip + ' to ' + id + ' with handle ' + handle)
     //setup result handlers
     //console.log('listening for ' + 'pingResult:' + handle)
@@ -224,8 +313,12 @@ $(document).ready(function(){
    * @param {string} group
    * @param {function} done
    */
-  var botList = function(done){
-    socket.emit('botList',function(data){
+  var botList = function(group,done){
+    if((!done) && 'function' === typeof group){
+      done = group
+      group = null
+    }
+    socket.emit('botList',{group:pingFormGroupSanitize(group)},function(data){
       if(data.error) return done(data.error)
       done(null,data.results)
     })
@@ -257,11 +350,10 @@ $(document).ready(function(){
   $('#ping').submit(function(e){
     e.preventDefault()
     var host = $('#host').val().replace(/\s+/g,'')
+    if(hashSet()) return(false)
     var group = $('#group').val()
-    if('' === host) return(false)
-    window.location.hash = '#' + host
-    botList(function(err,results){
-      if(err) return false
+    botList(group,function(err,results){
+      if(err) return(false)
       pingTableInit(results)
       dnsResolve(host,group,function(err,results){
         if(!results) results = {}
@@ -276,20 +368,22 @@ $(document).ready(function(){
       })
     })
   })
-  //action handlers
-  var launchPing = function(host){
-    $('form#ping > input#host').val(host)
-    $('form#ping').submit()
-  }
   //activate the examples
   $('.example').each(function(){
     $(this).click(function(e){
       e.preventDefault()
       launchPing($(this).text())
-      return false
+      return(false)
     })
   })
   //handle hash auto-launching
-  var m = window.location.hash.replace(/^#/,'')
-  if(m) launchPing(m)
+  $(window).hashchange(function(){
+    var hash = hashParse()
+    if(hash){
+      $('form#ping > input#host').val(hash.host)
+      $('form#ping option:eq(' + hash.group.toLowerCase() + ')').prop('selected',true)
+      $('form#ping').submit()
+    }
+  })
+  $(window).hashchange()
 })

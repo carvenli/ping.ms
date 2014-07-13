@@ -29,7 +29,7 @@ exports.index = function(req,res){
         return
       }
       var groups = results[0]
-      groups.unshift({name: 'All'})
+      groups.unshift({tag: 'all', name: 'All'})
       res.render('index',{
         sourceId: (req.sessionID + ':' + shortId.generate().replace(/[-_]/g,'')).toUpperCase(),
         groups: groups,

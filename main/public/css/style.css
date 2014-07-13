@@ -16,33 +16,47 @@ a:hover {
   text-decoration: none;
   color: #0f0;
 }
-#header, #footer, .site-description, .wrapper {
-  width: 850px;
-  margin: 0 auto 10px;
+.right {
+  text-align: right;
+}
+#header, #footer, .site-description, .wrapper, .main {
+  width: 720px;
+  margin: 0 auto;
   overflow: hidden;
 }
 #header {
   margin-bottom: 0;
 }
+#header h1 {
+  margin: 0;
+}
 #footer {
   padding-top: 4px;
 }
 #footer div {
-  padding: 0 16px;
+  padding: 0;
   vertical-align: top;
 }
 #footer .links {
+  padding-left: 16px;
   font-size: 11px;
   display: inline-block;
-  width: 256px;
+  width: auto;
   float: left;
+}
+#footer .links div {
+  padding-right: 8px;
 }
 #footer .links a {
   margin: 3px;
 }
 #footer .share {
+  padding-right: 16px;
   font-size: 11px;
   float: right!important;
+}
+#footer .share div {
+  padding-right: 8px;
 }
 #logo {
   width: 320px;
@@ -55,7 +69,6 @@ a:hover {
 }
 .main {
   padding: 15px;
-  width: 850px;
   margin: auto;
   border: 1px solid #cbcbcb;
   border-radius: 10px;
@@ -88,7 +101,7 @@ input.ping {
   padding: 7px;
   border: 1px solid #333;
   font: 16px arial,helvetica,sans-serif;
-  width: 375px;
+  width: 384px;
   color: #999;
   border-radius: 5px;
   -moz-border-radius: 5px;
