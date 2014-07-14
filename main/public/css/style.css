@@ -16,9 +16,6 @@ a:hover {
   text-decoration: none;
   color: #0f0;
 }
-.right {
-  text-align: right;
-}
 #header, #footer, .site-description, .wrapper, .main, .bots {
   width: 720px;
   margin: 0 auto;
