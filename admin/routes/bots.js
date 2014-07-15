@@ -148,7 +148,6 @@ exports.save = function(req,res){
       },
       //populate data
       function(next){
-        console.log(typeof req.body.groups, req.body.groups)
         doc.location = req.body.location
         doc.secret = req.body.secret || doc.secret || ''
         doc.groups = req.body.groups || ''
