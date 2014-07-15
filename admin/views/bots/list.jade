@@ -33,7 +33,10 @@ block content
                 else
                   each g,i in row.groups.split(',')
                     if(g)
-                      span.label.label-primary= g
+                      if(row.primaryGroup === g)
+                        span.label.label-primary= g
+                      else
+                        span.label.label-default= g
                       =' '
               td(style='white-space:nowrap;')= row.sponsor.name
               td= row.hits

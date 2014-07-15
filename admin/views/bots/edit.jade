@@ -12,38 +12,45 @@ block content
       input(type='hidden', name='id', value=bot.id)
       .form-group
         label.control-label.col-sm-2 Location
-        .col-sm-10
+        .col-sm-8
           input.form-control(type='text', name='location', placeholder='Bot Location', value=bot.location)
       .form-group
         label.control-label.col-sm-2 Secret
-        .col-sm-10
+        .col-sm-8
           .input-group
             input.form-control(type='text', name='secret', placeholder='Bot Secret', value=bot.secret)
             span.input-group-btn
               button.btn.btn-default.btn-generate(type='button') Generate
       .form-group
         label.control-label.col-sm-2 Groups
-        .col-sm-10
-          select.multiselect(multiple='multiple', name='groups')
+        .col-sm-8
+          select.multiselect(name='groups', multiple='multiple')
             each g,i in groups
               option(value=g.tag, selected=(bot.groups.split(',').indexOf(g.tag) > -1)) #{g.label}
       .form-group
+        label.control-label.col-sm-3 Primary
+        .col-sm-6
+          select.multiselect(name='primaryGroup')
+            option(value='', selected=(''===bot.primaryGroup)) (none)
+            each g,i in groups
+              option(value=g.tag, selected=(g.tag===bot.primaryGroup)) #{g.label}
+      .form-group
         label.control-label.col-sm-2 Sponsor Name
-        .col-sm-10
+        .col-sm-8
           input.form-control(type='text', name='sponsorName', value=bot.sponsor.name)
       .form-group
         label.control-label.col-sm-2 Sponsor URL
-        .col-sm-10
+        .col-sm-8
           input.form-control(type='text', name='sponsorUrl', value=bot.sponsor.url)
       .form-group
         label.control-label.col-sm-2 Active
-        .col-sm-10.checkbox
-          input(type='checkbox', name='active', checked=bot.active)
+        .col-sm-8
+          input.checkbox(type='checkbox', name='active', checked=bot.active)
       .form-group
         label.control-label.col-sm-2 Notes
-        .col-sm-10
+        .col-sm-8
           textarea.form-control(rows='5', name='notes')= bot.notes
       .form-group
-        .col-sm-offset-2.col-sm-10
+        .col-sm-offset-2.col-sm-8
           button.btn.btn-success(type='submit') Save
           button.btn.btn-warning(type='reset') Reset
