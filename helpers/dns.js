@@ -22,6 +22,7 @@ var hostToIp = function(host,done){
         //Charter DNS bogus hosts
         '198.105.244.24',
         '198.105.244.35',
+        '198.105.254.24',
         '198.105.254.35'
       ].indexOf(r))
         rv = r
