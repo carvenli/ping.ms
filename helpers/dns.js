@@ -1,5 +1,6 @@
 'use strict';
 var async = require('async')
+  , IP = require('ip')
   , hostbyname = require('hostbyname')
   , dns = require('dns')
   , Logger = require('../helpers/logger')
@@ -13,7 +14,30 @@ var async = require('async')
 var hostToIp = function(host,done){
   hostbyname.resolve(host,'v4',function(err,results){
     if(err) return done(err)
-    done(null,results || [])
+    //filter out known bogus (hijacked) results
+    var filteredResults = []
+    async.eachSeries(results,function(r,next){
+      var rv = false
+      if(-1 === [
+        //Charter DNS bogus hosts
+        '198.105.244.24',
+        '198.105.244.35',
+        '198.105.254.35'
+      ].indexOf(r))
+        rv = r
+      var priv = (rv) ? IP.isPrivate(rv) : false
+      if(priv){
+        if(-1 !== [
+          //Unblock certain internal IPs
+          '10.9.8.254'
+        ].indexOf(rv))
+          priv = false
+      }
+      if(rv && !priv) filteredResults.push(rv)
+      next()
+    },function(err){
+      done(err,filteredResults || [])
+    })
   })
 }
 
@@ -24,16 +48,22 @@ var hostToIp = function(host,done){
  * @param {function} done
  */
 var ipToPtr = function(ip,done){
-  var ptr = {}
+  var ptr = []
   if(!(ip instanceof Array)) ip = [ip]
   async.each(
     ip,
     function(i,next){
-      dns.reverse(i,function(err,result){
-        if(err) return next(err)
-        ptr[i] = result || 'none'
+      var idx = ip.indexOf(i)
+      var addr = IP.cidrSubnet(i + '/32').firstAddress
+      if(!addr){
+        ptr[idx] = []
         next()
-      })
+      } else{
+        dns.reverse(i,function(err,result){
+          ptr[idx] = result || []
+          next(err)
+        })
+      }
     },
     function(err){
       done(err,ptr)

@@ -9,13 +9,17 @@ block content
   +alerts()
   .main
     p.site-description Free online ping test service with multiple locations worldwide
-    form#ping(action="#", method="post")
-      input.ping#host(type="text", name="host", size="10", value="")
-      select#group(name="group")
-        option(value='all') All
-        each row in groups
-          option(value=row.tag)= row.name
-      button.btn.btn-success#pingBtn(type="submit") Ping
+    form.form-inline#pingForm(action="#", method="post")
+      .form-group#hostInput
+        input.form-control.ping#host(type="text", name="host", size="48", value="")
+        span.glyphicon.form-control-feedback.hidden#feedback
+      .form-group#groupInput
+        select#group(name="group")
+          option(value='all') All
+          each row in groups
+            option(value=row.tag)= row.name
+      .form-group#submitInput
+        button.btn.btn-success#pingBtn(type="submit") Ping
     .instructions Enter a hostname or an IP address, e.g.
       a.example#host(href="#") google.com
       | or
@@ -40,7 +44,10 @@ block content
             td.pulsar
               span.glyphicon.glyphicon-link.text-warning
             td.location
-              a(href="#") -
+              a(href="javascript:false")
+                span.label.label-default.hidden#primaryGroupLabel=' '
+                =' '
+                span#text
             td.ip -
             td.min.text-right -
             td.max.text-right -

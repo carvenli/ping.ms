@@ -5,6 +5,7 @@ $(document).ready(function(){
   var pingResults = {}
 
   //jquery selectors
+  var pingForm = $('#pingForm')
   var pingTable = $('#pingTable > tbody')
 
 
@@ -94,11 +95,19 @@ $(document).ready(function(){
 
   var setError = function(bool,err){
     if(err) bool = true
-    var el = $('form#ping > input#host')
-    if(!!bool)
-      el.addClass('error')
-    else
-      el.removeClass('error')
+    var el = $('#hostInput')
+    if(!!bool){
+      el.removeClass('has-success')
+      el.find('input#host').addClass('error')
+      el.addClass('has-error')
+      el.addClass('has-feedback')
+      el.find('#feedback').addClass('glyphicon-remove').removeClass('hidden')
+    } else {
+      el.find('input#host').removeClass('error')
+      el.removeClass('has-error')
+      el.addClass('has-success')
+      el.find('#feedback').addClass('hidden').removeClass('glyphicon-remove')
+    }
   }
 
   /**
@@ -111,12 +120,13 @@ $(document).ready(function(){
     for (var i = 0; i < bots.length; i++){
       var newRow = $('#ping-row-template').clone()
       newRow.attr('id',bots[i]._id)
-      if(bots[i].sponsor.url){
-        var link = newRow.find('td.location > a')
-        link.attr('href',bots[i].sponsor.url)
-        link.html(bots[i].location)
-      } else
-        newRow.find('td.location').html(bots[i].location)
+      var loc = newRow.find('td.location')
+      var link = loc.find('a')
+      link.find('#text').html(bots[i].location)
+      link.attr('href',bots[i].sponsor.url || '')
+      var label = link.find('#primaryGroupLabel')
+      label.text(bots[i].primaryGroup)
+      label.removeClass('hidden')
       pingTable.append(newRow)
       setResultsRow(bots[i]._id,false)
     }
@@ -144,8 +154,12 @@ $(document).ready(function(){
     setWaiting(false)
     pingResults[index] = []
     var row = pingTable.find('tr#' + index)
-    row.find('td.ip').html(dnsResult.ip[0])
+    var ip = dnsResult.ip[0]
+    row.find('td.ip').html(ip || '<span class="text-danger">[DNS Failed]</span>')
+    row.find('td.loss').html(ip ? '-' : '100')
     setResultsRow(index,true)
+    if(!ip) pulsarFinal(index)
+    return(ip ? true : false)
   }
 
 
@@ -172,7 +186,10 @@ $(document).ready(function(){
    */
   var hashParse = function(hash){
     hash = hash || location.hash.toString()
-    if((!hash) || ('#' === hash)) return(false)
+    if((!hash) || ('#' === hash)){
+      location.hash = '#'
+      return(false)
+    }
     hash = hash.replace(/#/,'')
     var rv = {group: 'all', host: hash}
     var m = hash.split('@')
@@ -208,7 +225,7 @@ $(document).ready(function(){
    * @return {string}
    */
   var pingFormGroupSanitize = function(group){
-    var rv = (undefined === $('form#ping option:eq(' + group + ')').val()) ? 'all' : group
+    var rv = (undefined === pingForm.find('option:eq(' + group + ')').val()) ? 'all' : group
     return(rv)
   }
   /**
@@ -217,9 +234,9 @@ $(document).ready(function(){
   var pingFormSubmit = function(){
     var hash = hashParse()
     if(hash){
-      $('form#ping > input#host').val(hash.host)
-      $('form#ping option:eq(' + hash.group.toLowerCase() + ')').prop('selected',true)
-      $('form#ping').submit()
+      pingForm.find('input#host').val(hash.host)
+      pingForm.find('option:eq(' + hash.group.toLowerCase() + ')').prop('selected',true)
+      pingForm.submit()
     }
   }
   var hashSet = function(thing,force){
@@ -358,7 +375,7 @@ $(document).ready(function(){
   /**
    * Handle a ping form submission
    */
-  $('#ping').submit(function(e){
+  pingForm.submit(function(e){
     e.preventDefault()
     var host = $('#host').val().replace(/\s+/g,'')
     if(hashSet()) return(false)
@@ -372,8 +389,8 @@ $(document).ready(function(){
         dnsResults = results
         for(var i in dnsResults){
           if(dnsResults.hasOwnProperty(i)){
-            pingTableRowInit(i,dnsResults[i])
-            pingStart(sourceId + ':' + dnsResults[i].handle,i,dnsResults[i].ip[0])
+            if(pingTableRowInit(i,dnsResults[i]))
+              pingStart(sourceId + ':' + dnsResults[i].handle,i,dnsResults[i].ip[0])
           }
         }
       })

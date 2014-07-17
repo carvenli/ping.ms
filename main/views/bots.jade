@@ -10,7 +10,11 @@ block content
         th Seen
       each row in bots
         tr
-          td= row.location
+          td
+            if(row.primaryGroup)
+              span.label.label-default= row.primaryGroup
+              =' '
+            span= row.location
           td
             a(href=row.sponsor.url)= row.sponsor.name
           td= row.hits
