@@ -12,6 +12,7 @@ block content
     form#ping(action="#", method="post")
       input.ping#host(type="text", name="host", size="10", value="")
       select#group(name="group")
+        option(value='all') All
         each row in groups
           option(value=row.tag)= row.name
       button.btn.btn-success#pingBtn(type="submit") Ping

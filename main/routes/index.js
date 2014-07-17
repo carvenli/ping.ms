@@ -28,11 +28,9 @@ exports.index = function(req,res){
         })
         return
       }
-      var groups = results[0]
-      groups.unshift({tag: 'all', name: 'All'})
       res.render('index',{
         sourceId: (req.sessionID + ':' + shortId.generate().replace(/[-_]/g,'')).toUpperCase(),
-        groups: groups,
+        groups: results[0],
         pageTitle: 'Online Ping Test, Online Trace Route, Internet Test',
         exampleIp: req.headers['x-forwarded-for'] || req.connection.remoteAddress
       })
