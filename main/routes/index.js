@@ -49,7 +49,7 @@ exports.bot = function(req,res){
     [
       //get bots
       function(next){
-        Bot.find({active:true}).sort('location').exec(function(err,results){
+        Bot.find({active:true}).sort('primaryGroup location').exec(function(err,results){
           if(err) return next(err.message)
           next(null,results)
         })
