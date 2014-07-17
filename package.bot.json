@@ -2,7 +2,7 @@
   "author": "ping.ms <admins@ping.ms>",
   "name": "ping.ms-bot",
   "description": "ping.ms bot",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "homepage": "http://ping.ms/",
   "repository": {
     "type": "git",
@@ -30,6 +30,7 @@
     "caterpillar-filter": "^2.0.3",
     "caterpillar-human": "^2.1.2",
     "hostbyname": "^0.1.0",
+    "ip": "^0.3.0",
     "mkdirp": "^0.5.0",
     "net-ping": "^1.1.10",
     "object-manage": "^0.7.1",
