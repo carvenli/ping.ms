@@ -96,25 +96,42 @@ $(document).ready(function(){
   var setError = function(bool,err){
     if(err) bool = true
     var el = $('#hostInput')
-    if(!!bool){
+    var hostBox = el.find('input#host')
+    var icon = el.find('#feedback')
+    var setRed = function(){
       el.removeClass('has-success')
-      el.find('input#host').addClass('error')
+      icon.removeClass('glyphicon-ok')
+      icon.addClass('glyphicon-remove')
       el.addClass('has-error')
-      el.addClass('has-feedback')
-      el.find('#feedback').addClass('glyphicon-remove').removeClass('hidden')
-    } else {
-      el.find('input#host').removeClass('error')
-      el.removeClass('has-error')
-      el.addClass('has-success')
-      el.find('#feedback').addClass('hidden').removeClass('glyphicon-remove')
+      hostBox.addClass('error')
     }
+    var setGreen = function(){
+      el.removeClass('has-error')
+      icon.removeClass('glyphicon-remove')
+      icon.addClass('glyphicon-ok')
+      el.addClass('has-success')
+      hostBox.removeClass('error')
+    }
+    var setNone = function(){
+      icon.removeClass('glyphicon-ok')
+      icon.removeClass('glyphicon-remove')
+      el.removeClass('has-success')
+      el.removeClass('has-error')
+      hostBox.removeClass('error')
+    }
+    if('none' === bool)
+      setNone()
+    else if(!!bool)
+      setRed()
+    else
+      setGreen()
   }
 
   /**
    * Init the ping table
    */
   var pingTableInit = function(bots){
-    setError(false)
+    setError('none')
     setResults(false)
     pingTable.find('tr:gt(1)').each(function(){ $(this).remove() })
     for (var i = 0; i < bots.length; i++){
@@ -152,6 +169,7 @@ $(document).ready(function(){
    */
   var pingTableRowInit = function(index,dnsResult){
     setWaiting(false)
+    setError(false)
     pingResults[index] = []
     var row = pingTable.find('tr#' + index)
     var ip = dnsResult.ip[0]
@@ -206,14 +224,13 @@ $(document).ready(function(){
    * @return {string}
    */
   var hashBuild = function(hashInfo){
-    var rv = ''
+    var rv = '#'
     hashInfo = hashInfo || {}
     if(!hashInfo.host)
       hashInfo.host = $('#host').val().replace(/\s+/g,'')
     if(!hashInfo.group)
       hashInfo.group = $('#group').val()
     if(!(/\./).test(hashInfo.host)) return(rv)
-    rv = '#'
     if(0 < hashInfo.group.length && 'all' !== hashInfo.group)
       rv = rv + hashInfo.group + '@'
     rv = rv + hashInfo.host
@@ -377,9 +394,10 @@ $(document).ready(function(){
    */
   pingForm.submit(function(e){
     e.preventDefault()
-    var host = $('#host').val().replace(/\s+/g,'')
+    pingForm.find('input#host').blur()
+    var host = pingForm.find('input#host').val().replace(/\s+/g,'')
     if(hashSet()) return(false)
-    var group = $('#group').val()
+    var group = pingForm.find('select#group').val()
     botList(group,function(err,results){
       if(err) return(false)
       pingTableInit(results)
@@ -387,12 +405,16 @@ $(document).ready(function(){
         if(!results) results = {}
         if(err) return pingTableDnsError(err)
         dnsResults = results
+        var allFailed = true
         for(var i in dnsResults){
           if(dnsResults.hasOwnProperty(i)){
-            if(pingTableRowInit(i,dnsResults[i]))
+            if(pingTableRowInit(i,dnsResults[i])){
+              allFailed = false
               pingStart(sourceId + ':' + dnsResults[i].handle,i,dnsResults[i].ip[0])
+            }
           }
         }
+        if(allFailed) return pingTableDnsError()
       })
     })
   })
@@ -404,6 +426,8 @@ $(document).ready(function(){
       return(false)
     })
   })
+  //reset input status on focus
+  pingForm.find('input#host').focus(function(){setError('none')})
   //handle hash auto-launching
   $(window).hashchange(pingFormSubmit)
   $(window).hashchange()

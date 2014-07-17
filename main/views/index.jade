@@ -10,9 +10,9 @@ block content
   .main
     p.site-description Free online ping test service with multiple locations worldwide
     form.form-inline#pingForm(action="#", method="post")
-      .form-group#hostInput
+      .form-group.has-feedback#hostInput
         input.form-control.ping#host(type="text", name="host", size="48", value="")
-        span.glyphicon.form-control-feedback.hidden#feedback
+        span.glyphicon.form-control-feedback#feedback
       .form-group#groupInput
         select#group(name="group")
           option(value='all') All
