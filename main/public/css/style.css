@@ -7,7 +7,8 @@
 }
 .terminus {
   font-family: 'Terminus','Courier New','monospace';
-  font-size: 12pt;
+  font-size: 14pt;
+  font-weight: bold;
 }
 
 body {
