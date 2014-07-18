@@ -141,7 +141,7 @@ $(document).ready(function(){
       var link = loc.find('a')
       link.find('#text').html(bots[i].location)
       link.attr('href',bots[i].sponsor.url || '')
-      var label = link.find('#primaryGroupLabel')
+      var label = newRow.find('td.group > #primaryGroupLabel')
       label.text(bots[i].primaryGroup)
       label.removeClass('hidden')
       pingTable.append(newRow)

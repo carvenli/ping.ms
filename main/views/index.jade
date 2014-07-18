@@ -31,7 +31,7 @@ block content
           tr
             th(style='width:1%;')
               span.glyphicon.glyphicon-link
-            th Location
+            th(colspan='2') Location
             th IP
             th.text-right Min (ms)
             th.text-right Max (ms)
@@ -43,10 +43,10 @@ block content
           tr.hidden#ping-row-template
             td.pulsar
               span.glyphicon.glyphicon-link.text-warning
+            td.group
+              span.label.label-default.hidden#primaryGroupLabel
             td.location
               a(href="javascript:false")
-                span.label.label-default.hidden#primaryGroupLabel=' '
-                =' '
                 span#text
             td.ip -
             td.min.text-right -
