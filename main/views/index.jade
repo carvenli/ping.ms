@@ -24,6 +24,7 @@ block content
       a.example#host(href="#") google.com
       | or
       a.example#ip(href="#")= exampleIp
+      | (results are in milliseconds)
   #pingResultWrapper.wrapper.hidden
     #pingResults.results
       table#pingTable.table.table-bordered
@@ -33,9 +34,9 @@ block content
               span.glyphicon.glyphicon-link
             th(colspan='2') Location
             th IP
-            th.text-right Min (ms)
-            th.text-right Max (ms)
-            th.text-right Avg (ms)
+            th.text-right Min
+            th.text-right Max
+            th.text-right Avg
             th.text-right Loss (%)
         tbody
           tr#waiting
@@ -43,13 +44,13 @@ block content
           tr.hidden#ping-row-template
             td.pulsar
               span.glyphicon.glyphicon-link.text-warning
-            td.group
+            td.group.text-right
               span.label.label-default.hidden#primaryGroupLabel
             td.location
               a(href="javascript:false")
-                span#text
-            td.ip -
-            td.min.text-right -
-            td.max.text-right -
-            td.avg.text-right -
-            td.loss.text-right -
+                span.terminus#text
+            td.terminus.ip -
+            td.terminus.min.text-right -
+            td.terminus.max.text-right -
+            td.terminus.avg.text-right -
+            td.terminus.loss.text-right -
