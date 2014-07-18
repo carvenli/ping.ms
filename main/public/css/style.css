@@ -133,6 +133,9 @@ select {
 .news p {
   margin-bottom: 0;
 }
+.news h1 {
+  margin-top: 0;
+}
 
 .example {
   padding: 7px;
