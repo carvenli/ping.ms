@@ -16,10 +16,19 @@ a:hover {
   text-decoration: none;
   color: #0f0;
 }
-#header, #footer, .site-description, .wrapper, .main, .bots {
+#header, #footer, .site-description, .wrapper, .main, .bots, .news {
   width: 720px;
   margin: 0 auto;
   overflow: hidden;
+}
+.results, .bots, .news {
+  margin-top: 5px;
+  padding: 5px;
+  background: #fff;
+  border: 3px solid #034500;
+  border-radius: 10px;
+  -moz-border-radius: 10px;
+  -webkit-border-radius: 10px;
 }
 #header {
   margin-bottom: 0;
@@ -109,14 +118,20 @@ input.ping.error {
 select {
   width: auto;
 }
-.results {
-  margin-top: 5px;
-  padding: 5px;
-  background: #fff;
-  border: 3px solid #034500;
-  border-radius: 10px;
-  -moz-border-radius: 10px;
-  -webkit-border-radius: 10px;
+.results table {
+  margin-bottom: 0;
+}
+
+.bots h2 {
+  margin-top: 0;
+  color:#034500;
+}
+.bots table {
+  margin-bottom: 0;
+}
+
+.news p {
+  margin-bottom: 0;
 }
 
 .example {
@@ -127,22 +142,6 @@ select {
 .example:hover {
   text-decoration: underline;
   color: #0f0;
-}
-
-.bots {
-  padding: 15px;
-  margin: auto;
-  border: 1px solid #cbcbcb;
-  border-radius: 10px;
-  -moz-border-radius: 10px;
-  -webkit-border-radius: 10px;
-  font-size: 14px;
-  background: #fff;
-  color: #000;
-}
-.bots h2 {
-  margin-top: 0;
-  color:#034500;
 }
 
 .content h1, .content h2, .content h3, .content h4, .content h5, .content h6 {

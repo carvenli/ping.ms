@@ -43,14 +43,14 @@ app.use(function(req,res,next){
 })
 app.use(express.static(__dirname + '/public'))
 
-//try to find a page matching the uri, if not continue
+//try to find a news page matching the uri, if not continue
 app.use(function(req,res,next){
   var Page = require('../models/page').model
   Page.findOne({uri: req.path},function(err,result){
     if(err) return next(err.message)
     if(!result) return next()
     //found a page render it
-    res.render('page',{
+    res.render('news',{
       pageTitle: result.title,
       page: result
     })
