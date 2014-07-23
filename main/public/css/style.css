@@ -6,9 +6,7 @@
   url('../fonts/Terminus.svg#svgFontName') format('svg');
 }
 .terminus {
-  font-family: 'Terminus','Courier New','monospace';
-  font-size: 14pt;
-  font-weight: bold;
+  font: 12pt Terminus,'Courier New',monospace;
 }
 
 body {
@@ -35,7 +33,7 @@ a:hover {
   overflow: hidden;
 }
 .results, .bots, .news {
-  margin-top: 5px;
+  margin-top: 0;
   padding: 5px;
   background: #fff;
   border: 3px solid #034500;
@@ -131,27 +129,34 @@ input.ping.error {
 select {
   width: auto;
 }
-.results table {
+.table>thead>tr>th, .table>tbody>tr>th, .table>tfoot>tr>th, .table>thead>tr>td, .table>tbody>tr>td, .table>tfoot>tr>td {
+  padding: 4px;
+  vertical-align: middle;
+}
+.table {
   margin-bottom: 0;
 }
-.results table td.group {
+.table td.group {
   margin: 0;
   padding: 0;
-  vertical-align: middle;
   border-right: 0;
+  white-space: nowrap;
+  width: 1%;
 }
-.results table td.location {
+.label-success {
+  background-color: #3c763d;
+  color: #000;
+}
+.table td.location {
   margin-left: 0;
   padding-left: 8px;
   border-left: 0;
+  white-space: nowrap;
 }
 
 .bots h2 {
   margin-top: 0;
-  color:#034500;
-}
-.bots table {
-  margin-bottom: 0;
+  color: #3c763d;
 }
 
 .news p {

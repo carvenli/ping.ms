@@ -4,21 +4,22 @@ block content
     h2 Bots
     table.table.table-bordered
       tr
-        th Location
+        th(colspan='2') Location
         th Sponsor
         th Hits
         th Seen
       each row in bots
         tr
-          td
+          td.group.text-right
             if(row.primaryGroup)
-              span.label.label-default= row.primaryGroup
+              span.label.label-success= row.primaryGroup
               =' '
-            span= row.location
+          td.location
+            span.terminus= row.location
           td
             a(href=row.sponsor.url)= row.sponsor.name
-          td= row.hits
-          td(style='white-space:nowrap;')
+          td.terminus= row.hits
+          td.terminus(style='white-space:nowrap;')
             if row.metrics.dateSeen
               = moment(row.metrics.dateSeen).fromNow()
             else
