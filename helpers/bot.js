@@ -1,23 +1,30 @@
 'use strict';
 var io = require('socket.io-client')
-  , util = require('util')
-  , Logger = require('../helpers/logger')
-  , BotSession = require('../helpers/botSession')
+var redis = require('../helpers/redis')
+var mesh = require('../mesh')
+var ping = require('../mesh/ping')
+var announce = require('../mesh/announce')
+var util = require('util')
+var async = require('async')
+var Logger = require('../helpers/logger')
+var BotSession = require('../helpers/botSession')
 var EventEmitter = require('events').EventEmitter
 
 
 
 /**
  * Bot Object
- *  each Bot is a socket.io client which connects to a mux (main service)
- *  this object simply augments this socket with event handling and any
- *  probe services we provide to the frontend.
- *  Events are passed bidirectionally (this is an EventEmitter just like socket.io).
+ *  each Bot is a client which connects to a mux (main service)
+ *  this object simply opens the comm channel so the mux can
+ *  probe and utilize services we provide to the frontend.
+ *  Messages "on the wire" are passed using .send() (without EventEmitter overhead, more like raw sockets)
+ *  The .route() method is the receiver which directs incoming packets to the proper module/method
  * @param {object} opts Options object
  * @constructor
  */
 var Bot = function(opts){
   var that = this
+  //extend Bot with EventEmitter to interface with upper layers
   EventEmitter.apply(that)
   that.options = opts
   that.logger = Logger.create(that.options.tag)
@@ -118,7 +125,16 @@ Bot.prototype.authorize = function(secret){
  */
 Bot.prototype.connect = function(){
   var that = this
-  that.logger.info('connecting to ' + that.options.uri)
+  var uri = that.options.uri.toString()
+  that.logger.info('connecting to ' + uri)
+  var parseEx = /^m(tcp|udp):\/\/([^:]*):([0-9]*)/i;
+  if(uri.match(parseEx)){
+    that.options.type = uri.replace(parseEx,'$1')
+    that.options.host = uri.replace(parseEx,'$2')
+    that.options.port = uri.replace(parseEx,'$3')
+  }
+  if(!(that.options.type && that.options.host && that.options.port))
+    return
   that.mux = io.connect(that.options.uri,{
     reconnection: true,
     reconnectionDelay: 300,

@@ -26,6 +26,14 @@ config.load({
       maxAge: 2592000000 //30 days
     }
   },
+  mesh: {
+    enabled: false,
+    port: 3000,
+    address: '127.0.0.1',
+    ping: { enabled: true, interval: 1000 },
+    stat: { enabled: true, interval: 1000 },
+    announce: { enabled: true, interval: 5000 }
+  },
   bot: {
     enabled: false,
     auth: {

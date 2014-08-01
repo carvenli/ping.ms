@@ -1,16 +1,17 @@
 'use strict';
 var async = require('async')
-  , logger = require('../helpers/logger').create('bot')
-  , config = require('../config')
-  , Bot = require('../helpers/bot.js')
+var logger = require('../helpers/logger').create('bot')
+var config = require('../config')
+var Bot = require('../helpers/bot.js')
 var propCopy = function(obj){return JSON.parse(JSON.stringify(obj))}
 
 var options = config.get('bot')
-  , sockets = []
+var sockets = []
 async.each(
   options.connections,
   function(conn,next){
     var muxOpts = propCopy(conn)
+    muxOpts.mesh = propCopy(config.get('mesh'))
     muxOpts.auth = propCopy(options.auth)
     muxOpts.tag = logger.tagExtend(sockets.length)
     muxOpts.version = config.get('version')

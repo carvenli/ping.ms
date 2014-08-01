@@ -1,15 +1,15 @@
 'use strict';
 var express = require('express')
-  , flash = require('connect-flash')
-  , app = express()
-  , server = require('http').Server(app)
-  , io = require('socket.io')(server)
-  , config = require('../config')
-  , routes = require('./routes')
-  , RedisStore = require('connect-redis')(express)
-  , async = require('async')
-  , shortId = require('shortid')
-  , logger = require('../helpers/logger').create('main')
+var flash = require('connect-flash')
+var app = express()
+var server = require('http').Server(app)
+var io = require('socket.io')(server)
+var config = require('../config')
+var routes = require('./routes')
+var RedisStore = require('connect-redis')(express)
+var async = require('async')
+var shortId = require('shortid')
+var logger = require('../helpers/logger').create('main')
 var Bot = require('../models/bot').model
 
 var generateHandle = function(){return shortId.generate().replace(/[-_]/g,'').toUpperCase()}
