@@ -3,7 +3,7 @@ var express = require('express')
 var flash = require('connect-flash')
 var app = express()
 var server = require('http').Server(app)
-var io = require('socket.io')(server)
+var communicator = require('./helpers/communicator')
 var config = require('../config')
 var routes = require('./routes')
 var RedisStore = require('connect-redis')(express)
@@ -135,134 +135,137 @@ var pingSanitize = function(data,next){
   )
 }
 
-//socket.io routing
-io.on('connection',function(client){
-  /**
-   * Authorize incoming bot connections
-   */
-  client.on('authorize',function(data,done){
-    async.series(
-      [
-        //lookup bot
-        function(next){
-          Bot.findOne({secret: data.secret},function(err,result){
-            if(err) return next({message: err.message, reason: 'generalFailure'})
-            if(!result) return next({message: 'Bot not found, bad secret', reason: 'badSecret'})
-            result.metrics.version = data.version
-            result.metrics.dateSeen = new Date()
-            client.metrics = result.toJSON().metrics
-            Bot.findByIdAndUpdate(result.id,{$set:{metrics: client.metrics}},function(){})
-            if(result && !result.active)
-              return next({message: 'Bot found, however inactive', reason: 'notActive'},result)
-            //auth accepted
-            next(null,result)
-          })
+//communicator server-side ("mux")
+app.muxServer = communicator.TCP(config.get('main.mux'),
+  {
+    connection: function(client){console.log(client)},
+    /**
+     * Authorize incoming bot connections
+     */
+    authorize: function(data,done){
+      async.series(
+        [
+          //lookup bot
+          function(next){
+            Bot.findOne({secret: data.secret},function(err,result){
+              if(err) return next({message: err.message, reason: 'generalFailure'})
+              if(!result) return next({message: 'Bot not found, bad secret', reason: 'badSecret'})
+              result.metrics.version = data.version
+              result.metrics.dateSeen = new Date()
+              data.client.metrics = result.toJSON().metrics
+              Bot.findByIdAndUpdate(result.id,{$set:{metrics: data.client.metrics}},function(){})
+              if(result && !result.active)
+                return next({message: 'Bot found, however inactive', reason: 'notActive'},result)
+              //auth accepted
+              next(null,result)
+            })
+          }
+        ],
+        function(err,results){
+          if(err){
+            logger.warning('Bot authorize failed: ' + err.message)
+            return done({error: true, reason: err.reason})
+          }
+          logger.info('Accepted connection from "' + results[0].location + '"')
+          botSocket[results[0].id] = data.client
+          done({error:false})
         }
-      ],
-      function(err,results){
-        if(err){
-          logger.warning('Bot authorize failed: ' + err.message)
-          return done({error: true, reason: err.reason})
-        }
-        logger.info('Accepted connection from "' + results[0].location + '"')
-        botSocket[results[0].id] = client
-        done({error:false})
+      )
+    },
+    /**
+     * Resolve an IP to domain and respond with the individual bot responses
+     */
+    botList: function(opts,done){
+      var query = {active: true}
+      //filter by group if we can
+      if(opts.group){
+        if('all' !== opts.group.toLowerCase())
+          query.groups = new RegExp(',' + opts.group + ',','i')
       }
-    )
-  })
-  /**
-   * Resolve an IP to domain and respond with the individual bot responses
-   */
-  client.on('botList',function(opts,done){
-    var query = {active: true}
-    //filter by group if we can
-    if(opts.group){
-      if('all' !== opts.group.toLowerCase())
-        query.groups = new RegExp(',' + opts.group + ',','i')
-    }
-    Bot.find(query).select('-secret').sort('groups location').exec(function(err,results){
-      if(err) return done({error: err})
-      done({results: results})
-    })
-  })
-  /**
-   * Resolve an IP to domain and respond with the individual bot responses
-   */
-  client.on('resolve',function(data,done){
-    var results = {}
-    async.series(
-      [
-        function(next){
-          groupAction(
-            data.group,
-            function(bot,handle,socket,next){
-              var query = {
-                handle: handle,
-                host: data.host
-              }
-              socket.emit('resolve',query,function(data){
-                if(data.error) return next(data.error)
-                var result = data
-                result.handle = handle
-                results[bot.id] = result
-                next()
-              })
-            },
-            next
-          )
-        }
-      ],
-      function(err){
+      Bot.find(query).select('-secret').sort('groups location').exec(function(err,results){
         if(err) return done({error: err})
         done({results: results})
-      }
-    )
-  })
-  /**
-   * Start pinging a host from the browser
-   */
-  client.on('pingStart',function(data){
-    async.series(
-      [
-        function(next){
-          pingSanitize(data,next)
-        }
-      ]
-      ,function(err){
-        if(err){
-          client.emit('pingResult:' + data.handle,{error: err})
-          return
-        }
-        //setup result handlers
-        botSocket[data.bot].on('pingResult:' + data.handle,function(result){
-          //salt bot id back in for mapping on the frontend
-          result.id = data.bot
-          client.emit('pingResult:' + data.handle,result)
-          //remove result listeners when the last event arrives
-          if(result.stopped){
-            botSocket[data.bot].removeAllListeners('pingError:' + data.handle)
-            botSocket[data.bot].removeAllListeners('pingResult:' + data.handle)
-            logger.info('Ping stopped: ' + data.handle)
-            botSocket[data.bot].metrics.dateSeen = new Date()
-            Bot.findByIdAndUpdate(data.bot,{$set:{metrics: botSocket[data.bot].metrics}},function(){})
+      })
+    },
+    /**
+     * Resolve an IP to domain and respond with the individual bot responses
+     */
+    resolve: function(data,done){
+      var results = {}
+      async.series(
+        [
+          function(next){
+            groupAction(
+              data.group,
+              function(bot,handle,socket,next){
+                var query = {
+                  handle: handle,
+                  host: data.host
+                }
+                socket.emit('resolve',query,function(data){
+                  if(data.error) return next(data.error)
+                  var result = data
+                  result.handle = handle
+                  results[bot.id] = result
+                  next()
+                })
+              },
+              next
+            )
           }
-        })
-        //start the ping session
-        botSocket[data.bot].emit('pingStart',{handle: data.handle, ip: data.ip})
-        //tally a hit
-        Bot.findByIdAndUpdate(data.bot,{$inc:{hits: 1}},function(){})
-      }
-    )
-  })
-  /**
-   * Stop pinging a host from the browser
-   */
-  client.on('pingStop',function(data){
-    if(!data.bot || !botSocket[data.bot]) return
-    //stop the ping session
-    botSocket[data.bot].emit('pingStop',{handle: data.handle})
-  })
-})
+        ],
+        function(err){
+          if(err) return done({error: err})
+          done({results: results})
+        }
+      )
+    },
+    /**
+     * Start pinging a host from the browser
+     */
+    pingStart: function(data){
+      async.series(
+        [
+          function(next){
+            pingSanitize(data,next)
+          }
+        ]
+        ,function(err){
+          if(err){
+            client.emit('pingResult:' + data.handle,{error: err})
+            return
+          }
+          //setup result handlers
+          botSocket[data.bot].on('pingResult:' + data.handle,function(result){
+            //salt bot id back in for mapping on the frontend
+            result.id = data.bot
+            client.emit('pingResult:' + data.handle,result)
+            //remove result listeners when the last event arrives
+            if(result.stopped){
+              botSocket[data.bot].removeAllListeners('pingError:' + data.handle)
+              botSocket[data.bot].removeAllListeners('pingResult:' + data.handle)
+              logger.info('Ping stopped: ' + data.handle)
+              botSocket[data.bot].metrics.dateSeen = new Date()
+              Bot.findByIdAndUpdate(data.bot,{$set:{metrics: botSocket[data.bot].metrics}},function(){})
+            }
+          })
+          //start the ping session
+          botSocket[data.bot].emit('pingStart',{handle: data.handle, ip: data.ip})
+          //tally a hit
+          Bot.findByIdAndUpdate(data.bot,{$inc:{hits: 1}},function(){})
+        }
+      )
+    },
+    /**
+     * Stop pinging a host from the browser
+     */
+    pingStop: function(data){
+      if(!data.bot || !botSocket[data.bot]) return
+      //stop the ping session
+      botSocket[data.bot].emit('pingStop',{handle: data.handle})
+    }
+  }
+)
 
 //setup and listen
-server.listen(config.get('main.port'),config.get('main.host'))
+app.listen(config.get('main.port'),config.get('main.host'))

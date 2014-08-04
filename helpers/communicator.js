@@ -3,6 +3,7 @@ var net = require('net')
 var dgram = require('dgram')
 var stream = require('stream')
 var logger = require('../helpers/logger').create('communicator')
+var async = require('async')
 var EventEmitter = require('events').EventEmitter
 
 
@@ -147,28 +148,49 @@ UDP.prototype.close = function(done){
 /**
  * TCP Communicator
  * @param {object} options
+ * @param {object} callbacks
  * @constructor
  */
-var TCP = function(options){
+var TCP = function(options,callbacks){
   var self = this
   EventEmitter.call(self)
   if('object' !== typeof options) options = {}
   if(!options.port) throw new Error('Port required to setup TCP')
+  if('object' !== typeof callbacks) callbacks = {}
   self.options = options
   self.server = net.createServer()
   self.server.on('connection',function(socket){
-    socket.once('readable',function(){
-      var lengthRaw = socket.read(2)
-      if(!lengthRaw) return self.emit('error','Invalid socket data ' + socket.remoteAddress + ':' + socket.remotePort)
-      var length = lengthRaw.readUInt16BE(0)
-      var payload = util.parse(socket.read(length))
-      if(!payload) return self.emit('error','Failed to parse payload')
-      self.emit(payload.command,payload.message,socket)
-    })
-    socket.on('error',function(err){self.emit('error',err)})
+    //register default callbacks if not passed in
+    if('function' !== typeof callbacks.readable){
+      callbacks.readable = function(){
+        var lengthRaw = socket.read(2)
+        if(!lengthRaw) return self.emit('error','Invalid socket data ' + socket.remoteAddress + ':' + socket.remotePort)
+        var length = lengthRaw.readUInt16BE(0)
+        var payload = util.parse(socket.read(length))
+        if(!payload) return self.emit('error','Failed to parse payload')
+        self.emit(payload.command,payload.message,socket)
+      }
+    }
+    if('function' !== typeof callbacks.error){
+      callbacks.error = function(err){self.emit('error',err)}
+    }
+    //register all callbacks passed in or set as default above
+    async.each(
+      Object.keys(callbacks),
+      function(key,next){
+        socket.on(key,function(data,cb){
+          data.client = socket
+          callbacks[key](data,cb)
+        })
+        next()
+      },
+      function(){
+        self.emit('connection',socket)
+      }
+    )
   })
   self.server.on('error',function(err){self.emit('error',err)})
-  self.server.listen(options.port,options.address,function(){
+  self.server.listen(self.options.port,self.options.address,function(){
     self.emit('ready',self.server)
   })
 }
