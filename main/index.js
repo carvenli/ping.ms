@@ -160,19 +160,84 @@ process.on('SIGTERM',function(){
 })
 */
 
-mux.hookEvent(muxHandle,'*',
-  function(message){
-    logger.info('[MUX]',message)
+client.irc.ctcpRequest = function(target,type,forcePushBack){
+  forcePushBack = forcePushBack || false
+  var msg = '\x01' + type.toUpperCase() + '\x01'
+  client.irc.raw(['PRIVMSG',target,msg])
+  if(forcePushBack){
+    client._parseLine(
+      ':' + client._nick + '!' + client._user + '@' + client._hostname +
+      ' PRIVMSG ' + target +
+      ' :' + msg
+    )
   }
-)
-mux.hookEvent(muxHandle,'PRIVMSG',
-  function(message){
-    logger.info('[MUX PRIVMSG]',message)
+}
+
+mux.hookEvent(muxHandle,'privmsg',
+  function(o){
+    var myNick = client.irc._nick
+    if(myNick === o.target){
+      if(myNick !== o.nickname)
+        client.irc.privmsg(o.nickname,o.message.toUpperCase())
+    } else {
+      client.irc.privmsg(o.target,o.message.toUpperCase())
+    }
   }
 )
 mux.hookEvent(muxHandle,'registered',
-  function(message){
+  function(){
+    logger.info('Connected')
     client.irc.join('#pingms')
+  }
+)
+mux.hookEvent(muxHandle,'notice',
+  function(o){
+    if('AUTH' === o.target)
+      logger.info('[AUTH]',o.message)
+    else
+      if(!o.nickname)
+        logger.info('[NOTICE:' + client.irc.connection.server + '] ' + o.message)
+      else
+        logger.info('[NOTICE:' + o.nickname.replace(/^@/,'') + '] ' + o.message)
+  }
+)
+mux.hookEvent(muxHandle,'join',
+  function(o){
+    logger.info('Joined ' + o.channel)
+  }
+)
+mux.hookEvent(muxHandle,'names',
+  function(o){
+    logger.info(client)
+    async.each(o.names,function(n,done){
+      n = n.replace(/^@/,'')
+      logger.info('>' + n + ': CTCP VERSION')
+      client.irc.ctcpRequest(n,'VERSION')
+      done()
+    },function(){})
+  }
+)
+mux.hookEvent(muxHandle,'ctcp_response',
+  function(o){
+    logger.info('<' + o.nickname.replace(/^@/,'') + ': CTCP_RESPONSE ' + o.type + ': ' + o.message)
+  }
+)
+mux.hookEvent(muxHandle,'ctcp_request',
+  function(o){
+    logger.info('<' + o.nickname.replace(/^@/,'') + ': CTCP ' + o.type)
+    var rv = 'UNKNOWN CTCP'
+    switch(o.type){
+      case 'VERSION':
+        rv = 'ping.ms MUX:' + config.get('version') + ':nodejs'
+        break
+      case 'PING':
+        rv = o.message
+        break
+      case 'TIME':
+        rv = ':' + app.locals.moment().format('ddd MMM DD HH:mm:ss YYYY ZZ')
+        break
+    }
+    client.irc.ctcp(o.nickname,o.type,rv)
   }
 )
 
