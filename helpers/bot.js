@@ -1,11 +1,8 @@
 'use strict';
 var io = require('socket.io-client')
-var redis = require('../helpers/redis')
-var mesh = require('../mesh')
-var ping = require('../mesh/ping')
-var announce = require('../mesh/announce')
 var util = require('util')
 var async = require('async')
+var ircFactory = require('irc-factory')
 var Logger = require('../helpers/logger')
 var BotSession = require('../helpers/botSession')
 var EventEmitter = require('events').EventEmitter
@@ -14,11 +11,10 @@ var EventEmitter = require('events').EventEmitter
 
 /**
  * Bot Object
- *  each Bot is a client which connects to a mux (main service)
- *  this object simply opens the comm channel so the mux can
- *  probe and utilize services we provide to the frontend.
- *  Messages "on the wire" are passed using .send() (without EventEmitter overhead, more like raw sockets)
- *  The .route() method is the receiver which directs incoming packets to the proper module/method
+ *  each Bot is a socket.io client which connects to a mux (main service)
+ *  this object simply augments this socket with event handling and any
+ *  probe services we provide to the frontend.
+ *  Events are passed bidirectionally (this is an EventEmitter just like socket.io).
  * @param {object} opts Options object
  * @constructor
  */
@@ -127,14 +123,27 @@ Bot.prototype.connect = function(){
   var that = this
   var uri = that.options.uri.toString()
   that.logger.info('connecting to ' + uri)
-  var parseEx = /^m(tcp|udp):\/\/([^:]*):([0-9]*)/i;
+  var parseEx = /^mux:\/\/([^:]*):([0-9]*)/i;
   if(uri.match(parseEx)){
-    that.options.type = uri.replace(parseEx,'$1')
-    that.options.host = uri.replace(parseEx,'$2')
-    that.options.port = uri.replace(parseEx,'$3')
+    that.options.host = uri.replace(parseEx,'$1')
+    that.options.port = uri.replace(parseEx,'$2')
   }
-  if(!(that.options.type && that.options.host && that.options.port))
+  if(!(that.options.host && that.options.port))
     return
+/*
+  var api = new ircFactory.Api()
+  var client = api.createClient('test',
+    {
+      nick : 'simpleircbot',
+      user : 'testuser',
+      server : that.options.host,
+      realname: 'realbot',
+      port: that.options.port,
+      secure: false
+    }
+  )
+*/
+/*
   that.mux = io.connect(that.options.uri,{
     reconnection: true,
     reconnectionDelay: 300,
