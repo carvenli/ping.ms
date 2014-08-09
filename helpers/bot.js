@@ -167,6 +167,7 @@ Bot.prototype.connect = function(){
       that.emit('pingStop',data)
     })
   })
+  */
 }
 
 
