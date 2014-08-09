@@ -139,13 +139,21 @@ var pingSanitize = function(data,next){
 logger.info('Starting Mux...')
 var muxHandle = 'mux'
 var mux = new ircFactory.Api()
-var client = mux.createClient(muxHandle,config.get('main.mux'))
+var client = mux.createClient(muxHandle,{
+  nick : config.get('main.mux.nick') || 'pingMsMux',
+  user : config.get('main.mux.user') || 'pingMsMux',
+  realname: config.get('main.mux.realName') || 'pingMsMux',
+  server : config.get('main.mux.server') || 'localhost',
+  port: config.get('main.mux.port') || 6667,
+  secure: config.get('main.mux.secure') || false
+})
 /*
 process.on('SIGTERM',function(){
   logger.info('Mux exiting...')
   client.disconnect('Mux exiting...')
 })
 */
+
 mux.hookEvent(muxHandle,'*',
   function(message){
     logger.info('[MUX]',message)

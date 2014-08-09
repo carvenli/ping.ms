@@ -1,8 +1,8 @@
 'use strict';
-var io = require('socket.io-client')
+//var io = require('socket.io-client')
 var util = require('util')
-var async = require('async')
-var ircFactory = require('irc-factory')
+//var async = require('async')
+//var ircFactory = require('irc-factory')
 var Logger = require('../helpers/logger')
 var BotSession = require('../helpers/botSession')
 var EventEmitter = require('events').EventEmitter
@@ -167,6 +167,7 @@ Bot.prototype.connect = function(){
       that.emit('pingStop',data)
     })
   })
+  */
 }
 
 
