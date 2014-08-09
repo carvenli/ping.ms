@@ -140,12 +140,18 @@ logger.info('Starting Mux...')
 var muxHandle = 'mux'
 var mux = new ircFactory.Api()
 var client = mux.createClient(muxHandle,{
-  nick : config.get('main.mux.nick') || 'pingMsMux',
-  user : config.get('main.mux.user') || 'pingMsMux',
-  realname: config.get('main.mux.realName') || 'pingMsMux',
-  server : config.get('main.mux.server') || 'localhost',
+  nick: config.get('main.mux.nick') || 'pingMsMux',
+  user: config.get('main.mux.user') || 'pingMsMux',
+  realname: config.get('main.mux.realname') || 'pingMsMux',
+  server: config.get('main.mux.server') || 'localhost',
   port: config.get('main.mux.port') || 6667,
-  secure: config.get('main.mux.secure') || false
+  secure: config.get('main.mux.secure') || false,
+  capab: config.get('main.mux.capab') || false,
+  sasl: config.get('main.mux.sasl') || false,
+  saslUsername: config.get('main.mux.saslUsername') || config.get('main.mux.user') || 'pingMsMux',
+  password: config.get('main.mux.sasl') || '',
+  retryCount: config.get('main.mux.retryCount') || 10,
+  retryWait: config.get('main.mux.retryWait') || 1000
 })
 /*
 process.on('SIGTERM',function(){
