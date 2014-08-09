@@ -1,15 +1,15 @@
 'use strict';
 var express = require('express')
-  , flash = require('connect-flash')
-  , app = express()
-  , server = require('http').Server(app)
-  , io = require('socket.io')(server)
-  , config = require('../config')
-  , routes = require('./routes')
-  , RedisStore = require('connect-redis')(express)
-  , async = require('async')
-  , shortId = require('shortid')
-  , logger = require('../helpers/logger').create('main')
+var flash = require('connect-flash')
+var app = express()
+var server = require('http').Server(app)
+var ircFactory = require('irc-factory')
+var config = require('../config')
+var routes = require('./routes')
+var RedisStore = require('connect-redis')(express)
+var async = require('async')
+var shortId = require('shortid')
+var logger = require('../helpers/logger').create('main')
 var Bot = require('../models/bot').model
 
 var generateHandle = function(){return shortId.generate().replace(/[-_]/g,'').toUpperCase()}
@@ -43,14 +43,14 @@ app.use(function(req,res,next){
 })
 app.use(express.static(__dirname + '/public'))
 
-//try to find a page matching the uri, if not continue
+//try to find a news page matching the uri, if not continue
 app.use(function(req,res,next){
   var Page = require('../models/page').model
   Page.findOne({uri: req.path},function(err,result){
     if(err) return next(err.message)
     if(!result) return next()
     //found a page render it
-    res.render('page',{
+    res.render('news',{
       pageTitle: result.title,
       page: result
     })
@@ -135,134 +135,32 @@ var pingSanitize = function(data,next){
   )
 }
 
-//socket.io routing
-io.on('connection',function(client){
-  /**
-   * Authorize incoming bot connections
-   */
-  client.on('authorize',function(data,done){
-    async.series(
-      [
-        //lookup bot
-        function(next){
-          Bot.findOne({secret: data.secret},function(err,result){
-            if(err) return next({message: err.message, reason: 'generalFailure'})
-            if(!result) return next({message: 'Bot not found, bad secret', reason: 'badSecret'})
-            result.metrics.version = data.version
-            result.metrics.dateSeen = new Date()
-            client.metrics = result.toJSON().metrics
-            Bot.findByIdAndUpdate(result.id,{$set:{metrics: client.metrics}},function(){})
-            if(result && !result.active)
-              return next({message: 'Bot found, however inactive', reason: 'notActive'},result)
-            //auth accepted
-            next(null,result)
-          })
-        }
-      ],
-      function(err,results){
-        if(err){
-          logger.warning('Bot authorize failed: ' + err.message)
-          return done({error: true, reason: err.reason})
-        }
-        logger.info('Accepted connection from "' + results[0].location + '"')
-        botSocket[results[0].id] = client
-        done({error:false})
-      }
-    )
-  })
-  /**
-   * Resolve an IP to domain and respond with the individual bot responses
-   */
-  client.on('botList',function(opts,done){
-    var query = {active: true}
-    //filter by group if we can
-    if(opts.group){
-      if('all' !== opts.group.toLowerCase())
-        query.groups = new RegExp(',' + opts.group + ',','i')
-    }
-    Bot.find(query).select('-secret').sort('groups location').exec(function(err,results){
-      if(err) return done({error: err})
-      done({results: results})
-    })
-  })
-  /**
-   * Resolve an IP to domain and respond with the individual bot responses
-   */
-  client.on('resolve',function(data,done){
-    var results = {}
-    async.series(
-      [
-        function(next){
-          groupAction(
-            data.group,
-            function(bot,handle,socket,next){
-              var query = {
-                handle: handle,
-                host: data.host
-              }
-              socket.emit('resolve',query,function(data){
-                if(data.error) return next(data.error)
-                var result = data
-                result.handle = handle
-                results[bot.id] = result
-                next()
-              })
-            },
-            next
-          )
-        }
-      ],
-      function(err){
-        if(err) return done({error: err})
-        done({results: results})
-      }
-    )
-  })
-  /**
-   * Start pinging a host from the browser
-   */
-  client.on('pingStart',function(data){
-    async.series(
-      [
-        function(next){
-          pingSanitize(data,next)
-        }
-      ]
-      ,function(err){
-        if(err){
-          client.emit('pingResult:' + data.handle,{error: err})
-          return
-        }
-        //setup result handlers
-        botSocket[data.bot].on('pingResult:' + data.handle,function(result){
-          //salt bot id back in for mapping on the frontend
-          result.id = data.bot
-          client.emit('pingResult:' + data.handle,result)
-          //remove result listeners when the last event arrives
-          if(result.stopped){
-            botSocket[data.bot].removeAllListeners('pingError:' + data.handle)
-            botSocket[data.bot].removeAllListeners('pingResult:' + data.handle)
-            logger.info('Ping stopped: ' + data.handle)
-            botSocket[data.bot].metrics.dateSeen = new Date()
-            Bot.findByIdAndUpdate(data.bot,{$set:{metrics: botSocket[data.bot].metrics}},function(){})
-          }
-        })
-        //start the ping session
-        botSocket[data.bot].emit('pingStart',{handle: data.handle, ip: data.ip})
-        //tally a hit
-        Bot.findByIdAndUpdate(data.bot,{$inc:{hits: 1}},function(){})
-      }
-    )
-  })
-  /**
-   * Stop pinging a host from the browser
-   */
-  client.on('pingStop',function(data){
-    if(!data.bot || !botSocket[data.bot]) return
-    //stop the ping session
-    botSocket[data.bot].emit('pingStop',{handle: data.handle})
-  })
+//communicator server-side ("mux")
+logger.info('Starting Mux...')
+var muxHandle = 'mux'
+var mux = new ircFactory.Api()
+var client = mux.createClient(muxHandle,config.get('main.mux'))
+/*
+process.on('SIGTERM',function(){
+  logger.info('Mux exiting...')
+  client.disconnect('Mux exiting...')
 })
+*/
+mux.hookEvent(muxHandle,'*',
+  function(message){
+    logger.info('[MUX]',message)
+  }
+)
+mux.hookEvent(muxHandle,'PRIVMSG',
+  function(message){
+    logger.info('[MUX PRIVMSG]',message)
+  }
+)
+mux.hookEvent(muxHandle,'registered',
+  function(message){
+    client.irc.join('#pingms')
+  }
+)
 
 //setup and listen
 server.listen(config.get('main.port'),config.get('main.host'))

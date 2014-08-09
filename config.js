@@ -43,6 +43,17 @@ config.load({
     cookie: {
       secret: '',
       maxAge: 2592000000 //30 days
+    },
+    mux: {
+      enabled: false,
+      server: 'irc.app.us.org',
+      port: 6697,
+      //leave these alone mostly
+      nick: 'pingMsMux',
+      user: 'pingMsMux',
+      realName: 'pingMsMux',
+      secure: true,
+      retryCount: 65534
     }
   }
 })
