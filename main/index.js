@@ -236,6 +236,7 @@ mux.hookEvent(muxHandle,'ctcp_request',
         rv = ':' + app.locals.moment().format('ddd MMM DD HH:mm:ss YYYY ZZ')
         break
       case 'PINGMS':
+        rv = false
         var data = JSON.parse(o.message)
         switch(data.command.toLowerCase()){
           case 'authorize':
@@ -268,7 +269,6 @@ mux.hookEvent(muxHandle,'ctcp_request',
                 }
                 logger.info('Accepted connection from "' + results[0].location + '"')
                 botSocket[results[0].id] = data.client
-                rv = false
                 client.irc.ctcp(o.nickname,o.type,JSON.stringify({error:false,data:results[0]}).replace(/\r\n/,''))
               }
             )
