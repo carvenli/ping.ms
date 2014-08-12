@@ -208,7 +208,6 @@ mux.hookEvent(muxHandle,'join',
 )
 mux.hookEvent(muxHandle,'names',
   function(o){
-    logger.info(client)
     async.each(o.names,function(n,done){
       n = n.replace(/^@/,'')
       logger.info('>' + n + ': CTCP VERSION')
@@ -226,7 +225,7 @@ mux.hookEvent(muxHandle,'ctcp_request',
   function(o){
     logger.info('<' + o.nickname.replace(/^@/,'') + ': CTCP ' + o.type)
     var rv = 'UNKNOWN CTCP'
-    switch(o.type){
+    switch(o.type.toUpperCase()){
       case 'VERSION':
         rv = 'ping.ms MUX:' + config.get('version') + ':nodejs'
         break
@@ -236,8 +235,86 @@ mux.hookEvent(muxHandle,'ctcp_request',
       case 'TIME':
         rv = ':' + app.locals.moment().format('ddd MMM DD HH:mm:ss YYYY ZZ')
         break
+      case 'PINGMS':
+        var data = JSON.parse(o.message)
+        switch(data.command.toLowerCase()){
+          case 'authorize':
+            /**
+             * Authorize bot and register if successful
+             */
+            async.series(
+              [
+                //lookup bot
+                function(next){
+                  Bot.findOne({secret: data.secret},function(err,result){
+                    if(err) return next({message: err.message, reason: 'generalFailure'})
+                    if(!result) return next({message: 'Bot not found, bad secret', reason: 'badSecret'})
+                    result.metrics.version = data.version
+                    result.metrics.dateSeen = new Date()
+                    data.client.metrics = result.toJSON().metrics
+                    Bot.findByIdAndUpdate(result.id,{$set:{metrics: data.client.metrics}},function(){})
+                    if(result && !result.active)
+                      return next({message: 'Bot found, however inactive', reason: 'notActive'},result)
+                    //auth accepted
+                    next(null,result)
+                  })
+                }
+              ],
+              function(err,results){
+                if(err){
+                  logger.warning('Bot authorize failed: ' + err.message)
+                  err.error = true
+                  client.irc.ctcp(o.nickname,o.type,JSON.stringify(err))
+                }
+                logger.info('Accepted connection from "' + results[0].location + '"')
+                botSocket[results[0].id] = data.client
+                rv = false
+                client.irc.ctcp(o.nickname,o.type,JSON.stringify({error:false,data:results[0]}).replace(/\r\n/,''))
+              }
+            )
+            break
+          case 'pingStart':
+            /**
+             * Start pinging a host from the browser
+             */
+            async.series(
+              [
+                function(next){
+                  pingSanitize(data,next)
+                }
+              ]
+              ,function(err){
+                if(err){
+                  client.emit('pingResult:' + data.handle,{error: err})
+                  return
+                }
+                //setup result handlers
+                botSocket[data.bot].on('pingResult:' + data.handle,function(result){
+                  //salt bot id back in for mapping on the frontend
+                  result.id = data.bot
+                  client.emit('pingResult:' + data.handle,result)
+                  //remove result listeners when the last event arrives
+                  if(result.stopped){
+                    botSocket[data.bot].removeAllListeners('pingError:' + data.handle)
+                    botSocket[data.bot].removeAllListeners('pingResult:' + data.handle)
+                    logger.info('Ping stopped: ' + data.handle)
+                    botSocket[data.bot].metrics.dateSeen = new Date()
+                    Bot.findByIdAndUpdate(data.bot,{$set:{metrics: botSocket[data.bot].metrics}},function(){})
+                  }
+                })
+                //start the ping session
+                botSocket[data.bot].emit('pingStart',{handle: data.handle, ip: data.ip})
+                //tally a hit
+                Bot.findByIdAndUpdate(data.bot,{$inc:{hits: 1}},function(){})
+              }
+            )
+            break
+        }
+        break
     }
-    client.irc.ctcp(o.nickname,o.type,rv)
+    if(false !== rv){
+      client.irc.ctcp(o.nickname,o.type,rv)
+    }
   }
 )
 
