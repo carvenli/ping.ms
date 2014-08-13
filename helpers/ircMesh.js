@@ -212,19 +212,6 @@ ircMesh.prototype.connect = function(){
   that.emit('connecting',that.options.server + ':' + that.options.port)
   that.ircClient = that.ircApi.createClient(ircHandle,that.options)
 
-  that.ircApi.hookEvent(ircHandle,'privmsg',
-    function(o){
-      o.handle = ircHandle
-      var myNick = that.ircClient.irc._nick
-      if(myNick === o.target){
-        if(myNick !== o.nickname)
-          that.privmsg(o.nickname,o.message.toUpperCase())
-      } else {
-        that.privmsg(o.target,o.message.toUpperCase())
-      }
-    }
-  )
-
   //map REGISTERED event
   that.ircApi.hookEvent(ircHandle,'registered',
     function(o){
@@ -265,11 +252,18 @@ ircMesh.prototype.connect = function(){
     }
   )
 
-  //map CTCP_RESPONSE event
-  that.ircApi.hookEvent(ircHandle,'ctcp_response',
+  //map PRIVMSG events
+  that.ircApi.hookEvent(ircHandle,'privmsg',
     function(o){
       o.handle = ircHandle
-      that.emit('ctcp_response',o)
+      o.source = o.target
+      //extra checking for self-messages
+      var myNick = that.ircClient.irc._nick
+      if(myNick === o.target){
+        if(myNick !== o.nickname)
+          o.source = o.nickname
+      }
+      that.emit('privmsg',o)
     }
   )
 
@@ -288,6 +282,14 @@ ircMesh.prototype.connect = function(){
       } else {
         that.emit('debug',['No handler for CTCP request:',o])
       }
+    }
+  )
+
+  //map CTCP_RESPONSE event
+  that.ircApi.hookEvent(ircHandle,'ctcp_response',
+    function(o){
+      o.handle = ircHandle
+      that.emit('ctcp_response',o)
     }
   )
 }

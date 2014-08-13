@@ -90,6 +90,9 @@ ircMesh.on('notice',function(o){
 ircMesh.on('ctcp_request',function(o){
   logger.info('<' + o.source + ' CTCP:' + o.type + '>' + ((o.message) ? ' ' + o.message : ''))
 })
+ircMesh.on('privmsg',function(o){
+  ircMesh.privmsg(o.source,o.message.toUpperCase())
+})
 ircMesh.on('names',function(o){
   async.each(o.names,function(n,done){
     ircMesh.ctcpRequest(n.replace(/^@/,''),'VERSION')
