@@ -134,57 +134,57 @@ var ircMesh = function(opts){
   if('function' === typeof _inits[that.options.type]) _inits[that.options.type]()
   //Setup logger
   that.logger = Logger.create([that.options.tag,that.options.type].join(':'))
+  that.ircApi = new ircFactory.Api()
 }
 util.inherits(ircMesh,EventEmitter)
 
 ircMesh.prototype.connect = function(){
   var that = this
-  var muxHandle = that.options.type
-  var ircApi = new ircFactory.Api()
+  var ircHandle = that.options.type
   that.logger.info('Connecting to ' + [that.options.server,that.options.port].join(':'))
-  var client = ircApi.createClient(muxHandle,that.options)
+  that.client = that.ircApi.createClient(ircHandle,that.options)
   /*
    process.on('SIGTERM',function(){
    logger.info('Mux exiting...')
-   client.disconnect('Mux exiting...')
+   that.client.disconnect('Mux exiting...')
    })
    */
 
-  client.irc.ctcpRequest = function(target,type,forcePushBack){
+  that.client.irc.ctcpRequest = function(target,type,forcePushBack){
     that.logger.info('>' + target + ': CTCP VERSION')
     forcePushBack = forcePushBack || false
     var msg = '\x01' + type.toUpperCase() + '\x01'
-    client.irc.raw(['PRIVMSG',target,msg])
+    that.client.irc.raw(['PRIVMSG',target,msg])
     if(forcePushBack){
-      client._parseLine(
-          ':' + client._nick + '!' + client._user + '@' + client._hostname +
+      that.client._parseLine(
+          ':' +that.client._nick + '!' +that.client._user + '@' +that.client._hostname +
           ' PRIVMSG ' + target +
           ' :' + msg
       )
     }
   }
 
-  ircApi.hookEvent(muxHandle,'privmsg',
+  that.ircApi.hookEvent(ircHandle,'privmsg',
     function(o){
-      var myNick = client.irc._nick
+      var myNick =that.client.irc._nick
       if(myNick === o.target){
         if(myNick !== o.nickname)
-          client.irc.privmsg(o.nickname,o.message.toUpperCase())
+          that.client.irc.privmsg(o.nickname,o.message.toUpperCase())
       } else {
-        client.irc.privmsg(o.target,o.message.toUpperCase())
+        that.client.irc.privmsg(o.target,o.message.toUpperCase())
       }
     }
   )
-  ircApi.hookEvent(muxHandle,'registered',
+  that.ircApi.hookEvent(ircHandle,'registered',
     function(){
       that.logger.info('Connected')
-      client.irc.join('#pingms')
+      that.client.irc.join('#pingms')
     }
   )
-  ircApi.hookEvent(muxHandle,'notice',
+  that.ircApi.hookEvent(ircHandle,'notice',
     function(o){
       var logServerNotice = function(o){
-        that.logger.info('[NOTICE:' + client.irc.connection.server + '] ' + o.message)
+        that.logger.info('[NOTICE:' + that.client.irc.connection.server + '] ' + o.message)
       }
       if('AUTH' === o.target)
         logServerNotice(o)
@@ -196,22 +196,22 @@ ircMesh.prototype.connect = function(){
     }
   )
 
-  ircApi.hookEvent(muxHandle,'join',
+  that.ircApi.hookEvent(ircHandle,'join',
     function(o){
       that.logger.info('Joined ' + o.channel)
     }
   )
 
-  ircApi.hookEvent(muxHandle,'names',
+  that.ircApi.hookEvent(ircHandle,'names',
     function(o){
       async.each(o.names,function(n,done){
-        client.irc.ctcpRequest(n.replace(/^@/,''),'VERSION')
+        that.client.irc.ctcpRequest(n.replace(/^@/,''),'VERSION')
         done()
       },function(){})
     }
   )
 
-  ircApi.hookEvent(muxHandle,'ctcp_response',
+  that.ircApi.hookEvent(ircHandle,'ctcp_response',
     function(o){
       that.logger.info('<' + o.nickname.replace(/^@/,'') + ': CTCP_RESPONSE ' + o.type + ': ' + o.message)
     }
@@ -252,14 +252,14 @@ ircMesh.prototype.connect = function(){
             nickname: data.nickname,
             info: result,
             requestFn: function(msg){
-              client.irc.ctcpRequest(data.nickname,'PINGMS',msg)
+              that.client.irc.ctcpRequest(data.nickname,'PINGMS',msg)
             },
             responseFn: function(msg){
               that.logger.info(msg)
             },
             replyFn: function(cmd,msg){
               msg.command = cmd
-              client.irc.ctcp(data.nickname,'PINGMS',msg)
+              that.client.irc.ctcp(data.nickname,'PINGMS',msg)
             }
           }
           replyFn({error: false,data: result})
@@ -283,7 +283,7 @@ ircMesh.prototype.connect = function(){
           botInterface[data.bot].on('pingResult:' + data.handle,function(result){
             //salt bot id back in for mapping on the frontend
             result.id = data.bot
-            client.emit('pingResult:' + data.handle,result)
+            that.client.emit('pingResult:' + data.handle,result)
             //remove result listeners when the last event arrives
             if(result.stopped){
               botInterface[data.bot].removeAllListeners('pingError:' + data.handle)
@@ -316,49 +316,49 @@ ircMesh.prototype.connect = function(){
       var _recvFile = null
       var _logger = Logger.create(that.logger.tagExtend(['DCC',type,o.nickname.replace(/^@/,'')].join(':')))
       _logger.info('Connecting to ' + [address,port].join(':'))
-      var client = net.connect(
+      var dccSocket = net.connect(
         port,
         address,
         function(){
           _logger.info('Connected')
-          client.on('error',function(err){
+          dccSocket.on('error',function(err){
             _logger.info('ERROR:',err)
           })
-          client.on('end',function(){
+          dccSocket.on('end',function(){
             _logger.info('Connection closed')
           })
           switch(type){
           case 'CHAT':
-            client.on('data',function(data){
+            dccSocket.on('data',function(data){
               _logger.info(data.toString().replace(/[\r\n]$/g,''))
             })
-            client.write('DCC CHAT GO\n')
+            dccSocket.write('DCC CHAT GO\n')
             break
           case 'SEND':
             var fname = [fs.realpathSync('./'),argument].join(path.sep)
             if(fs.existsSync(fname)){
               _logger.info('File Exists (' + fname + ')')
-              client.end()
+              dccSocket.end()
             } else {
               _recvFile = fs.createWriteStream(fname)
               _recvFile.on('open',function(){
                 _logger.info('Saving to file ' + fname)
-                client.on('end',function(){
+                dccSocket.on('end',function(){
                   _recvFile.end(function(){
                     _logger.info('Saved ' + _recvFile.bytesWritten + ' bytes to ' + fname +
                         ((size === _recvFile.bytesWritten) ? ' [size good!]' : ' [size BAD should be ' + size + ']')
                     )
                   })
                 })
-                client.on('data',function(data){
-                  client.pause()
+                dccSocket.on('data',function(data){
+                  dccSocket.pause()
                   if(_recvFile){
                     _recvFile.write(data,function(){
                       var bytesWritten = _recvFile.bytesWritten
                       var buf = new Buffer([0,0,0,0])
                       buf.writeUInt32BE(bytesWritten,0)
-                      client.write(buf,function(){
-                        client.resume()
+                      dccSocket.write(buf,function(){
+                        dccSocket.resume()
                       })
                     })
                   }
@@ -392,13 +392,13 @@ ircMesh.prototype.connect = function(){
     }
   }
 
-  ircApi.hookEvent(muxHandle,'ctcp_request',
+  that.ircApi.hookEvent(ircHandle,'ctcp_request',
     function(o){
       that.logger.info('<' + o.nickname.replace(/^@/,'') + ': CTCP ' + o.type)
       if('function' === typeof ctcpHandlers[o.type.toUpperCase()]){
         ctcpHandlers[o.type.toUpperCase()](
           o,
-          function(msg){client.irc.ctcp(o.nickname,o.type,msg)}
+          function(msg){that.client.irc.ctcp(o.nickname,o.type,msg)}
         )
       } else {
         that.logger.warning('No handler for CTCP request:',o)
