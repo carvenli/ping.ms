@@ -33,7 +33,7 @@ config.load({
       failDelay: 10000 // 10 seconds
     },
     connections:[
-//      {uri: 'http://127.0.0.1:3000', secret: 'any_string_here'}
+//      {uri: 'irc://pingMsBot@localhost:6667',retryCount: 65534}
     ]
   },
   main: {
@@ -46,9 +46,10 @@ config.load({
     },
     mux: {
       enabled: false,
-      nick: 'pingMs',
-      user: 'pingMs',
-      realname: 'pingMs',
+      server: 'localhost',
+      port: 6667,
+      secure: false,
+      nick: 'pingMsMux',
       retryCount: 65534
     }
   }

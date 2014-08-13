@@ -33,8 +33,8 @@ var ircMesh = function(opts){
   //load defaults
   om.load({
     nick: 'noName',
-    user: 'noName',
-    realname: 'noName',
+    user: '',
+    realname: '',
     server: 'localhost',
     port: 6667,
     secure: false,
@@ -49,14 +49,12 @@ var ircMesh = function(opts){
   om.load(config.get('main.ircMesh'))
   //load passed options
   om.load(opts)
-  var ext = om.data.type.charAt(0).toUpperCase() + om.data.type.slice(1).toLowerCase()
-  om.load({
-    nick: om.data.nick + ext,
-    user: om.data.user + ext,
-    realname: om.data.realname + ext
-  })
   that.options = om.data
-
+  //patch defaults for user and realname
+  if(!that.options.user)
+    that.options.user = that.options.nick
+  if(!that.options.realname)
+    that.options.realname = that.options.user
   //constructor stubs that differ based on 'type'
   var _inits = {
     mux: function(){
