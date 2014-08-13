@@ -205,8 +205,9 @@ ircMesh.prototype.ctcpRequest = function(target,type,forcePushBack){
 
 /**
  * Connect to mux
+ * @param {function} connectedCb Callback once connected (aka registered)
  */
-ircMesh.prototype.connect = function(){
+ircMesh.prototype.connect = function(connectedCb){
   var that = this
   var ircHandle = that.options.type
   that.emit('connecting',that.options.server + ':' + that.options.port)
@@ -216,6 +217,8 @@ ircMesh.prototype.connect = function(){
   that.ircApi.hookEvent(ircHandle,'registered',
     function(o){
       o.handle = ircHandle
+      if('function' === typeof connectedCb)
+        that.once('registered',connectedCb)
       that.emit('registered',o)
     }
   )

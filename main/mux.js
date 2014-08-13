@@ -80,10 +80,6 @@ var groupAction = function(group,action,next){
 
 ircMesh.on('debug',function(msg){logger.info(msg)})
 ircMesh.on('connecting',function(where){ logger.info('Connecting to ' + where) })
-ircMesh.on('registered',function(){
-  logger.info('Connected')
-  ircMesh.join('#pingms',function(o){ logger.info('Joined ' + o.channel) })
-})
 ircMesh.on('notice',function(o){
   logger.info('<' + o.source + ' NOTICE> ' + o.message)
 })
@@ -109,7 +105,6 @@ var pingmsHandlers = {
     /**
      * Authorize bot and register if successful
      */
-
     async.series([
         //lookup bot
         function(next){
@@ -206,4 +201,7 @@ ircMesh.registerCtcpHandler('PINGMS',function(o,replyFn){
   }
 })
 
-ircMesh.connect()
+ircMesh.connect(function(){
+  logger.info('Connected')
+  ircMesh.join('#pingms',function(o){ logger.info('Joined ' + o.channel) })
+})
