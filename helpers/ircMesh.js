@@ -10,6 +10,7 @@ var path = require('path')
 var util = require('util')
 var config = require('../config')
 var Logger = require('../helpers/logger')
+var ircApi = new ircFactory.Api()
 
 
 
@@ -53,7 +54,7 @@ var ircMesh = function(opts){
     that.options.user = that.options.nick
   if(!that.options.realname)
     that.options.realname = that.options.user
-  that.ircApi = new ircFactory.Api()
+  that.ircApi = ircApi
 }
 util.inherits(ircMesh,EventEmitter)
 
@@ -216,6 +217,8 @@ ircMesh.prototype.connect = function(connectedCb){
   })
 
   that.emit('connecting',that.options.server + ':' + that.options.port)
+  //set the retryWait to 10000 here to stop weird shit
+  that.options.retryWait = 10000
   that.ircClient = that.ircApi.createClient(ircHandle,that.options)
 
   //map REGISTERED event
