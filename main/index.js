@@ -70,13 +70,10 @@ app.get('/',routes.index)
 //bot list
 app.get('/bots',routes.bot)
 
-
 //communicator server-side ("mux")
 if(config.get('main.mux.enabled')){
-  config.set('main.mux.type','mux')
-  config.set('main.mux.tag','main')
   logger.info('Starting Mux...')
-  require('../helpers/ircMesh').create(config.get('main.mux'))
+  require('./mux')
 }
 
 //setup and listen

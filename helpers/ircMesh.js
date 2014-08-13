@@ -8,75 +8,10 @@ var moment = require('moment')
 var net = require('net')
 var ObjectManage = require('object-manage')
 var path = require('path')
-var shortId = require('shortid')
 var util = require('util')
 var config = require('../config')
 var Logger = require('../helpers/logger')
 var Bot = require('../models/bot').model
-
-var generateHandle = function(){return shortId.generate().replace(/[-_]/g,'').toUpperCase()}
-
-
-/**
- * Clear any existing ping events registered
- * @param {object} data
- * @param {function} next
- */
-var pingSanitize = function(data,next){
-  var re = /^(.*):([^:]*)$/
-  var currentSourceId = data.handle.replace(re,'$1')
-  async.each(
-    Object.keys(botInterface[data.bot]._events),
-    function(ev,next){
-      var test = /^ping(Error|Result):(.*)$/
-      if(!test.test(ev)) return next()
-      ev = ev.replace(test,'$2')
-      var sourceId = ev.replace(re,'$1')
-      if(sourceId !== currentSourceId) return next()
-      var handle = ev.replace(re,'$1:$2')
-      logger.info('KILLING ' + handle)
-      //botInterface[data.bot].emit('pingStop',{handle: m[1]}
-      botInterface[data.bot].removeAllListeners('pingError:' + handle)
-      botInterface[data.bot].removeAllListeners('pingResult:' + handle)
-      //stop the ping session
-      botInterface[data.bot].emit('pingStop',{handle: handle})
-      next()
-    },
-    next
-  )
-}
-
-
-/**
- * Iterate a group of bots with a user defined handler function
- * @param {string} group
- * @param {function} action
- * @param {function} next
- */
-var groupAction = function(group,action,next){
-  var query = {active: true}
-  //filter by group if we can
-  if('all' !== group.toLowerCase())
-    query.groups = new RegExp(',' + group + ',','i')
-  //get bots and submit queries
-  var q = Bot.find(query)
-  q.sort('location')
-  q.exec(function(err,results){
-    if(err) return next(err.message)
-    async.each(
-      results,
-      function(bot,next){
-        if(botInterface[bot.id]){
-          var handle = generateHandle()
-          logger.info('Found connected bot for "' + bot.location + '", assigned handle "' + handle + '"')
-          var bs = botInterface[bot.id]
-          action(bot,handle,bs,next)
-        } else next()
-      },
-      next
-    )
-  })
-}
 
 
 
@@ -138,11 +73,44 @@ var ircMesh = function(opts){
 }
 util.inherits(ircMesh,EventEmitter)
 
+
+/**
+ * Join a channel
+ * @param {string} channel Channel to join (include the '#')
+ */
+ircMesh.prototype.join = function(channel){ this.ircClient.irc.join(channel) }
+
+
+/**
+ * Send a CTCP Request (this is missing from ircFactory?)
+ * @param {string} target Target (nick or channel)
+ * @param {string} type Type
+ * @param {boolean} forcePushBack See ircFactory docs
+ */
+ircMesh.prototype.ctcpRequest = function(target,type,forcePushBack){
+  var that = this
+  that.emit('log','>' + target + ': CTCP ' + type)
+  forcePushBack = forcePushBack || false
+  var msg = '\x01' + type.toUpperCase() + '\x01'
+  that.ircClient.irc.raw(['PRIVMSG',target,msg])
+  if(forcePushBack){
+    that.ircClient._parseLine(
+        ':' + that.ircClient._nick + '!' + that.ircClient._user + '@' + that.ircClient._hostname +
+        ' PRIVMSG ' + target +
+        ' :' + msg
+    )
+  }
+}
+
+
+/**
+ * Connect to mux
+ */
 ircMesh.prototype.connect = function(){
   var that = this
   var ircHandle = that.options.type
   that.logger.info('Connecting to ' + [that.options.server,that.options.port].join(':'))
-  that.client = that.ircApi.createClient(ircHandle,that.options)
+  that.ircClient = that.ircApi.createClient(ircHandle,that.options)
   /*
    process.on('SIGTERM',function(){
    logger.info('Mux exiting...')
@@ -150,41 +118,26 @@ ircMesh.prototype.connect = function(){
    })
    */
 
-  that.client.irc.ctcpRequest = function(target,type,forcePushBack){
-    that.logger.info('>' + target + ': CTCP VERSION')
-    forcePushBack = forcePushBack || false
-    var msg = '\x01' + type.toUpperCase() + '\x01'
-    that.client.irc.raw(['PRIVMSG',target,msg])
-    if(forcePushBack){
-      that.client._parseLine(
-          ':' +that.client._nick + '!' +that.client._user + '@' +that.client._hostname +
-          ' PRIVMSG ' + target +
-          ' :' + msg
-      )
-    }
-  }
-
   that.ircApi.hookEvent(ircHandle,'privmsg',
     function(o){
-      var myNick =that.client.irc._nick
+      var myNick = that.ircClient.irc._nick
       if(myNick === o.target){
         if(myNick !== o.nickname)
-          that.client.irc.privmsg(o.nickname,o.message.toUpperCase())
+          that.ircClient.irc.privmsg(o.nickname,o.message.toUpperCase())
       } else {
-        that.client.irc.privmsg(o.target,o.message.toUpperCase())
+        that.ircClient.irc.privmsg(o.target,o.message.toUpperCase())
       }
     }
   )
   that.ircApi.hookEvent(ircHandle,'registered',
-    function(){
-      that.logger.info('Connected')
-      that.client.irc.join('#pingms')
+    function(o){
+      that.emit('registered',o)
     }
   )
   that.ircApi.hookEvent(ircHandle,'notice',
     function(o){
       var logServerNotice = function(o){
-        that.logger.info('[NOTICE:' + that.client.irc.connection.server + '] ' + o.message)
+        that.logger.info('[NOTICE:' + that.ircClient.irc.connection.server + '] ' + o.message)
       }
       if('AUTH' === o.target)
         logServerNotice(o)
@@ -198,14 +151,15 @@ ircMesh.prototype.connect = function(){
 
   that.ircApi.hookEvent(ircHandle,'join',
     function(o){
-      that.logger.info('Joined ' + o.channel)
+      o.handle = ircHandle
+      that.emit('join',o)
     }
   )
 
   that.ircApi.hookEvent(ircHandle,'names',
     function(o){
       async.each(o.names,function(n,done){
-        that.client.irc.ctcpRequest(n.replace(/^@/,''),'VERSION')
+        that.ctcpRequest(n.replace(/^@/,''),'VERSION')
         done()
       },function(){})
     }
@@ -252,14 +206,14 @@ ircMesh.prototype.connect = function(){
             nickname: data.nickname,
             info: result,
             requestFn: function(msg){
-              that.client.irc.ctcpRequest(data.nickname,'PINGMS',msg)
+              that.ctcpRequest(data.nickname,'PINGMS',msg)
             },
             responseFn: function(msg){
               that.logger.info(msg)
             },
             replyFn: function(cmd,msg){
               msg.command = cmd
-              that.client.irc.ctcp(data.nickname,'PINGMS',msg)
+              that.ircClient.irc.ctcp(data.nickname,'PINGMS',msg)
             }
           }
           replyFn({error: false,data: result})
@@ -283,7 +237,7 @@ ircMesh.prototype.connect = function(){
           botInterface[data.bot].on('pingResult:' + data.handle,function(result){
             //salt bot id back in for mapping on the frontend
             result.id = data.bot
-            that.client.emit('pingResult:' + data.handle,result)
+            that.ircClient.emit('pingResult:' + data.handle,result)
             //remove result listeners when the last event arrives
             if(result.stopped){
               botInterface[data.bot].removeAllListeners('pingError:' + data.handle)
@@ -398,7 +352,7 @@ ircMesh.prototype.connect = function(){
       if('function' === typeof ctcpHandlers[o.type.toUpperCase()]){
         ctcpHandlers[o.type.toUpperCase()](
           o,
-          function(msg){that.client.irc.ctcp(o.nickname,o.type,msg)}
+          function(msg){that.ircClient.irc.ctcp(o.nickname,o.type,msg)}
         )
       } else {
         that.logger.warning('No handler for CTCP request:',o)
@@ -415,7 +369,6 @@ ircMesh.prototype.connect = function(){
  */
 ircMesh.create = function(opts){
   var m = new ircMesh(opts)
-  m.connect()
   return m
 }
 
