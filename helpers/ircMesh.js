@@ -72,90 +72,8 @@ var ircMesh = function(opts){
   }
   if('function' === typeof _inits[that.options.type]) _inits[that.options.type]()
   that.ircApi = new ircFactory.Api()
-  //CTCP handlers
-  that.ctcpHandlers = {
-    PING: function(o,replyFn){replyFn(o.message)},
-    VERSION: function(o,replyFn){replyFn('ping.ms MUX:' + config.get('version') + ':nodejs')},
-    TIME: function(o,replyFn){replyFn(':' + moment().format('ddd MMM DD HH:mm:ss YYYY ZZ'))},
-    DCC: function(o,replyFn){
-      var args = o.message.split(' ')
-      var type = args[0]
-      var argument = args[1]
-      var address = ip.fromLong(args[2])
-      var port = +args[3]
-      var size = +args[4]
-      var _recvFile = null
-      var _logger = Logger.create(that.logger.tagExtend(['DCC',type,o.nickname.replace(/^@/,'')].join(':')))
-      _logger.info('Connecting to ' + [address,port].join(':'))
-      var dccSocket = net.connect(
-        port,
-        address,
-        function(){
-          _logger.info('Connected')
-          dccSocket.on('error',function(err){
-            _logger.info('ERROR:',err)
-          })
-          dccSocket.on('end',function(){
-            _logger.info('Connection closed')
-          })
-          switch(type){
-          case 'CHAT':
-            dccSocket.on('data',function(data){
-              _logger.info(data.toString().replace(/[\r\n]$/g,''))
-            })
-            dccSocket.write('DCC CHAT GO\n')
-            break
-          case 'SEND':
-            var fname = [fs.realpathSync('./'),argument].join(path.sep)
-            if(fs.existsSync(fname)){
-              _logger.info('File Exists (' + fname + ')')
-              dccSocket.end()
-            } else {
-              _recvFile = fs.createWriteStream(fname)
-              _recvFile.on('open',function(){
-                _logger.info('Saving to file ' + fname)
-                dccSocket.on('end',function(){
-                  _recvFile.end(function(){
-                    _logger.info('Saved ' + _recvFile.bytesWritten + ' bytes to ' + fname +
-                        ((size === _recvFile.bytesWritten) ? ' [size good!]' : ' [size BAD should be ' + size + ']')
-                    )
-                  })
-                })
-                dccSocket.on('data',function(data){
-                  dccSocket.pause()
-                  if(_recvFile){
-                    _recvFile.write(data,function(){
-                      var bytesWritten = _recvFile.bytesWritten
-                      var buf = new Buffer([0,0,0,0])
-                      buf.writeUInt32BE(bytesWritten,0)
-                      dccSocket.write(buf,function(){
-                        dccSocket.resume()
-                      })
-                    })
-                  }
-                })
-              })
-            }
-            break
-          default:
-            break
-          }
-        }
-      )
-    }
-  }
 }
 util.inherits(ircMesh,EventEmitter)
-
-
-/**
- * Map a handler function to a CTCP type
- * @param {string} type Type
- * @param {function} handler Handler
- */
-ircMesh.prototype.registerCtcpHandler= function(type,handler){
-  this.ctcpHandlers[type.toUpperCase()] = handler
-}
 
 
 /**
@@ -185,12 +103,17 @@ ircMesh.prototype.privmsg = function(target,message,forcePushBack){
  * Send a CTCP Request (this is missing from ircFactory?)
  * @param {string} target Target (nick or channel)
  * @param {string} type Type
+ * @param {string} message Message
  * @param {boolean} forcePushBack See ircFactory docs
  */
-ircMesh.prototype.ctcpRequest = function(target,type,forcePushBack){
+ircMesh.prototype.ctcpRequest = function(target,type,message,forcePushBack){
   var that = this
-  that.emit('debug','>' + target + ': CTCP ' + type)
+  if('boolean' === typeof message){
+    forcePushBack = message
+    message = null
+  }
   forcePushBack = forcePushBack || false
+  that.emit('debug','>' + target + ' CTCP_REQUEST:' + type + '<' + ((message) ? ' ' + message : ''))
   var msg = '\x01' + type.toUpperCase() + '\x01'
   that.ircClient.irc.raw(['PRIVMSG',target,msg])
   if(forcePushBack){
@@ -204,12 +127,112 @@ ircMesh.prototype.ctcpRequest = function(target,type,forcePushBack){
 
 
 /**
+ * Send a CTCP Response
+ * @param {string} target Target (nick or channel)
+ * @param {string} type Type
+ * @param {string} message Message
+ * @param {boolean} forcePushBack See ircFactory docs
+ */
+ircMesh.prototype.ctcpResponse = function(target,type,message,forcePushBack){
+  var that = this
+  if('boolean' === typeof message){
+    forcePushBack = message
+    message = null
+  }
+  forcePushBack = forcePushBack || false
+  //convert objects to one-line JSON
+  if('object' === typeof message)
+    message = JSON.stringify(message).replace(/\r\n/,'')
+  that.emit('debug','>' + target + ' CTCP_RESPONSE:' + type + '<' + ((message) ? ' ' + message : ''))
+  that.ircClient.irc.ctcp(target,type,message,forcePushBack)
+}
+
+
+/**
  * Connect to mux
  * @param {function} connectedCb Callback once connected (aka registered)
  */
 ircMesh.prototype.connect = function(connectedCb){
   var that = this
   var ircHandle = that.options.type
+
+  //CTCP handlers
+  that.on('ctcp_request:ping',function(o){
+    that.ctcpResponse(o.nickname,o.type,o.message)
+  })
+  that.on('ctcp_request:version',function(o){
+    that.ctcpResponse(o.nickname,o.type,'ping.ms MUX:' + config.get('version') + ':nodejs')
+  })
+  that.on('ctcp_request:time',function(o){
+    that.ctcpResponse(o.nickname,o.type,moment().format('ddd MMM DD HH:mm:ss YYYY ZZ'))
+  })
+  that.on('ctcp_request:dcc',function(o){
+    var args = o.message.split(' ')
+    var type = args[0]
+    var argument = args[1]
+    var address = ip.fromLong(args[2])
+    var port = +args[3]
+    var size = +args[4]
+    var _recvFile = null
+    var _logger = Logger.create(that.logger.tagExtend(['DCC',type,o.nickname.replace(/^@/,'')].join(':')))
+    _logger.info('Connecting to ' + [address,port].join(':'))
+    var dccSocket = net.connect(
+      port,
+      address,
+      function(){
+        _logger.info('Connected')
+        dccSocket.on('error',function(err){
+          _logger.info('ERROR:',err)
+        })
+        dccSocket.on('end',function(){
+          _logger.info('Connection closed')
+        })
+        switch(type){
+        case 'CHAT':
+          dccSocket.on('data',function(data){
+            _logger.info(data.toString().replace(/[\r\n]$/g,''))
+          })
+          dccSocket.write('DCC CHAT GO\n')
+          break
+        case 'SEND':
+          var fname = [fs.realpathSync('./'),argument].join(path.sep)
+          if(fs.existsSync(fname)){
+            _logger.info('File Exists (' + fname + ')')
+            dccSocket.end()
+          } else {
+            _recvFile = fs.createWriteStream(fname)
+            _recvFile.on('open',function(){
+              _logger.info('Saving to file ' + fname)
+              dccSocket.on('end',function(){
+                _recvFile.end(function(){
+                  _logger.info('Saved ' + _recvFile.bytesWritten + ' bytes to ' + fname +
+                      ((size === _recvFile.bytesWritten) ? ' [size good!]' : ' [size BAD should be ' + size + ']')
+                  )
+                })
+              })
+              dccSocket.on('data',function(data){
+                dccSocket.pause()
+                if(_recvFile){
+                  _recvFile.write(data,function(){
+                    var bytesWritten = _recvFile.bytesWritten
+                    var buf = new Buffer([0,0,0,0])
+                    buf.writeUInt32BE(bytesWritten,0)
+                    dccSocket.write(buf,function(){
+                      dccSocket.resume()
+                    })
+                  })
+                }
+              })
+            })
+          }
+          break
+        default:
+          break
+        }
+      }
+    )
+  })
+
   that.emit('connecting',that.options.server + ':' + that.options.port)
   that.ircClient = that.ircApi.createClient(ircHandle,that.options)
 
@@ -218,7 +241,7 @@ ircMesh.prototype.connect = function(connectedCb){
     function(o){
       o.handle = ircHandle
       if('function' === typeof connectedCb)
-        that.once('registered',connectedCb)
+        that.on('registered',connectedCb)
       that.emit('registered',o)
     }
   )
@@ -276,15 +299,7 @@ ircMesh.prototype.connect = function(connectedCb){
       o.handle = ircHandle
       o.source = o.nickname.replace(/^@/,'')
       that.emit('ctcp_request',o)
-      var func = that.ctcpHandlers[o.type.toUpperCase()]
-      if('function' === typeof func){
-        func(
-          o,
-          function(msg){that.ircClient.irc.ctcp(o.nickname,o.type,msg)}
-        )
-      } else {
-        that.emit('debug',['No handler for CTCP request:',o])
-      }
+      that.emit('ctcp_request:' + o.type.toLowerCase(),o)
     }
   )
 
@@ -292,7 +307,9 @@ ircMesh.prototype.connect = function(connectedCb){
   that.ircApi.hookEvent(ircHandle,'ctcp_response',
     function(o){
       o.handle = ircHandle
+      o.source = o.nickname.replace(/^@/,'')
       that.emit('ctcp_response',o)
+      that.emit('ctcp_response:' + o.type.toLowerCase(),o)
     }
   )
 }
