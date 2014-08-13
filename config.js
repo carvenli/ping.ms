@@ -1,7 +1,7 @@
 'use strict';
 var ObjectManage = require('object-manage')
-  , fs = require('fs')
-  , config
+var fs = require('fs')
+var config
 require('pkginfo')(module,'version')
 
 //setup config object
@@ -46,6 +46,9 @@ config.load({
     },
     mux: {
       enabled: false,
+      nick: 'pingMs',
+      user: 'pingMs',
+      realname: 'pingMs',
       retryCount: 65534
     }
   }
