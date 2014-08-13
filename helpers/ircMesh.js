@@ -1,5 +1,4 @@
 'use strict';
-var async = require('async')
 var EventEmitter = require('events').EventEmitter
 var fs = require('fs')
 var ip = require('ip')
@@ -11,7 +10,6 @@ var path = require('path')
 var util = require('util')
 var config = require('../config')
 var Logger = require('../helpers/logger')
-var Bot = require('../models/bot').model
 
 
 
@@ -55,20 +53,6 @@ var ircMesh = function(opts){
     that.options.user = that.options.nick
   if(!that.options.realname)
     that.options.realname = that.options.user
-  //constructor stubs that differ based on 'type'
-  var _inits = {
-    mux: function(){
-      that.bots = {}
-    },
-    bot: function(){
-      that.auth = {
-        state: 'unknown',
-        timer: null
-      }
-      that.muxes = {}
-    }
-  }
-  if('function' === typeof _inits[that.options.type]) _inits[that.options.type]()
   that.ircApi = new ircFactory.Api()
 }
 util.inherits(ircMesh,EventEmitter)
@@ -147,7 +131,7 @@ ircMesh.prototype.ctcpResponse = function(target,type,message,forcePushBack){
 
 
 /**
- * Connect to mux
+ * Connect to server
  * @param {function} connectedCb Callback once connected (aka registered)
  */
 ircMesh.prototype.connect = function(connectedCb){

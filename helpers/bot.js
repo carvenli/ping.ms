@@ -1,8 +1,6 @@
 'use strict';
-//var io = require('socket.io-client')
 var util = require('util')
 //var async = require('async')
-//var ircFactory = require('irc-factory')
 var Logger = require('../helpers/logger')
 var BotSession = require('../helpers/botSession')
 var EventEmitter = require('events').EventEmitter
@@ -11,10 +9,10 @@ var EventEmitter = require('events').EventEmitter
 
 /**
  * Bot Object
- *  each Bot is a socket.io client which connects to a mux (main service)
+ *  each Bot is a ircMesh client which connects to a server
+ *  in order to communicate with mux(es) also connected there
  *  this object simply augments this socket with event handling and any
  *  probe services we provide to the frontend.
- *  Events are passed bidirectionally (this is an EventEmitter just like socket.io).
  * @param {object} opts Options object
  * @constructor
  */
@@ -93,10 +91,7 @@ Bot.prototype.resolve = function(handle,host,done){
  */
 Bot.prototype.authorize = function(secret){
   var that = this
-  that.mux.emit(
-    'authorize',
-    {secret: secret,version:that.options.version},
-    function(data){
+  that.ircMesh.once('ctcp_response:pingms:authorize',function(data){
       var authRetry = function(){that.authorize(secret)}
       if(data.error){
         that.logger.error('auth failed!')
@@ -113,75 +108,84 @@ Bot.prototype.authorize = function(secret){
       }
     }
   )
+  that.ircMesh.ctcpRequest('pingMsMux1','PINGMS',{command:'authorize',secret:secret,version:that.options.version})
 }
 
 
 /**
  * Connect to mux
+ * @param {function} done Callback for authorized connect
  */
-Bot.prototype.connect = function(){
+Bot.prototype.connect = function(done){
   var that = this
+  if('function' === done)
+    that.on('authSuccess',done)
+  //parse uri into ircFactory compatible options
   var uri = that.options.uri.toString()
   that.logger.info('connecting to ' + uri)
-  var parseEx = /^mux:\/\/([^:]*):([0-9]*)/i;
+  var parseEx = /^([^:]*):\/\/([^@]*)@([^:]*):([0-9]*)/i;
   if(uri.match(parseEx)){
-    that.options.host = uri.replace(parseEx,'$1')
-    that.options.port = uri.replace(parseEx,'$2')
+    that.options.secure = ('ircs' === uri.replace(parseEx,'$1'))
+    that.options.nick = uri.replace(parseEx,'$2')
+    that.options.server = uri.replace(parseEx,'$3')
+    that.options.port = uri.replace(parseEx,'$4')
   }
-  if(!(that.options.host && that.options.port))
+  if(!(that.options.server && that.options.port && that.options.nick))
     return
-/*
-  var api = new ircFactory.Api()
-  var client = api.createClient('test',
-    {
-      nick : 'simpleircbot',
-      user : 'testuser',
-      server : that.options.host,
-      realname: 'realbot',
-      port: that.options.port,
-      secure: false
-    }
-  )
-*/
-/*
-  that.mux = io.connect(that.options.uri,{
-    reconnection: true,
-    reconnectionDelay: 300,
-    reconnectionDelayMax: 1000,
-    timeout: 10000,
-    autoConnect: true
+  console.log(that.options)
+
+  //setup ircMesh
+  var botOpts = that.options
+  botOpts.type = 'bot'
+  botOpts.logger = that.logger
+  that.ircMesh = require('../helpers/ircMesh').create(botOpts)
+
+  //wire events
+  that.ircMesh.on('debug',function(msg){that.logger.info(msg)})
+  that.ircMesh.on('connecting',function(where){ that.logger.info('Connecting to ' + where) })
+  //wire normal message types
+  that.ircMesh.on('notice',function(o){
+    that.logger.info('<' + o.source + ' NOTICE> ' + o.message)
   })
-  that.mux.on('connect',function(){
-    that.logger.info('connected')
-    that.authorize(that.options.secret)
+  that.ircMesh.on('privmsg',function(o){
+    that.ircMesh.privmsg(o.source,o.message.toUpperCase())
   })
-  that.mux.once('connect',function(){
-    //listen for events from mux
-    that.mux.on('resolve',function(data,cb){
-      that.emit('resolve',data,cb)
-    })
-    that.mux.on('pingStart',function(data,cb){
-      that.emit('pingStart',data,cb)
-    })
-    that.mux.on('pingStop',function(data){
-      that.emit('pingStop',data)
-    })
+  that.ircMesh.on('ctcp_request',function(o){
+    that.logger.info('<' + o.source + ' CTCP_REQUEST:' + o.type + '>' + ((o.message) ? ' ' + o.message : ''))
   })
-  */
+  that.ircMesh.on('ctcp_response',function(o){
+    that.logger.info('<' + o.source + ' CTCP_RESPONSE:' + o.type + '>' + ((o.message) ? ' ' + o.message : ''))
+  })
+  //wire pingms CTCP actions
+  that.ircMesh.on('ctcp_request:pingms:resolve',function(data,cb){
+    that.emit('resolve',data,cb)
+  })
+  that.ircMesh.on('ctcp_request:pingms:pingstart',function(data,cb){
+    that.emit('pingStart',data,cb)
+  })
+  that.ircMesh.on('ctcp_request:pingms:pingstop',function(data){
+    that.emit('pingStop',data)
+  })
+
+
+  that.ircMesh.connect(function(){
+    that.logger.info('Connected')
+    that.ircMesh.join('#pingms',function(o){ that.logger.info('Joined ' + o.channel) })
+    //that.authorize(that.options.secret)
+  })
 }
 
 
 /**
- * Create instance and connect
+ * Create instance and optionally connect
  * @param {object} opts Options
  * @param {function} done Callback for authorized connect
  * @return {Bot}
  */
 Bot.create = function(opts,done){
   var b = new Bot(opts)
-  if(!done) done = function(){}
-  b.on('authSuccess',done)
-  b.connect(opts.secret)
+  if('function' === typeof done)
+    b.connect(done)
   return b
 }
 

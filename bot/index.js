@@ -10,12 +10,10 @@ var sockets = []
 async.each(
   options.connections,
   function(conn,next){
-    var muxOpts = propCopy(conn)
-    muxOpts.mesh = propCopy(config.get('mesh'))
-    muxOpts.auth = propCopy(options.auth)
-    muxOpts.tag = logger.tagExtend(sockets.length)
-    muxOpts.version = config.get('version')
-    var mux = Bot.create(muxOpts)
+    var botOpts = propCopy(conn)
+    botOpts.tag = logger.tagExtend(sockets.length)
+    botOpts.version = config.get('version')
+    var mux = Bot.create(botOpts)
     sockets.push(mux)
     mux.once('authSuccess',function(){
       //handle resolve requests
@@ -41,5 +39,6 @@ async.each(
       })
       next()
     })
+    mux.connect()
   }
 )
