@@ -13,6 +13,7 @@ async.each(
     var botOpts = propCopy(conn)
     botOpts.tag = logger.tagExtend(sockets.length)
     botOpts.version = config.get('version')
+    botOpts.title = config.get('title')
     var mux = Bot.create(botOpts)
     sockets.push(mux)
     mux.once('authSuccess',function(){

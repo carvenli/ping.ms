@@ -137,6 +137,7 @@ Bot.prototype.connect = function(done){
   //setup ircMesh
   var botOpts = that.options
   botOpts.type = 'bot'
+  botOpts.appName = that.options.title + ' ' + botOpts.type.toUpperCase()
   botOpts.logger = that.logger
   that.ircMesh = require('../helpers/ircMesh').create(botOpts)
 
@@ -147,9 +148,11 @@ Bot.prototype.connect = function(done){
   that.ircMesh.on('notice',function(o){
     that.logger.info('<' + o.source + ' NOTICE> ' + o.message)
   })
+  /*
   that.ircMesh.on('privmsg',function(o){
     that.ircMesh.privmsg(o.source,o.message.toUpperCase())
   })
+  */
   that.ircMesh.on('ctcp_request',function(o){
     that.logger.info('<' + o.source + ' CTCP_REQUEST:' + o.type + '>' + ((o.message) ? ' ' + o.message : ''))
   })

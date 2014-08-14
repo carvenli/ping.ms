@@ -144,7 +144,7 @@ ircMesh.prototype.connect = function(connectedCb){
     that.ctcpResponse(o.nickname,o.type,o.message)
   })
   that.on('ctcp_request:version',function(o){
-    that.ctcpResponse(o.nickname,o.type,'ping.ms MUX:' + config.get('version') + ':nodejs')
+    that.ctcpResponse(o.nickname,o.type,[that.options.appName,config.get('version'),'nodejs'].join(':'))
   })
   that.on('ctcp_request:time',function(o){
     that.ctcpResponse(o.nickname,o.type,moment().format('ddd MMM DD HH:mm:ss YYYY ZZ'))

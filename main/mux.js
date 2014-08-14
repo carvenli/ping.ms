@@ -9,6 +9,7 @@ var Bot = require('../models/bot').model
 //setup ircMesh
 var muxOpts = config.get('main.mux')
 muxOpts.type = 'mux'
+muxOpts.appName = config.get('title') + ' ' + muxOpts.type.toUpperCase()
 muxOpts.logger = logger
 var ircMesh = require('../helpers/ircMesh').create(muxOpts)
 
@@ -91,9 +92,11 @@ ircMesh.on('names',function(o){
 ircMesh.on('notice',function(o){
   logger.info('<' + o.source + ' NOTICE> ' + o.message)
 })
+/*
 ircMesh.on('privmsg',function(o){
   ircMesh.privmsg(o.source,o.message.toUpperCase())
 })
+*/
 ircMesh.on('ctcp_request',function(o){
   logger.info('<' + o.source + ' CTCP_REQUEST:' + o.type + '>' + ((o.message) ? ' ' + o.message : ''))
 })
