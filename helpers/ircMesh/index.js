@@ -70,6 +70,19 @@ ircMesh.prototype.join = function(channel,joinedCb){
 
 
 /**
+ * Part a channel
+ * @param {string} channel Channel to leave (include the '#')
+ * @param {function} partedCb Callback once out
+ */
+ircMesh.prototype.part = function(channel,partedCb){
+  var that = this
+  if('function' === typeof partedCb)
+    that.once(['part',channel,that.conn.nickname].join(':'),partedCb)
+  that.ircClient.irc.part(channel)
+}
+
+
+/**
  * Send a PRIVMSG
  * @param {string} target Target (nick or channel)
  * @param {string} message Message
@@ -188,6 +201,17 @@ ircMesh.prototype.connect = function(connectedCb){
       that.emit(['join',o.channel,o.nickname].join(':'),o)
       that.emit(['join',o.channel].join(':'),o)
       that.emit('join',o)
+    }
+  )
+
+
+  //map PART events with channel and nickname tracking for callbacks
+  that.ircApi.hookEvent(ircHandle,'part',
+    function(o){
+      o.handle = ircHandle
+      that.emit(['part',o.channel,o.nickname].join(':'),o)
+      that.emit(['part',o.channel].join(':'),o)
+      that.emit('part',o)
     }
   )
 

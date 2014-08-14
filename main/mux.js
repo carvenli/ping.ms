@@ -96,6 +96,12 @@ ircMesh.on('join:' + muxOpts.channel,function(o){
     'joined'
   )
 })
+ircMesh.on('part:' + muxOpts.channel,function(o){
+  logger.info('<' + o.channel + '> ' +
+    ((ircMesh.conn.nickname === o.nickname) ? '' : o.nickname + ' ') +
+    'parted'
+  )
+})
 //wire normal message types
 ircMesh.on('notice',function(o){
   logger.info('<' + o.source + ' NOTICE> ' + o.message)
