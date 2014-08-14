@@ -33,7 +33,7 @@ config.load({
       failDelay: 10000 // 10 seconds
     },
     connections:[
-//      {uri: 'irc://pingMsBot@localhost:6667',retryCount: 65534}
+//      {uri: 'irc://pingMsBot@localhost:6667/#pingms',retryCount: 65534}
     ]
   },
   main: {
@@ -50,6 +50,7 @@ config.load({
       port: 6667,
       secure: false,
       nick: 'pingMsMux',
+      channel: '#pingms',
       retryCount: 65534
     }
   }

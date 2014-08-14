@@ -1,15 +1,11 @@
 'use strict';
 var EventEmitter = require('events').EventEmitter
-var fs = require('fs')
-var ip = require('ip')
 var ircFactory = require('irc-factory')
 var moment = require('moment')
-var net = require('net')
 var ObjectManage = require('object-manage')
-var path = require('path')
 var util = require('util')
+
 var config = require('../../config')
-var Logger = require('../logger')
 var ircApi = new ircFactory.Api()
 
 
@@ -42,7 +38,7 @@ var ircMesh = function(opts){
     saslUsername: '',
     password: '',
     retryCount: 10,
-    retryWait: 1000
+    retryWait: 10000 //docs say 1000 but are wrong
   })
   //load main.ircMesh config
   om.load(config.get('main.ircMesh'))
@@ -55,6 +51,7 @@ var ircMesh = function(opts){
   if(!that.options.realname)
     that.options.realname = that.options.user
   that.ircApi = ircApi
+  that.conn = {}
 }
 util.inherits(ircMesh,EventEmitter)
 
@@ -65,9 +62,10 @@ util.inherits(ircMesh,EventEmitter)
  * @param {function} joinedCb Callback once joined
  */
 ircMesh.prototype.join = function(channel,joinedCb){
+  var that = this
   if('function' === typeof joinedCb)
-    this.once('join' + channel,joinedCb)
-  this.ircClient.irc.join(channel)
+    that.once(['join',channel,that.conn.nickname].join(':'),joinedCb)
+  that.ircClient.irc.join(channel)
 }
 
 
@@ -153,14 +151,15 @@ ircMesh.prototype.connect = function(connectedCb){
   require('./ctcpDcc').register(that)
 
   that.emit('connecting',that.options.server + ':' + that.options.port)
-  //set the retryWait to 10000 here to stop weird shit
-  that.options.retryWait = 10000
+  //clamp the retryWait to 10000 minimum here to stop weird shit
+  that.options.retryWait = (10000 >= that.options.retryWait) ? that.options.retryWait : 10000
   that.ircClient = that.ircApi.createClient(ircHandle,that.options)
 
   //map REGISTERED event
   that.ircApi.hookEvent(ircHandle,'registered',
     function(o){
       o.handle = ircHandle
+      that.conn = o
       if('function' === typeof connectedCb)
         that.on('registered',connectedCb)
       that.emit('registered',o)
@@ -182,11 +181,12 @@ ircMesh.prototype.connect = function(connectedCb){
     }
   )
 
-  //map JOIN events with channel tracking for callback
+  //map JOIN events with channel and nickname tracking for callbacks
   that.ircApi.hookEvent(ircHandle,'join',
     function(o){
       o.handle = ircHandle
-      that.emit('join' + o.channel,o)
+      that.emit(['join',o.channel,o.nickname].join(':'),o)
+      that.emit(['join',o.channel].join(':'),o)
       that.emit('join',o)
     }
   )

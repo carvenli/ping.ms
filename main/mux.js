@@ -14,6 +14,7 @@ var muxOpts = config.get('main.mux')
 muxOpts.type = 'mux'
 muxOpts.appName = config.get('title') + ' ' + muxOpts.type.toUpperCase()
 muxOpts.logger = logger
+muxOpts.groupKey = generateHandle()
 var ircMesh = require('../helpers/ircMesh').create(muxOpts)
 
 
@@ -83,9 +84,17 @@ ircMesh.on('connecting',function(where){ logger.info('Connecting to ' + where) }
 //wire names event (automatically sent upon JOIN)
 ircMesh.on('names',function(o){
   async.each(o.names,function(n,done){
-    ircMesh.ctcpRequest(n.replace(/^@/,''),'VERSION')
+    n = n.replace(/^@/,'')
+    if(ircMesh.conn.nickname !== n)
+      ircMesh.ctcpRequest(n.replace(/^@/,''),'VERSION')
     done()
   },function(){})
+})
+ircMesh.on('join:' + muxOpts.channel,function(o){
+  logger.info('<' + o.channel + '> ' +
+    ((ircMesh.conn.nickname === o.nickname) ? '' : o.nickname + ' ') +
+    'joined'
+  )
 })
 //wire normal message types
 ircMesh.on('notice',function(o){
@@ -192,6 +201,5 @@ ircMesh.on('ctcp_request:pingms',function(o){
 })
 
 ircMesh.connect(function(){
-  logger.info('Connected')
-  ircMesh.join('#pingms',function(o){ logger.info('Joined ' + o.channel) })
+  if(muxOpts.channel) ircMesh.join(muxOpts.channel)
 })

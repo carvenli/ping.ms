@@ -123,12 +123,13 @@ Bot.prototype.connect = function(done){
   //parse uri into ircFactory compatible options
   var uri = that.options.uri.toString()
   that.logger.info('connecting to ' + uri)
-  var parseEx = /^([^:]*):\/\/([^@]*)@([^:]*):([0-9]*)/i;
+  var parseEx = /^([^:]*):\/\/([^@]*)@([^:]*):([0-9]*)\/(#.*)$/i;
   if(uri.match(parseEx)){
     that.options.secure = ('ircs' === uri.replace(parseEx,'$1'))
     that.options.nick = uri.replace(parseEx,'$2')
     that.options.server = uri.replace(parseEx,'$3')
     that.options.port = uri.replace(parseEx,'$4')
+    that.options.channel = uri.replace(parseEx,'$5')
   }
   if(!(that.options.server && that.options.port && that.options.nick))
     return
@@ -172,7 +173,7 @@ Bot.prototype.connect = function(done){
 
   that.ircMesh.connect(function(){
     that.logger.info('Connected')
-    that.ircMesh.join('#pingms',function(o){ that.logger.info('Joined ' + o.channel) })
+    that.ircMesh.join(that.options.channel,function(o){ that.logger.info('Joined ' + o.channel) })
     //that.authorize(that.options.secret)
   })
 }
