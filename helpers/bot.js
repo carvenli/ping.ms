@@ -132,14 +132,13 @@ Bot.prototype.connect = function(done){
   }
   if(!(that.options.server && that.options.port && that.options.nick))
     return
-  console.log(that.options)
 
   //setup ircMesh
   var botOpts = that.options
   botOpts.type = 'bot'
   botOpts.appName = that.options.title + ' ' + botOpts.type.toUpperCase()
   botOpts.logger = that.logger
-  that.ircMesh = require('../helpers/ircMesh').create(botOpts)
+  that.ircMesh = require('./ircMesh').create(botOpts)
 
   //wire events
   that.ircMesh.on('debug',function(msg){that.logger.info(msg)})

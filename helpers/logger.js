@@ -46,7 +46,7 @@ var stringify = function(args){
  */
 var Logger = function(tag){
   var that = this
-  that.tag = '[' + (tag || 'oose').toUpperCase() + ']'
+  that.tag = '[' + (tag || 'main').toUpperCase() + ']'
 }
 
 

@@ -6,16 +6,15 @@ var Logger = require('../helpers/logger')
 var logger = Logger.create('MAIN:MUX')
 var Bot = require('../models/bot').model
 
+var generateHandle = function(){return shortId.generate().replace(/[-_]/g,'').toUpperCase()}
+var botInterface = {}
+
 //setup ircMesh
 var muxOpts = config.get('main.mux')
 muxOpts.type = 'mux'
 muxOpts.appName = config.get('title') + ' ' + muxOpts.type.toUpperCase()
 muxOpts.logger = logger
 var ircMesh = require('../helpers/ircMesh').create(muxOpts)
-
-var generateHandle = function(){return shortId.generate().replace(/[-_]/g,'').toUpperCase()}
-
-var botInterface = {}
 
 
 /**
