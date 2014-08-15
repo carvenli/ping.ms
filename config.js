@@ -46,12 +46,10 @@ config.load({
     },
     mux: {
       enabled: false,
-      server: 'localhost',
-      port: 6667,
-      secure: false,
-      nick: 'pingMsMux',
-      channel: '#pingms',
-      retryCount: 65534
+      connections:[
+        //      {uri: 'irc://pingMsMux@localhost:6667/#pingms',retryCount: 65534}
+        //      {uri: 'ircs://pingMsMux@localhost:6697/#pingms',retryCount: 65534}
+      ]
     }
   }
 })

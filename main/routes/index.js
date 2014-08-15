@@ -1,6 +1,7 @@
 'use strict';
 var async = require('async')
-  , shortId = require('shortid')
+var shortId = require('shortid')
+
 var Group = require('../../models/group').model
 var Bot = require('../../models/bot').model
 

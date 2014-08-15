@@ -1,8 +1,8 @@
 'use strict';
 var util = require('util')
 //var async = require('async')
-var Logger = require('../helpers/logger')
-var BotSession = require('../helpers/botSession')
+var Logger = require('./logger')
+var BotSession = require('./botSession')
 var EventEmitter = require('events').EventEmitter
 
 
@@ -22,11 +22,6 @@ var Bot = function(opts){
   EventEmitter.apply(that)
   that.options = opts
   that.logger = Logger.create(that.options.tag)
-  that.auth = {
-    state: 'unknown',
-    timer: null
-  }
-  that.sessions = {}
 }
 util.inherits(Bot,EventEmitter)
 
@@ -86,34 +81,7 @@ Bot.prototype.resolve = function(handle,host,done){
 
 
 /**
- * Authorize with mux
- * @param {string} secret
- */
-Bot.prototype.authorize = function(secret){
-  var that = this
-  that.ircMesh.once('ctcp_response:pingms:authorize',function(data){
-      var authRetry = function(){that.authorize(secret)}
-      if(data.error){
-        that.logger.error('auth failed!')
-        that.auth.state = 'failRetry'
-        clearTimeout(that.auth.timer)
-        that.auth.timer = setTimeout(authRetry,that.options.auth.failDelay)
-        that.emit('authFail')
-      } else {
-        that.logger.info('authorized')
-        that.auth.state = 'authorized'
-        clearTimeout(that.auth.timer)
-        that.auth.timer = setTimeout(authRetry,that.options.auth.reDelay)
-        that.emit('authSuccess')
-      }
-    }
-  )
-  that.ircMesh.ctcpRequest('pingMsMux1','PINGMS',{command:'authorize',secret:secret,version:that.options.version})
-}
-
-
-/**
- * Connect to mux
+ * Connect to ircMesh
  * @param {function} done Callback for authorized connect
  */
 Bot.prototype.connect = function(done){
@@ -147,11 +115,22 @@ Bot.prototype.connect = function(done){
   that.ircMesh.on('notice',function(o){
     that.logger.info('<' + o.source + ' NOTICE> ' + o.message)
   })
-  /*
   that.ircMesh.on('privmsg',function(o){
-    that.ircMesh.privmsg(o.source,o.message.toUpperCase())
+    console.log(o)
+    if(-1 !== that.conn.chan[o.channel].meshed.indexOf(o.nickname)){
+      var m = o.message.split(' ')
+      switch(m[0].toLowerCase()){
+      case 'resolve':
+        var host = m[1] || 'none'
+        var handle = m[2] || 'none'
+        that.resolve(handle,host,function(err,result){
+          var msg = (err) ? {error:err,result:result} : result
+          that.ircMesh.privmsg(o.source,msg)
+        })
+        break
+      }
+    }
   })
-  */
   that.ircMesh.on('ctcp_request',function(o){
     that.logger.info('<' + o.source + ' CTCP_REQUEST:' + o.type + '>' + ((o.message) ? ' ' + o.message : ''))
   })
@@ -171,7 +150,6 @@ Bot.prototype.connect = function(done){
 
   that.ircMesh.connect(function(){
     that.ircMesh.join(that.options.channel)
-    //that.authorize(that.options.secret)
   })
 }
 

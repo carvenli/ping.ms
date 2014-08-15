@@ -11,6 +11,36 @@ var ircApi = new ircFactory.Api()
 //un-boner normal crashing (ircFactory.Api constructor installs a stupid handler)
 process.removeAllListeners('uncaughtException')
 
+//JSON handlers
+
+
+/**
+ * messageEncode
+ * @param {string,object} message Message string or object
+ * @return {string} Message coerced to string
+ */
+var messageEncode = function(message){
+  if('object' === typeof message)
+    message = 'JSON' + JSON.stringify(message).replace(/\r\n/,'')
+  return message.toString()
+}
+
+
+/**
+ * messageDecode
+ * @param {string} message Message string
+ * @return {object} Data parsed from string, or empty object
+ */
+var messageDecode = function(message){
+  var data = {}
+  if(message){
+    if('JSON{' === message.substring(0,5)){
+      data = JSON.parse(message.substring(4))
+    }
+  }
+  return data
+}
+
 
 
 /**
@@ -128,6 +158,7 @@ ircMesh.prototype.names = function(channel,namesCb){
  * @param {boolean} forcePushBack See ircFactory docs
  */
 ircMesh.prototype.privmsg = function(target,message,forcePushBack){
+  message = messageEncode(message)
   this.ircClient.irc.privmsg(target,message,forcePushBack)
 }
 
@@ -146,9 +177,7 @@ ircMesh.prototype.ctcpRequest = function(target,type,message,forcePushBack){
     message = null
   }
   forcePushBack = forcePushBack || false
-  //convert objects to one-line JSON
-  if('object' === typeof message)
-    message = 'JSON' + JSON.stringify(message).replace(/\r\n/,'')
+  message = messageEncode(message)
   that.emit('debug','>' + target + ' CTCP_REQUEST:' + type + '<' + ((message) ? ' ' + message : ''))
   var msg = '\x01' + type.toUpperCase() + (('string' === typeof message) ? ' ' + message : '') + '\x01'
   that.ircClient.irc.raw(['PRIVMSG',target,msg])
@@ -176,9 +205,7 @@ ircMesh.prototype.ctcpResponse = function(target,type,message,forcePushBack){
     message = null
   }
   forcePushBack = forcePushBack || false
-  //convert objects to one-line JSON
-  if('object' === typeof message)
-    message = 'JSON' + JSON.stringify(message).replace(/\r\n/,'')
+  message = messageEncode(message)
   that.emit('debug','>' + target + ' CTCP_RESPONSE:' + type + '<' + ((message) ? ' ' + message : ''))
   that.ircClient.irc.ctcp(target,type,message,forcePushBack)
 }
@@ -294,6 +321,7 @@ ircMesh.prototype.connect = function(connectedCb){
     function(o){
       o.handle = ircHandle
       o.source = o.target
+      o.data = messageDecode(o.message)
       //extra checking for self-messages
       var myNick = that.ircClient.irc._nick
       if(myNick === o.target){
@@ -309,12 +337,8 @@ ircMesh.prototype.connect = function(connectedCb){
     function(o){
       o.handle = ircHandle
       o.source = o.nickname.replace(/^@/,'')
-      if(o.message){
-        if('JSON{' === o.message.substring(0,5)){
-          o.data = JSON.parse(o.message.substring(4))
-        }
-      }
-      if(o.data && o.data.command)
+      o.data = messageDecode(o.message)
+      if(o.data.command)
         that.emit(['ctcp_request',o.type.toLowerCase(),o.data.command].join(':'),o)
       that.emit('ctcp_request:' + o.type.toLowerCase(),o)
       that.emit('ctcp_request',o)
@@ -326,12 +350,8 @@ ircMesh.prototype.connect = function(connectedCb){
     function(o){
       o.handle = ircHandle
       o.source = o.nickname.replace(/^@/,'')
-      if(o.message){
-        if('JSON{' === o.message.substring(0,5)){
-          o.data = JSON.parse(o.message.substring(4))
-        }
-      }
-      if(o.data && o.data.command)
+      o.data = messageDecode(o.message)
+      if(o.data.command)
         that.emit(['ctcp_response',o.type.toLowerCase(),o.data.command].join(':'),o)
       that.emit('ctcp_response:' + o.type.toLowerCase(),o)
       that.emit('ctcp_response',o)

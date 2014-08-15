@@ -14,32 +14,30 @@ async.each(
     botOpts.tag = logger.tagExtend(sockets.length)
     botOpts.version = config.get('version')
     botOpts.title = config.get('title')
-    var mux = Bot.create(botOpts)
-    sockets.push(mux)
-    mux.once('authSuccess',function(){
-      //handle resolve requests
-      mux.on('resolve',function(data,done){
-        mux.resolve(data.handle,data.host,function(err,result){
-          if(err) return done({error: err})
-          done(result)
-        })
+    var bot = Bot.create(botOpts)
+    sockets.push(bot)
+    //handle resolve requests
+    bot.on('resolve',function(data,done){
+      bot.resolve(data.handle,data.host,function(err,result){
+        if(err) return done({error: err})
+        done(result)
       })
-      //handle ping requests
-      mux.on('pingStart',function(data){
-        //redistribute events back to the client
-        mux.on('pingResult:' + data.handle,function(result){
-          if(result.stopped) mux.removeAllListeners('pingResult:' + data.handle)
-          mux.mux.emit('pingResult:' + data.handle,result)
-        })
-        //start the ping session
-        mux.pingStart(data.handle,data.ip)
-      })
-      //stop the ping session
-      mux.on('pingStop',function(data){
-        mux.pingStop(data.handle)
-      })
-      next()
     })
-    mux.connect()
+    //handle ping requests
+    bot.on('pingStart',function(data){
+      //redistribute events back to the client
+      bot.on('pingResult:' + data.handle,function(result){
+        if(result.stopped) bot.removeAllListeners('pingResult:' + data.handle)
+        bot.mux.emit('pingResult:' + data.handle,result)
+      })
+      //start the ping session
+      bot.pingStart(data.handle,data.ip)
+    })
+    //stop the ping session
+    bot.on('pingStop',function(data){
+      bot.pingStop(data.handle)
+    })
+    bot.connect()
+    next()
   }
 )
