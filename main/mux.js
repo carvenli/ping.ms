@@ -81,15 +81,6 @@ var groupAction = function(group,action,next){
 
 ircMesh.on('debug',function(msg){logger.info(msg)})
 ircMesh.on('connecting',function(where){ logger.info('Connecting to ' + where) })
-//wire names event (automatically sent upon JOIN)
-ircMesh.on('names',function(o){
-  async.each(o.names,function(n,done){
-    n = n.replace(/^@/,'')
-    if(ircMesh.conn.nickname !== n)
-      ircMesh.ctcpRequest(n.replace(/^@/,''),'VERSION')
-    done()
-  },function(){})
-})
 ircMesh.on('join:' + muxOpts.channel,function(o){
   logger.info('<' + o.channel + '> ' +
     ((ircMesh.conn.nickname === o.nickname) ? '' : o.nickname + ' ') +
@@ -98,8 +89,8 @@ ircMesh.on('join:' + muxOpts.channel,function(o){
 })
 ircMesh.on('part:' + muxOpts.channel,function(o){
   logger.info('<' + o.channel + '> ' +
-    ((ircMesh.conn.nickname === o.nickname) ? '' : o.nickname + ' ') +
-    'parted'
+      ((ircMesh.conn.nickname === o.nickname) ? '' : o.nickname + ' ') +
+      'parted'
   )
 })
 //wire normal message types
@@ -119,7 +110,8 @@ ircMesh.on('ctcp_response',function(o){
 })
 
 //wire pingms CTCP actions
-ircMesh.on('ctcp_request:pingms:authorize',function(data){
+ircMesh.on('ctcp_request:pingms:authorize',function(o){
+  var data = o.data
   var _logger = Logger.create(logger.tagExtend(['PINGMS',data.command,data.nickname].join(':')))
   /**
    * Authorize bot and register if successful
@@ -161,7 +153,8 @@ ircMesh.on('ctcp_request:pingms:authorize',function(data){
     }
   )
 })
-ircMesh.on('ctcp_request:pingms:pingstart',function(data){
+ircMesh.on('ctcp_request:pingms:pingstart',function(o){
+  var data = o.data
   var _logger = Logger.create(logger.tagExtend(['PINGMS',data.command,data.nickname].join(':')))
   /**
    * Start pinging a host from the browser
@@ -197,13 +190,6 @@ ircMesh.on('ctcp_request:pingms:pingstart',function(data){
       Bot.findByIdAndUpdate(data.bot,{$inc: {hits: 1}},function(){})
     }
   )
-})
-//wire base events so the above ones will work
-ircMesh.on('ctcp_request:pingms',function(o){
-  var data = JSON.parse(o.message)
-  delete(o.message)
-  data.nickname = o.nickname.replace(/^@/,'')
-  ircMesh.emit('ctcp_request:pingms:' + data.command,data)
 })
 
 ircMesh.connect(function(){

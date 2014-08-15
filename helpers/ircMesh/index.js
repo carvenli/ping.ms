@@ -1,4 +1,5 @@
 'use strict';
+var async = require('async')
 var EventEmitter = require('events').EventEmitter
 var ircFactory = require('irc-factory')
 var moment = require('moment')
@@ -7,6 +8,8 @@ var util = require('util')
 
 var config = require('../../config')
 var ircApi = new ircFactory.Api()
+//un-boner normal crashing (ircFactory.Api constructor installs a stupid handler)
+process.removeAllListeners('uncaughtException')
 
 
 
@@ -65,6 +68,29 @@ ircMesh.prototype.join = function(channel,joinedCb){
   var that = this
   if('function' === typeof joinedCb)
     that.once(['join',channel,that.conn.nickname].join(':'),joinedCb)
+  //init the channel structure for this channel
+  that.conn.chan[channel] = {names:[],meshed:[],others:[]}
+  var ev = 'names:' + channel
+  that.removeAllListeners(ev)
+  that.on(ev,function(o){
+    var names = that.conn.chan[channel].names = o.names
+    //setup a response timeout to see who didn't reply
+    if(that._meshTimeout) clearTimeout(that._meshTimeout)
+    that._meshTimeout = setTimeout(function(){
+      async.filter(names,function(name,next){
+        next(-1 === that.conn.chan[channel].meshed.indexOf(name))
+      },function(results){
+        that.conn.chan[channel].others = results
+        that.emit('debug',that.conn.chan)
+      })
+    },5000)
+    async.each(o.names,function(name,next){
+      if(-1 === that.conn.chan[channel].meshed.indexOf(name) && -1 === that.conn.chan[channel].others.indexOf(name)){
+        that.ctcpRequest(name,'MESH',{command:'hello',channel:channel})
+      }
+      next()
+    })
+  })
   that.ircClient.irc.join(channel)
 }
 
@@ -79,6 +105,19 @@ ircMesh.prototype.part = function(channel,partedCb){
   if('function' === typeof partedCb)
     that.once(['part',channel,that.conn.nickname].join(':'),partedCb)
   that.ircClient.irc.part(channel)
+}
+
+
+/**
+ * Names list of a channel
+ * @param {string} channel Channel to list (include the '#')
+ * @param {function} namesCb Callback once with results (optional)
+ */
+ircMesh.prototype.names = function(channel,namesCb){
+  var that = this
+  if('function' === typeof namesCb)
+    that.once('names' + ':' + channel,namesCb)
+  that.ircClient.irc.raw('NAMES ' + channel)
 }
 
 
@@ -107,8 +146,11 @@ ircMesh.prototype.ctcpRequest = function(target,type,message,forcePushBack){
     message = null
   }
   forcePushBack = forcePushBack || false
+  //convert objects to one-line JSON
+  if('object' === typeof message)
+    message = 'JSON' + JSON.stringify(message).replace(/\r\n/,'')
   that.emit('debug','>' + target + ' CTCP_REQUEST:' + type + '<' + ((message) ? ' ' + message : ''))
-  var msg = '\x01' + type.toUpperCase() + '\x01'
+  var msg = '\x01' + type.toUpperCase() + (('string' === typeof message) ? ' ' + message : '') + '\x01'
   that.ircClient.irc.raw(['PRIVMSG',target,msg])
   if(forcePushBack){
     that.ircClient._parseLine(
@@ -136,7 +178,7 @@ ircMesh.prototype.ctcpResponse = function(target,type,message,forcePushBack){
   forcePushBack = forcePushBack || false
   //convert objects to one-line JSON
   if('object' === typeof message)
-    message = JSON.stringify(message).replace(/\r\n/,'')
+    message = 'JSON' + JSON.stringify(message).replace(/\r\n/,'')
   that.emit('debug','>' + target + ' CTCP_RESPONSE:' + type + '<' + ((message) ? ' ' + message : ''))
   that.ircClient.irc.ctcp(target,type,message,forcePushBack)
 }
@@ -151,6 +193,21 @@ ircMesh.prototype.connect = function(connectedCb){
   var ircHandle = that.options.type
 
   //CTCP handlers
+  that.on('ctcp_response:mesh:hello',function(o){
+    if(o.data && o.data.channel && config.get('version') === o.data.version){
+      if(-1 === that.conn.chan[o.data.channel].meshed.indexOf(o.nickname))
+        that.conn.chan[o.data.channel].meshed.push(o.nickname)
+      var idx = that.conn.chan[o.data.channel].others.indexOf(o.nickname)
+      if(-1 < idx) delete(that.conn.chan[o.data.channel].others[idx])
+    }
+  })
+  that.on('ctcp_request:mesh:hello',function(o){
+    if(o.data && o.nickname && o.type){
+      o.data.version = config.get('version')
+      that.ctcpResponse(o.nickname,o.type,o.data)
+    }
+  })
+  //standard CTCP stuff from here down
   that.on('ctcp_request:ping',function(o){
     that.ctcpResponse(o.nickname,o.type,o.message)
   })
@@ -173,6 +230,7 @@ ircMesh.prototype.connect = function(connectedCb){
     function(o){
       o.handle = ircHandle
       that.conn = o
+      that.conn.chan = {}
       if('function' === typeof connectedCb)
         that.on('registered',connectedCb)
       that.emit('registered',o)
@@ -194,32 +252,40 @@ ircMesh.prototype.connect = function(connectedCb){
     }
   )
 
-  //map JOIN events with channel and nickname tracking for callbacks
-  that.ircApi.hookEvent(ircHandle,'join',
-    function(o){
-      o.handle = ircHandle
-      that.emit(['join',o.channel,o.nickname].join(':'),o)
-      that.emit(['join',o.channel].join(':'),o)
-      that.emit('join',o)
-    }
-  )
+  /*
+   * Channel state and attendance tracking section
+   */
 
-
-  //map PART events with channel and nickname tracking for callbacks
-  that.ircApi.hookEvent(ircHandle,'part',
-    function(o){
-      o.handle = ircHandle
-      that.emit(['part',o.channel,o.nickname].join(':'),o)
-      that.emit(['part',o.channel].join(':'),o)
-      that.emit('part',o)
-    }
-  )
-
-  //map NAMES event
-  that.ircApi.hookEvent(ircHandle,'names',
-    function(o){
-      o.handle = ircHandle
-      that.emit('names',o)
+  //map channel events
+  async.each(
+    ['names','join','part','kick','quit'],
+    function(event,next){
+      that.ircApi.hookEvent(ircHandle,event,
+        function(o){
+          o.handle = ircHandle
+          if(o.channel){
+            if('names' !== event)
+              that.names(o.channel)
+            else {
+              var names = o.names
+              o.names = []
+              async.eachSeries(names,function(name,done){
+                //strip "op" status
+                name = name.replace(/^@/,'')
+                if(that.conn.nickname !== name)
+                  o.names.push(name)
+                done()
+              })
+            }
+            if(o.nickname){
+              that.emit([event,o.channel,o.nickname].join(':'),o)
+            }
+            that.emit([event,o.channel].join(':'),o)
+          }
+          that.emit(event,o)
+        }
+      )
+      next()
     }
   )
 
@@ -243,8 +309,15 @@ ircMesh.prototype.connect = function(connectedCb){
     function(o){
       o.handle = ircHandle
       o.source = o.nickname.replace(/^@/,'')
-      that.emit('ctcp_request',o)
+      if(o.message){
+        if('JSON{' === o.message.substring(0,5)){
+          o.data = JSON.parse(o.message.substring(4))
+        }
+      }
+      if(o.data && o.data.command)
+        that.emit(['ctcp_request',o.type.toLowerCase(),o.data.command].join(':'),o)
       that.emit('ctcp_request:' + o.type.toLowerCase(),o)
+      that.emit('ctcp_request',o)
     }
   )
 
@@ -253,8 +326,15 @@ ircMesh.prototype.connect = function(connectedCb){
     function(o){
       o.handle = ircHandle
       o.source = o.nickname.replace(/^@/,'')
-      that.emit('ctcp_response',o)
+      if(o.message){
+        if('JSON{' === o.message.substring(0,5)){
+          o.data = JSON.parse(o.message.substring(4))
+        }
+      }
+      if(o.data && o.data.command)
+        that.emit(['ctcp_response',o.type.toLowerCase(),o.data.command].join(':'),o)
       that.emit('ctcp_response:' + o.type.toLowerCase(),o)
+      that.emit('ctcp_response',o)
     }
   )
 }
@@ -266,8 +346,7 @@ ircMesh.prototype.connect = function(connectedCb){
  * @return {ircMesh}
  */
 ircMesh.create = function(opts){
-  var m = new ircMesh(opts)
-  return m
+  return new ircMesh(opts)
 }
 
 

@@ -122,7 +122,6 @@ Bot.prototype.connect = function(done){
     that.on('authSuccess',done)
   //parse uri into ircFactory compatible options
   var uri = that.options.uri.toString()
-  that.logger.info('connecting to ' + uri)
   var parseEx = /^([^:]*):\/\/([^@]*)@([^:]*):([0-9]*)\/(#.*)$/i;
   if(uri.match(parseEx)){
     that.options.secure = ('ircs' === uri.replace(parseEx,'$1'))
@@ -160,20 +159,18 @@ Bot.prototype.connect = function(done){
     that.logger.info('<' + o.source + ' CTCP_RESPONSE:' + o.type + '>' + ((o.message) ? ' ' + o.message : ''))
   })
   //wire pingms CTCP actions
-  that.ircMesh.on('ctcp_request:pingms:resolve',function(data,cb){
-    that.emit('resolve',data,cb)
+  that.ircMesh.on('ctcp_request:pingms:resolve',function(o,cb){
+    that.emit('resolve',o.data,cb)
   })
-  that.ircMesh.on('ctcp_request:pingms:pingstart',function(data,cb){
-    that.emit('pingStart',data,cb)
+  that.ircMesh.on('ctcp_request:pingms:pingstart',function(o,cb){
+    that.emit('pingStart',o.data,cb)
   })
-  that.ircMesh.on('ctcp_request:pingms:pingstop',function(data){
-    that.emit('pingStop',data)
+  that.ircMesh.on('ctcp_request:pingms:pingstop',function(o){
+    that.emit('pingStop',o.data)
   })
-
 
   that.ircMesh.connect(function(){
-    that.logger.info('Connected')
-    that.ircMesh.join(that.options.channel,function(o){ that.logger.info('Joined ' + o.channel) })
+    that.ircMesh.join(that.options.channel)
     //that.authorize(that.options.secret)
   })
 }
