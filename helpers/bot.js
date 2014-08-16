@@ -110,11 +110,10 @@ Bot.prototype.connect = function(done){
 
   //wire events
   that.ircMesh.on('debug',function(msg){that.logger.info(msg)})
+  that.ircMesh.on('verbose',function(msg){that.logger.info(msg)})
   that.ircMesh.on('connecting',function(where){ that.logger.info('Connecting to ' + where) })
+  that.ircMesh.on('attendance:#test',function(msg){that.logger.info('attendance:',msg)})
   //wire normal message types
-  that.ircMesh.on('notice',function(o){
-    that.logger.info('<' + o.source + ' NOTICE> ' + o.message)
-  })
   that.ircMesh.on('privmsg',function(o){
     console.log(o)
     if(-1 !== that.conn.chan[o.channel].meshed.indexOf(o.nickname)){
@@ -130,12 +129,6 @@ Bot.prototype.connect = function(done){
         break
       }
     }
-  })
-  that.ircMesh.on('ctcp_request',function(o){
-    that.logger.info('<' + o.source + ' CTCP_REQUEST:' + o.type + '>' + ((o.message) ? ' ' + o.message : ''))
-  })
-  that.ircMesh.on('ctcp_response',function(o){
-    that.logger.info('<' + o.source + ' CTCP_RESPONSE:' + o.type + '>' + ((o.message) ? ' ' + o.message : ''))
   })
   //wire pingms CTCP actions
   that.ircMesh.on('ctcp_request:pingms:resolve',function(o,cb){

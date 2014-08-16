@@ -88,6 +88,50 @@ var ircMesh = function(opts){
 }
 util.inherits(ircMesh,EventEmitter)
 
+//accessor methods for channel/attendance
+ircMesh.prototype.getChannelInfo = function(channel){
+  var that = this
+  channel = channel || that.ircClient.irc._channel
+  return that.conn.chan[channel] || []
+}
+ircMesh.prototype.setChannelInfo = function(channel,member,value){
+  var that = this
+  channel = channel || that.ircClient.irc._channel
+  if(((!channel) || (!member) || (!value)) || (!that.conn.chan[channel])) return
+  that.conn.chan[channel][member] = value
+}
+ircMesh.prototype.pushChannelInfo = function(channel,member,value){
+  var that = this
+  channel = channel || that.ircClient.irc._channel
+  if(
+    ((!channel) || (!member) || (!value)) ||
+    (!that.conn.chan[channel]) ||
+    (!that.conn.chan[channel][member])
+    ) return
+  that.conn.chan[channel][member].push(value)
+}
+ircMesh.prototype.isMemberInChannelInfo = function(channel,member,value){
+  var that = this
+  channel = channel || that.ircClient.irc._channel
+  if(
+    ((!channel) || (!member) || (!value)) ||
+    (!that.conn.chan[channel]) ||
+    (!that.conn.chan[channel][member])
+    ) return false
+  return (-1 !== this.getChannelInfo(channel)[member].indexOf(value))
+}
+ircMesh.prototype.deleteValueFromChannelInfo = function(channel,member,value){
+  var that = this
+  channel = channel || that.ircClient.irc._channel
+  if(
+    ((!channel) || (!member) || (!value)) ||
+    (!that.conn.chan[channel]) ||
+    (!that.conn.chan[channel][member])
+    ) return
+  var idx = that.conn.chan[channel][member].indexOf(value)
+  if(-1 < idx) delete(that.conn.chan[channel][member][idx])
+}
+
 
 /**
  * Join a channel
@@ -96,31 +140,45 @@ util.inherits(ircMesh,EventEmitter)
  */
 ircMesh.prototype.join = function(channel,joinedCb){
   var that = this
-  if('function' === typeof joinedCb)
-    that.once(['join',channel,that.conn.nickname].join(':'),joinedCb)
   //init the channel structure for this channel
-  that.conn.chan[channel] = {names:[],meshed:[],others:[]}
-  var ev = 'names:' + channel
-  that.removeAllListeners(ev)
-  that.on(ev,function(o){
-    var names = that.conn.chan[channel].names = o.names
-    //setup a response timeout to see who didn't reply
-    if(that._meshTimeout) clearTimeout(that._meshTimeout)
-    that._meshTimeout = setTimeout(function(){
-      async.filter(names,function(name,next){
-        next(-1 === that.conn.chan[channel].meshed.indexOf(name))
-      },function(results){
-        that.conn.chan[channel].others = results
-        that.emit('debug',that.conn.chan)
+  that.once(['join',channel].join(':'),function(o){
+    if(that.conn.nickname !== o.nickname) return
+    that.conn.chan[channel] = {names:[],meshed:[],others:[]}
+    var ev = 'names:' + channel
+    that.removeAllListeners(ev)
+    that.on(ev,function(o){
+      var names = o.names
+      //setup a response timeout to see who didn't reply
+      if(that._meshTimeout) clearTimeout(that._meshTimeout)
+      that._meshTimeout = setTimeout(function(){
+        //clear any meshed that have left the channel
+        if('object' === typeof that.getChannelInfo(channel)){
+          if(!that.getChannelInfo(channel).meshed) that.setChannelInfo(channel,'meshed',[])
+          async.filter(that.getChannelInfo(channel).meshed,function(name,next){
+            next(-1 !== names.indexOf(name))
+          },function(results){
+            that.setChannelInfo(channel,'meshed',results)
+          })
+        }
+        //anyone in names that is not now in meshed, is alien
+        async.filter(names,function(name,next){
+          next((!that.isMemberInChannelInfo(channel,'meshed',name)))
+        },function(results){
+          that.setChannelInfo([channel,'others'],results)
+          that.emit('attendance:' + channel,that.getChannelInfo(channel).meshed)
+        })
+      },5000)
+      async.each(o.names,function(name,next){
+        if(
+          (!that.isMemberInChannelInfo(channel,'meshed',name)) &&
+          (!that.isMemberInChannelInfo(channel,'others',name))
+          ){ that.ctcpRequest(name,'MESH',{command:'hello',channel:channel}) }
+        next()
       })
-    },5000)
-    async.each(o.names,function(name,next){
-      if(-1 === that.conn.chan[channel].meshed.indexOf(name) && -1 === that.conn.chan[channel].others.indexOf(name)){
-        that.ctcpRequest(name,'MESH',{command:'hello',channel:channel})
-      }
-      next()
     })
   })
+  if('function' === typeof joinedCb)
+    that.once(['join',channel,that.conn.nickname].join(':'),joinedCb)
   that.ircClient.irc.join(channel)
 }
 
@@ -222,10 +280,9 @@ ircMesh.prototype.connect = function(connectedCb){
   //CTCP handlers
   that.on('ctcp_response:mesh:hello',function(o){
     if(o.data && o.data.channel && config.get('version') === o.data.version){
-      if(-1 === that.conn.chan[o.data.channel].meshed.indexOf(o.nickname))
-        that.conn.chan[o.data.channel].meshed.push(o.nickname)
-      var idx = that.conn.chan[o.data.channel].others.indexOf(o.nickname)
-      if(-1 < idx) delete(that.conn.chan[o.data.channel].others[idx])
+      if(!that.isMemberInChannelInfo(o.data.channel,'meshed',o.nickname))
+        that.pushChannelInfo(o.data.channel,'meshed',o.nickname)
+      that.deleteValueFromChannelInfo(o.data.channel,'others',o.nickname)
     }
   })
   that.on('ctcp_request:mesh:hello',function(o){
@@ -245,7 +302,7 @@ ircMesh.prototype.connect = function(connectedCb){
     that.ctcpResponse(o.nickname,o.type,moment().format('ddd MMM DD HH:mm:ss YYYY ZZ'))
   })
   //include the DCC plugin
-  require('./ctcpDcc').register(that)
+  //require('./ctcpDcc').register(that)
 
   that.emit('connecting',that.options.server + ':' + that.options.port)
   //clamp the retryWait to 10000 minimum here to stop weird shit
@@ -258,8 +315,7 @@ ircMesh.prototype.connect = function(connectedCb){
       o.handle = ircHandle
       that.conn = o
       that.conn.chan = {}
-      if('function' === typeof connectedCb)
-        that.on('registered',connectedCb)
+      if('function' === typeof connectedCb) connectedCb(o)
       that.emit('registered',o)
     }
   )
@@ -275,6 +331,7 @@ ircMesh.prototype.connect = function(connectedCb){
         o.source = that.ircClient.irc.connection.server
       else
         o.source = o.nickname.replace(/^@/,'')
+      that.emit('verbose','<' + o.source + ' NOTICE> ' + o.message)
       that.emit('notice',o)
     }
   )
@@ -284,29 +341,42 @@ ircMesh.prototype.connect = function(connectedCb){
    */
 
   //map channel events
+  that.ircApi.hookEvent(ircHandle,'names',
+    function(o){
+      o.handle = ircHandle
+      if(o.channel){
+        if(o.names){
+          var names = o.names
+          o.names = []
+          async.eachSeries(names,function(name,done){
+            //strip "op" status
+            name = name.replace(/^@/,'')
+            if(that.conn.nickname !== name)
+              o.names.push(name)
+            done()
+          })
+          that.setChannelInfo(o.channel,'names',o.names)
+        }
+        if(o.nickname){
+          that.emit(['names',o.channel,o.nickname].join(':'),o)
+        }
+        that.emit(['names',o.channel].join(':'),o)
+      }
+      that.emit('names',o)
+    }
+  )
   async.each(
-    ['names','join','part','kick','quit'],
+    ['join','part','kick','quit'],
     function(event,next){
       that.ircApi.hookEvent(ircHandle,event,
         function(o){
+          that.logger.info(event,o)
           o.handle = ircHandle
           if(o.channel){
-            if('names' !== event)
+            if((o.kicked && that.conn.nickname !== o.kicked) || !o.kicked)
               that.names(o.channel)
-            else {
-              var names = o.names
-              o.names = []
-              async.eachSeries(names,function(name,done){
-                //strip "op" status
-                name = name.replace(/^@/,'')
-                if(that.conn.nickname !== name)
-                  o.names.push(name)
-                done()
-              })
-            }
-            if(o.nickname){
+            if(o.nickname)
               that.emit([event,o.channel,o.nickname].join(':'),o)
-            }
             that.emit([event,o.channel].join(':'),o)
           }
           that.emit(event,o)
@@ -315,6 +385,31 @@ ircMesh.prototype.connect = function(connectedCb){
       next()
     }
   )
+  that.ircApi.hookEvent(ircHandle,'join',function(o){
+    that.emit('verbose','<' + o.channel + '> ' +
+        ((that.conn.nickname === o.nickname) ? '' : o.nickname + ' ') +
+        'joined'
+    )
+  })
+  that.ircApi.hookEvent(ircHandle,'part',function(o){
+    that.emit('verbose','<' + o.channel + '> ' +
+        ((that.conn.nickname === o.nickname) ? '' : o.nickname + ' ') +
+        'parted'
+    )
+  })
+  that.ircApi.hookEvent(ircHandle,'kick',function(o){
+    that.emit('verbose','<' + o.channel + '> ' +
+        ((that.conn.nickname === o.nickname) ? '' : o.nickname + ' ') +
+        'kicked ' + ((that.conn.nickname === o.kicked) ? 'me' : o.kicked) +
+        ((o.message) ? ' (' + o.message + ')' : '')
+    )
+  })
+  that.ircApi.hookEvent(ircHandle,'quit',function(o){
+    that.emit('verbose','<' + o.channel + '> ' +
+        ((that.conn.nickname === o.nickname) ? '' : o.nickname + ' ') +
+        'has quit' + ((o.message) ? ' (' + o.message + ')' : '')
+    )
+  })
 
   //map PRIVMSG events
   that.ircApi.hookEvent(ircHandle,'privmsg',
@@ -328,9 +423,18 @@ ircMesh.prototype.connect = function(connectedCb){
         if(myNick !== o.nickname)
           o.source = o.nickname
       }
+      that.emit('verbose','<' + o.source + '>' + ((o.message) ? ' ' + o.message : ''))
+      if(o.data.command)
+        that.emit(['privmsg',o.data.command].join(':'),o)
       that.emit('privmsg',o)
     }
   )
+
+  //FUCK THIS
+  that.on('privmsg',function(o){
+    if(o.message.match(/^dump$/i))
+      this.privmsg(o.source,{a:that.getChannelInfo(o.channel),b:that.conn.chan[o.channel]})
+  })
 
   //map CTCP_REQUEST event
   that.ircApi.hookEvent(ircHandle,'ctcp_request',
@@ -338,6 +442,7 @@ ircMesh.prototype.connect = function(connectedCb){
       o.handle = ircHandle
       o.source = o.nickname.replace(/^@/,'')
       o.data = messageDecode(o.message)
+      that.emit('verbose','<' + o.source + ' CTCP_REQUEST:' + o.type + '>' + ((o.message) ? ' ' + o.message : ''))
       if(o.data.command)
         that.emit(['ctcp_request',o.type.toLowerCase(),o.data.command].join(':'),o)
       that.emit('ctcp_request:' + o.type.toLowerCase(),o)
@@ -351,6 +456,7 @@ ircMesh.prototype.connect = function(connectedCb){
       o.handle = ircHandle
       o.source = o.nickname.replace(/^@/,'')
       o.data = messageDecode(o.message)
+      that.emit('verbose','<' + o.source + ' CTCP_RESPONSE:' + o.type + '>' + ((o.message) ? ' ' + o.message : ''))
       if(o.data.command)
         that.emit(['ctcp_response',o.type.toLowerCase(),o.data.command].join(':'),o)
       that.emit('ctcp_response:' + o.type.toLowerCase(),o)

@@ -28,7 +28,7 @@ async.each(
       //redistribute events back to the client
       bot.on('pingResult:' + data.handle,function(result){
         if(result.stopped) bot.removeAllListeners('pingResult:' + data.handle)
-        bot.mux.emit('pingResult:' + data.handle,result)
+        bot.emit('pingResult:' + data.handle,result)
       })
       //start the ping session
       bot.pingStart(data.handle,data.ip)
@@ -37,7 +37,6 @@ async.each(
     bot.on('pingStop',function(data){
       bot.pingStop(data.handle)
     })
-    bot.connect()
-    next()
+    bot.connect(next)
   }
 )

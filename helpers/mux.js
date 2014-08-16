@@ -39,6 +39,7 @@ util.inherits(Mux,EventEmitter)
  * @param {function} next
  */
 Mux.prototype.pingSanitize = function(data,next){
+  var that = this
   var re = /^(.*):([^:]*)$/
   var currentSourceId = data.handle.replace(re,'$1')
   async.each(
@@ -69,8 +70,6 @@ Mux.prototype.pingSanitize = function(data,next){
  */
 Mux.prototype.connect = function(done){
   var that = this
-  if('function' === done)
-    that.on('authSuccess',done)
   //parse uri into ircFactory compatible options
   var uri = that.options.uri.toString()
   var parseEx = /^([^:]*):\/\/([^@]*)@([^:]*):([0-9]*)\/(#.*)$/i;
@@ -90,36 +89,16 @@ Mux.prototype.connect = function(done){
   muxOpts.appName = that.options.title + ' ' + muxOpts.type.toUpperCase()
   muxOpts.logger = that.logger
   that.ircMesh = require('./ircMesh').create(muxOpts)
-
   that.ircMesh.on('debug',function(msg){that.logger.info(msg)})
+  that.ircMesh.on('verbose',function(msg){that.logger.info(msg)})
   that.ircMesh.on('connecting',function(where){ that.logger.info('Connecting to ' + where) })
-  that.ircMesh.on('join:' + muxOpts.channel,function(o){
-    that.logger.info('<' + o.channel + '> ' +
-        ((that.ircMesh.conn.nickname === o.nickname) ? '' : o.nickname + ' ') +
-        'joined'
-    )
-  })
-  that.ircMesh.on('part:' + muxOpts.channel,function(o){
-    that.logger.info('<' + o.channel + '> ' +
-        ((that.ircMesh.conn.nickname === o.nickname) ? '' : o.nickname + ' ') +
-        'parted'
-    )
-  })
+  that.ircMesh.on('attendance:#test',function(msg){that.logger.info('attendance:',msg)})
   //wire normal message types
-  that.ircMesh.on('notice',function(o){
-    that.logger.info('<' + o.source + ' NOTICE> ' + o.message)
-  })
   /*
    that.ircMesh.on('privmsg',function(o){
    that.ircMesh.privmsg(o.source,o.message.toUpperCase())
    })
    */
-  that.ircMesh.on('ctcp_request',function(o){
-    that.logger.info('<' + o.source + ' CTCP_REQUEST:' + o.type + '>' + ((o.message) ? ' ' + o.message : ''))
-  })
-  that.ircMesh.on('ctcp_response',function(o){
-    that.logger.info('<' + o.source + ' CTCP_RESPONSE:' + o.type + '>' + ((o.message) ? ' ' + o.message : ''))
-  })
 
   //wire pingms CTCP actions
   that.ircMesh.on('ctcp_request:pingms:authorize',function(o){
@@ -173,7 +152,7 @@ Mux.prototype.connect = function(done){
      */
     async.series([
         function(next){
-          pingSanitize(data,next)
+          that.pingSanitize(data,next)
         }
       ],function(err){
         if(err){
@@ -204,7 +183,8 @@ Mux.prototype.connect = function(done){
     )
   })
 
-  that.ircMesh.connect(function(){
+  that.ircMesh.connect(function(o){
+    if('function' === typeof done) done(null,o)
     if(muxOpts.channel) that.ircMesh.join(muxOpts.channel)
   })
 }
