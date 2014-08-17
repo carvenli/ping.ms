@@ -16,7 +16,7 @@ var generateHandle = function(){return shortId.generate().replace(/[-_]/g,'').to
 
 /**
  * Mux Object
- *  each Mux is a ircMesh client which connects to a server
+ *  each Mux is a irc client which connects to a server
  *  in order to communicate with mux(es) also connected there
  *  this object simply augments this socket with event handling and any
  *  probe services we provide to the frontend.
@@ -65,7 +65,7 @@ Mux.prototype.pingSanitize = function(data,next){
 
 
 /**
- * Connect to ircMesh
+ * Connect to irc
  * @param {function} done Callback for authorized connect
  */
 Mux.prototype.connect = function(done){
@@ -83,20 +83,20 @@ Mux.prototype.connect = function(done){
   if(!(that.options.server && that.options.port && that.options.nick))
     return
 
-  //setup ircMesh
+  //setup irc
   var muxOpts = propCopy(that.options)
   muxOpts.type = 'mux'
   muxOpts.appName = that.options.title + ' ' + muxOpts.type.toUpperCase()
   muxOpts.logger = that.logger
-  that.ircMesh = require('./ircMesh').create(muxOpts)
+  that.ircMesh = require('./Irc').create(muxOpts)
   that.ircMesh.on('debug',function(msg){that.logger.info(msg)})
   that.ircMesh.on('verbose',function(msg){that.logger.info(msg)})
   that.ircMesh.on('connecting',function(where){ that.logger.info('Connecting to ' + where) })
   that.ircMesh.on('attendance:#test',function(msg){that.logger.info('attendance:',msg)})
   //wire normal message types
   /*
-   that.ircMesh.on('privmsg',function(o){
-   that.ircMesh.privmsg(o.source,o.message.toUpperCase())
+   that.irc.on('privmsg',function(o){
+   that.irc.privmsg(o.source,o.message.toUpperCase())
    })
    */
 

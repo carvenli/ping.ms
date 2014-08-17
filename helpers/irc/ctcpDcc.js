@@ -9,8 +9,8 @@ var plugin = {}
 
 
 /**
- * Register this plugin with an ircMesh object
- * @param {ircMesh} that Object of type ircMesh to augment
+ * Register this plugin with an irc object
+ * @param {Irc} that Object of type irc to augment
  * @param {function} done Callback once registered
  */
 plugin.register = function(that,done){

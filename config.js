@@ -33,7 +33,8 @@ config.load({
       failDelay: 10000 // 10 seconds
     },
     connections:[
-//      {uri: 'irc://pingMsBot@localhost:6667/#pingms',retryCount: 65534}
+//      {uri: 'irc://pingMsBot@localhost:6667/#pingms'}
+//      {uri: 'ircs://pingMsBot@localhost:6697/#pingms'}
     ]
   },
   main: {
@@ -45,11 +46,8 @@ config.load({
       maxAge: 2592000000 //30 days
     },
     mux: {
-      enabled: false,
-      connections:[
-        //      {uri: 'irc://pingMsMux@localhost:6667/#pingms',retryCount: 65534}
-        //      {uri: 'ircs://pingMsMux@localhost:6697/#pingms',retryCount: 65534}
-      ]
+      enabled: false
+//      uri: 'irc://pingMsMux@localhost:6667/#pingms'
     }
   }
 })

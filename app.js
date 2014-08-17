@@ -1,7 +1,7 @@
 'use strict';
 var config = require('./config')
 
-var logger = require('./helpers/logger').create('main')
+var logger = require('./helpers/logger').create()
 var async = require('async')
 
 //services that dont require mongoose
@@ -36,17 +36,29 @@ if(config.get('mongoose.enabled')){
       logger.error('Failed to connect to mongoose: ' + err)
       process.exit()
     }
-    //admin
-    if(config.get('admin.enabled')){
-      logger.info('Starting Admin...')
-      require('./admin')
-    }
-    //main
-    if(config.get('main.enabled')){
-      logger.info('Starting Main...')
-      require('./main')
-    }
-    logger.info('Startup complete')
+    async.series(
+      [
+        function(next){
+          //admin
+          if(config.get('admin.enabled')){
+            logger.info('Starting Admin...')
+            require('./admin').start(next)
+          } else next()
+        },
+        function(next){
+          //main
+          if(config.get('main.enabled')){
+            logger.info('Starting Main...')
+            require('./main').start(next)
+          } else next()
+        }
+      ],function(){
+        if(err){
+          logger.error('Startup failed: ' + err)
+          process.exit()
+        }
+        logger.info('Startup complete')
+      })
   })
 } else {
   logger.info('Mongoose not enabled, skipping services that require it')

@@ -9,7 +9,7 @@ var EventEmitter = require('events').EventEmitter
 
 /**
  * Bot Object
- *  each Bot is a ircMesh client which connects to a server
+ *  each Bot is a irc client which connects to a server
  *  in order to communicate with mux(es) also connected there
  *  this object simply augments this socket with event handling and any
  *  probe services we provide to the frontend.
@@ -81,7 +81,7 @@ Bot.prototype.resolve = function(handle,host,done){
 
 
 /**
- * Connect to ircMesh
+ * Connect to irc
  * @param {function} done Callback for authorized connect
  */
 Bot.prototype.connect = function(done){
@@ -101,12 +101,12 @@ Bot.prototype.connect = function(done){
   if(!(that.options.server && that.options.port && that.options.nick))
     return
 
-  //setup ircMesh
+  //setup irc
   var botOpts = that.options
   botOpts.type = 'bot'
   botOpts.appName = that.options.title + ' ' + botOpts.type.toUpperCase()
   botOpts.logger = that.logger
-  that.ircMesh = require('./ircMesh').create(botOpts)
+  that.ircMesh = require('./Irc').create(botOpts)
 
   //wire events
   that.ircMesh.on('debug',function(msg){that.logger.info(msg)})

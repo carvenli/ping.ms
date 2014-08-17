@@ -36,6 +36,8 @@ var stringify = function(args){
   })
   return args
 }
+//"tag" formatter
+var newTag = function(tag){return (tag) ? '[' + tag.toUpperCase() + ']' : ''}
 
 
 
@@ -46,7 +48,7 @@ var stringify = function(args){
  */
 var Logger = function(tag){
   var that = this
-  that.tag = '[' + (tag || 'main').toUpperCase() + ']'
+  that.tag = newTag(tag)
 }
 
 
@@ -56,11 +58,12 @@ var Logger = function(tag){
  * @return {string} newTag Augmented current tag with : and subTag injected
  */
 Logger.prototype.tagExtend = function(subTag){
-  if(undefined === subTag) subTag = 'noTag'
   var that = this
   if(('string' !== typeof subTag) && ('function' === typeof subTag.toString))
     subTag = subTag.toString()
-  return that.tag.replace(/^\[([^\]]+)\].*$/,'$1:' + subTag)
+  if(undefined === subTag) subTag = ''
+  var tagEx = /^\[([^\]]+)\]$/
+  return (tagEx.test(that.tag) ? that.tag.replace(tagEx,'$1:' + subTag) : newTag(subTag))
 }
 
 
@@ -71,6 +74,7 @@ Logger.prototype.log = function(){
   var args = unshift(arguments,this.tag)
   var level = args[1]
   args.splice(1,1)
+  if(!this.tag) args.shift()
   args.unshift(level)
   args = stringify(args)
   logger.log.apply(logger,args)
