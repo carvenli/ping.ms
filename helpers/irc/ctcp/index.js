@@ -14,6 +14,30 @@ var propCopy = function(obj){return JSON.parse(JSON.stringify(obj))}
 var CtcpPlugin = function(client){
   var that = this
   that.client = client
+  that.options = {}
+  that.options.version = 'unknown:unknown:unknown'
+}
+
+
+/**
+ * Get an option
+ * @param {string} option Option
+ * @return {*} Value (no filter, could return undefined, null, whatever)
+ */
+CtcpPlugin.prototype.getOption = function(option){
+  var that = this
+  return that.options[option]
+}
+
+
+/**
+ * Set an option
+ * @param {string} option Option
+ * @param {*} value Value
+ */
+CtcpPlugin.prototype.setOption = function(option,value){
+  var that = this
+  that.options[option] = value
 }
 
 
@@ -73,7 +97,9 @@ CtcpPlugin.prototype.payloadDecode = function(event){
  * @param {array} params CTCP Parameters
  */
 CtcpPlugin.prototype.sendRequest = function(target,type,params){
-  this.client.send(this.payloadEncode('req',target,type.toUpperCase(),params))
+  var that = this
+  debug('send CTCP_RESPONSE',that.client.nick(),target,type.toUpperCase(),params)
+  that.client.send(this.payloadEncode('req',target,type.toUpperCase(),params))
 }
 
 
@@ -84,7 +110,9 @@ CtcpPlugin.prototype.sendRequest = function(target,type,params){
  * @param {array} params CTCP Parameters
  */
 CtcpPlugin.prototype.sendResponse = function(target,type,params){
-  this.client.send(this.payloadEncode('res',target,type,params))
+  var that = this
+  debug('send CTCP_RESPONSE',that.client.nick(),target,type.toUpperCase(),params)
+  that.client.send(this.payloadEncode('res',target,type.toUpperCase(),params))
 }
 
 
@@ -96,10 +124,10 @@ CtcpPlugin.prototype.sendResponse = function(target,type,params){
 CtcpPlugin.prototype.recvRequest = function(event){
   if(!this.isPayload(event)) return
   var c = this.payloadDecode(event)
-  debug('CTCP_REQUEST',c.nick,c.target,c.type,c.params)
+  debug('recv CTCP_REQUEST',c.nick,c.target,c.type,c.params)
   if('PING' === c.type){this.sendResponse(c.nick,c.type,c.params[0])}
   if('TIME' === c.type){this.sendResponse(c.nick,c.type,moment().format('ddd MMM DD HH:mm:ss YYYY ZZ'))}
-  if('VERSION' === c.type && this.client.version){this.sendResponse(c.nick,c.type,this.client.version)}
+  if('VERSION' === c.type && this.options.version){this.sendResponse(c.nick,c.type,this.options.version)}
   this.client.emit('ctcp_request',{
     nick: c.nick,
     user: c.user,
@@ -120,7 +148,7 @@ CtcpPlugin.prototype.recvRequest = function(event){
 CtcpPlugin.prototype.recvResponse = function(event){
   if(!this.isPayload(event)) return
   var c = this.payloadDecode(event)
-  debug('CTCP_RESPONSE',c.nick,c.target,c.type,c.params)
+  debug('recv CTCP_RESPONSE',c.nick,c.target,c.type,c.params)
   this.client.emit('ctcp_response',{
     nick: c.nick,
     user: c.user,
@@ -140,9 +168,12 @@ CtcpPlugin.prototype.recvResponse = function(event){
 exports = module.exports = {
   __irc: function(client){
     var ctcp = new CtcpPlugin(client)
+    client.ctcp = ctcp
+    //client function bindery
     client.isCtcp = ctcp.isPayload.bind(ctcp)
     client.sendCtcpRequest = ctcp.sendRequest.bind(ctcp)
     client.sendCtcpResponse = ctcp.sendResponse.bind(ctcp)
+    //client event hooks
     client
       .on('PRIVMSG', ctcp.recvRequest.bind(ctcp))
       .on('NOTICE', ctcp.recvResponse.bind(ctcp))
