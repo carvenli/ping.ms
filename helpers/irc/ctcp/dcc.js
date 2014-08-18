@@ -126,7 +126,7 @@ CtcpDcc.prototype.register = function(){
         }
       })
   })
-  debug('registered')
+  debug('Plugin registered')
   return that
 }
 

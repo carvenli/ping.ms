@@ -17,30 +17,64 @@ var CtcpMesh = function(irc){
   that.info = {}
 }
 
+
+/**
+ * Make sure we have at least an empty structure for this channel/nick combo
+ * avoids having existence checks all over the place
+ * @param {string} channel Channel
+ * @param {string} nick Nick
+ */
 CtcpMesh.prototype.ensureStruct = function(channel,nick){
   var that = this
   that.info[channel] = that.info[channel] || {}
   that.info[channel][nick] = that.info[channel][nick] || {}
 }
 
+
+/**
+ * Add or mark a participant in the structure
+ * @param {string} channel Channel
+ * @param {string} nick Nick
+ */
 CtcpMesh.prototype.addParticipant = function(channel,nick){
   var that = this
   that.ensureStruct(channel,nick)
   that.info[channel][nick].meshed = true
 }
 
+
+/**
+ * Add or mark a non-participant in the structure
+ * @param {string} channel Channel
+ * @param {string} nick Nick
+ */
 CtcpMesh.prototype.addNonparticipant = function(channel,nick){
   var that = this
   that.ensureStruct(channel,nick)
   that.info[channel][nick].meshed = false
 }
 
+
+/**
+ * Send a MESH request
+ * @param {string} nick Nick
+ * @param {string} command Mesh Command
+ * @param {object} append Additional properties to add to packet
+ */
 CtcpMesh.prototype.sendMeshRequest = function(nick,command,append){
   var that = this
   if('object' !== typeof append) append = {}
   that.irc.ctcpRequest(nick,'MESH',Object.merge(append,{command:command.toUpperCase()}))
 }
 
+
+/**
+ * Check participation
+ * furthermore, if we don't know the nick we fire off a discovery cycle
+ * @param {string} channel Channel
+ * @param {string} nick Nick
+ * @return {boolean} if we already know this nick and it's participating
+ */
 CtcpMesh.prototype.isParticipant = function(channel,nick){
   var that = this
   that.ensureStruct(channel,nick)
@@ -75,10 +109,21 @@ CtcpMesh.prototype.isParticipant = function(channel,nick){
   })
 }
 
+
+/**
+ * Get MESH Command
+ * @param {object} event Event from CTCP plugin event
+ * @return {string|boolean} Command, or false if not MESH
+ */
 CtcpMesh.prototype.getMeshCommand = function(event){
   return ('MESH' === event.type && event.data.command) ? event.data.command.toUpperCase() : false
 }
 
+
+/**
+ * Register plugin and return self-reference
+ * @return {CtcpMesh}
+ */
 CtcpMesh.prototype.register = function(){
   var that = this
   if(!that.irc.conn.ctcp){
@@ -106,7 +151,7 @@ CtcpMesh.prototype.register = function(){
       that.irc.ctcpResponse(event.nick,event.type,event.data)
     }
   })
-  debug('registered')
+  debug('Plugin registered')
   return that
 }
 
