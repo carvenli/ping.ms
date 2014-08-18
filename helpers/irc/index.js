@@ -57,10 +57,11 @@ var Irc = function(opts){
   that.options.load(opts)
   //Setup logger
   that.logger = Logger.create(that.options.get('tag'))
-  that.conn = null
-  that.connInfo = {}
-  that.chanInfo = {}
-  that.userInfo = {}
+  that.conn = null    //the actual connection (irc-connect instance)
+  that.connDog = null //watchdog reconnection timeout pointer
+  that.connInfo = {}  // connection information (global/self state)
+  that.chanInfo = {}  // channel information    (channel state)
+  that.userInfo = {}  // user information       (other user state)
 }
 util.inherits(Irc,EventEmitter)
 
@@ -287,6 +288,7 @@ Irc.prototype.connect = function(opts,connectedCb){
   _connect(that,options,connectedCb)
   that.conn.on('data',function(event,raw){that.logger.warning(raw)})
   that.conn.on('welcome',function(msg){
+    clearTimeout(that.connDog) // clear the failsafe reconnect timeout
     that.logger.info('Connected')
     that.connInfo = options.get()
     that.connInfo.welcome = msg

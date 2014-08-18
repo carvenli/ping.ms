@@ -46,8 +46,21 @@ var startIrc = function(next){
           server:server,
           port:+port
         },function(){
-          irc.conn.on('close',function(){setTimeout(function(){startIrc()},1000)})
-          irc.conn.on('error',function(){setTimeout(function(){startIrc()},1000)})
+          irc.conn.on('close',function(){
+            irc.logger.warning('Connection closed, retrying...')
+            startIrc()
+            setTimeout(function(){startIrc()},1000)
+          })
+          irc.conn.on('error',function(){
+            setTimeout(function(){
+              irc.logger.warning('Connection error, retrying...')
+              startIrc()
+            },1000)
+          })
+          irc.connDog = setTimeout(function(){
+            irc.logger.warning('Connection seems stale, retrying...')
+            startIrc()
+          },11000)
           irc.conn.version = ['ping.ms MUX',config.get('version'),'nodejs'].join(':')
           next()
         })
