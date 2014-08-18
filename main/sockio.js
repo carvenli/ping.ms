@@ -7,6 +7,7 @@ var botInterface = {}
 
 //socket.io routing
 module.exports.connection = function(logger,client){
+  if(!client) return
   var groupAction = function(a,b,c){c()}
   var pingSanitize = function(data,next){
     var re = /^(.*):([^:]*)$/

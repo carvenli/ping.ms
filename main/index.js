@@ -17,7 +17,7 @@ var generateHandle = function(){return shortId.generate().replace(/[-_]/g,'').to
 
 var irc
 var startIrc = function(next){
-  irc = new Irc({tag:logger.tagExtend('irc')})
+  irc = new Irc({tag:logger.tagExtend('irc'),version:config.get('version')})
   //parse uri into ircFactory compatible options
   var uri = config.get('main.mux.uri')
   var parseEx = /^([^:]*):\/\/([^@:]*)[:]?([^@]*)@([^:]*):([0-9]*)\/(#.*)$/i;
