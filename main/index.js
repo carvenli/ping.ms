@@ -1,23 +1,15 @@
 'use strict';
 var async = require('async')
 var debug = require('debug')('pingms:main')
-var flash = require('connect-flash')
-var shortId = require('shortid')
-
-var express = require('express')
-var RedisStore = require('connect-redis')(express)
 
 var config = require('../config')
 var Logger = require('../helpers/logger')
 var logger = Logger.create('main')
-var Irc = require('../helpers/irc')
-
-var routes = require('./routes')
-
-var generateHandle = function(){return shortId.generate().replace(/[-_]/g,'').toUpperCase()}
 
 var irc
 var startIrc = function(next){
+  var Irc = require('../helpers/irc')
+
   irc = new Irc({
     tag: logger.tagExtend('irc'),
     version: config.get('title') + '-MUX v' + config.get('version')
@@ -83,6 +75,92 @@ var startIrc = function(next){
   )
 }
 
+var startExpress = function(next){
+  var bodyParser = require('body-parser')
+  var express = require('express')
+  var flash = require('connect-flash')
+  var cookieParser = require('cookie-parser')
+  var methodOverride = require('method-override')
+  var morgan = require('morgan')
+  var session = require('express-session')
+
+  var app = express()
+  var server = require('http').Server(app)
+  var io = require('socket.io')(server)
+  var RedisStore = require('connect-redis')(express)
+
+  var routes = require('./routes')
+
+  /**
+   * Local tpl vars
+   * @type {{title: *}}
+   */
+  app.locals.app = {title: config.get('title')}
+  app.locals.moment = require('moment')
+
+  // middleware stack
+  app.set('views',__dirname + '/' + 'views')
+  app.set('view engine','jade')
+  app.use(bodyParser.urlencoded({extended:true}))
+  app.use(bodyParser.json())
+  app.use(methodOverride())
+  app.use(cookieParser(config.get('main.cookie.secret')))
+  app.use(session({
+    cookie: {
+      maxAge: config.get('main.cookie.maxAge')
+    },
+    store: new RedisStore(),
+    secret: config.get('main.cookie.secret'),
+    resave: true,
+    saveUninitialized: true
+  }))
+  app.use(flash())
+  app.use(function(req,res,next){
+    res.locals.flash = req.flash.bind(req)
+    next()
+  })
+  app.use(express.static(__dirname + '/public'))
+
+  //try to find a news page matching the uri, if not continue
+  app.use(function(req,res,next){
+    var Page = require('../models/page').model
+    Page.findOne({uri: req.path},function(err,result){
+      if(err) return next(err.message)
+      if(!result) return next()
+      //found a page render it
+      res.render('news',{
+        pageTitle: result.title,
+        page: result
+      })
+    })
+  })
+
+  // development only
+  if('development' === app.get('env')){
+    app.locals.pretty = true
+    app.use(express.errorHandler())
+    app.use(morgan('dev'))
+  }
+
+  //home page
+  app.get('/',routes.index)
+
+  //bot list
+  app.get('/bots',routes.bot)
+
+  //socket.io routing
+  io.on('connection',require('./sockio').connection)
+
+  server.listen(config.get('main.port'),config.get('main.host'),function(){
+    logger.info(
+        'Express listening on port ' +
+        (config.get('main.host') || '0.0.0.0') +
+        ':' + config.get('main.port')
+    )
+    next()
+  })
+}
+
 
 /**
  * Start Main
@@ -92,78 +170,7 @@ exports.start = function(started){
   async.series(
     [
       startIrc,
-      function(next){
-        var app = express()
-        var server = require('http').Server(app)
-        var io = require('socket.io')(server)
-
-        /**
-         * Local tpl vars
-         * @type {{title: *}}
-         */
-        app.locals.app = {title: config.get('title')}
-        app.locals.moment = require('moment')
-
-        // middleware stack
-        app.set('views',__dirname + '/' + 'views')
-        app.set('view engine','jade')
-        app.use(express.json())
-        app.use(express.urlencoded())
-        app.use(express.methodOverride())
-        app.use(express.cookieParser(config.get('main.cookie.secret')))
-        app.use(express.session({
-          cookie: {
-            maxAge: config.get('main.cookie.maxAge')
-          },
-          store: new RedisStore(),
-          secret: config.get('main.cookie.secret')
-        }))
-        app.use(flash())
-        app.use(function(req,res,next){
-          res.locals.flash = req.flash.bind(req)
-          next()
-        })
-        app.use(express.static(__dirname + '/public'))
-
-        //try to find a news page matching the uri, if not continue
-        app.use(function(req,res,next){
-          var Page = require('../models/page').model
-          Page.findOne({uri: req.path},function(err,result){
-            if(err) return next(err.message)
-            if(!result) return next()
-            //found a page render it
-            res.render('news',{
-              pageTitle: result.title,
-              page: result
-            })
-          })
-        })
-
-        // development only
-        if('development' === app.get('env')){
-          app.locals.pretty = true
-          app.use(express.errorHandler())
-          app.use(express.logger('dev'))
-        }
-
-        //home page
-        app.get('/',routes.index)
-
-        //bot list
-        app.get('/bots',routes.bot)
-
-        //socket.io routing
-        io.on('connection',require('./sockio').connection)
-
-        server.listen(config.get('main.port'),config.get('main.host'),function(){
-          logger.info(
-              'Express listening on port ' +
-              (config.get('main.host') || '0.0.0.0') +
-              ':' + config.get('main.port')
-          )
-          next()
-        })
-      }
+      startExpress
     ],
     started
   )
