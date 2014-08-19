@@ -1,15 +1,15 @@
 'use strict';
 var async = require('async')
+var debug = require('debug')('pingms:ircHelper')
 var EventEmitter = require('events').EventEmitter
 var ircChannels = require('irc-channels')
 var irc = require('irc-connect')
+var ircCtcp = require('irc-connect-ctcp')
 var ObjectManage = require('object-manage')
 var util = require('util')
 
 var Logger = require('../../helpers/logger')
-var ircCtcp = require('./ctcp')
-var IrcCtcpDcc = require('./ctcp/dcc')
-var IrcCtcpMesh = require('./ctcp/mesh')
+ircCtcp.mesh = require('./ctcp/mesh')
 
 
 /**
@@ -90,14 +90,15 @@ Irc.prototype.defaultOptions = {
 
 /**
  * default connect options
- * @type {{nick: string, user: string, realname: string, server: string, port: number, secure: boolean, capab: boolean, sasl: boolean, saslUsername: string, password: string, retryCount: number, retryWait: number}}
+ * @type {{host: string, port: number, secure: boolean|string, nick: string, ident: string, realname: string}}
  */
 Irc.prototype.defaultConnectOptions = {
-  server: 'localhost',
+  host: 'localhost',
   port: 6667,
   secure: false,
   nick: 'SetANick',
-  name: 'set_a_nick'
+  ident: 'noident',
+  realname: 'No Realname'
 }
 
 
@@ -109,12 +110,27 @@ Irc.prototype.defaultConnectOptions = {
 Irc.prototype.nick = function(nick,done){
   var that = this
   //install server response handler, can return nickname other than requested (on clash, server bad mood, etc)
-  that.conn.once('nick',function(nick){
-    that.logger.info('Nickname set to "' + nick + '"')
-    done()
-  })
+  if('function' !== typeof done){
+    done = function(){
+      if(arguments.length)
+        debug(arguments[0])
+    }
+  }
+  var t
+  var trap = function(n){
+    if(nick === n){
+      clearTimeout(t)
+      that.conn.removeListener('nick',trap)
+      done()
+    }
+  }
+  t = setTimeout(function(){
+    that.conn.removeListener('nick',trap)
+    done('IRC Requested nick "' + nick + '" but got "' + that.conn.nick() + '"')
+  },2000)
+  that.conn.on('nick',trap)
   //send the nickname change command to server
-  that.conn.send('NICK ',nick)
+  that.conn.nick(nick)
 }
 
 
@@ -130,7 +146,7 @@ Irc.prototype.join = function(channel,joinedCb){
     //the 'once' is done manually because there could be some other NICK event out of order
     var cbHandler = function(event){
       //bail if it's not us
-      if(that.connInfo.nick !== event.nick) return
+      if(that.conn.nick() !== event.nick) return
       that.conn.removeListener('JOIN',cbHandler)
       joinedCb()
     }
@@ -150,7 +166,7 @@ Irc.prototype.part = function(channel,partedCb){
   if('function' === typeof partedCb)
     that.once('PART',function(){
       //channel
-      //that.connInfo.nick
+      //that.conn.nick()
       partedCb()
     })
   that.conn.send('PART ' + channel)
@@ -173,7 +189,7 @@ Irc.prototype.names = function(channel){
  * @param {string} message Message
  */
 Irc.prototype.privmsg = function(target,message){
-  this.conn.send(['PRIVMSG',target,':' + messageEncode(message)])
+  this.conn.send(['PRIVMSG ',target,' :' + messageEncode(message)])
 }
 
 
@@ -215,7 +231,7 @@ Irc.prototype.updateAttendance = function(channel){
     var inNames = function(nick){return -1 < names.indexOf(nick.replace(/^@/,''))}
     async.eachSeries(names,function(nick,done){
       //tally everyone except ourselves
-      if(that.connInfo.nick !== nick)
+      if(that.conn.nick() !== nick)
         attendance.push(nick)
       done()
     },function(){
@@ -246,17 +262,19 @@ Irc.prototype.connect = function(opts,connectedCb){
   options.load(that.defaultConnectOptions)
   options.load(opts)
   //log some activity
-  that.logger.info('connecting to ' + options.get('server') + ':' + options.get('port'))
-  //setup irc-connect (connect is also a constructor)
-  that.conn = irc.connect(
-    options.get('server'),
-    {
-      name: options.get('name') || options.get('nick'),
-      port: +options.get('port')
-    }
-  )
+  that.logger.info('connecting to ' + options.get('host') + ':' + options.get('port'))
+  //setup irc-connect
+  that.conn = irc.create({
+    host: options.get('host'),
+    port: +options.get('port'),
+    secure: options.get('secure')?'semi':false,
+    nick: options.get('nick'),
+    realname: options.get('realname'),
+    ident: options.get('ident')
+  })
   //load irc-connect plugins
-  that.conn.use(irc.pong,irc.motd,irc.names,ircChannels,ircCtcp)
+  that.conn.use(irc.pong,irc.motd,irc.names,ircChannels,ircCtcp,ircCtcp.dcc)
+  if(that.options.get('version')) that.conn.ctcp.setOption('version',that.options.get('version'))
   //map welcome and error events to callback, if any
   if('function' === typeof connectedCb){
     that.conn.once('welcome',function(){connectedCb()})
@@ -280,31 +298,25 @@ Irc.prototype.connect = function(opts,connectedCb){
     that.chanInfo = {}
     //user state, object with nick as key
     that.userInfo = {}
-    //setup CTCP plugin
-    that.conn.ctcp.setOption('version',[that.options.get('appname'),that.options.get('version')].join(':'))
-    //add DCC plugin
-    that.conn.ctcp.dcc = new IrcCtcpDcc(that).register()
-    //add MESH plugin
-    that.conn.ctcp.mesh = new IrcCtcpMesh(that).register()
-  })
-  //track nick changes in connInfo
-  that.conn.on('nick',function(nick){
-    that.connInfo.nick = nick
   })
   //track our own joining
   that.conn.on('JOIN',function(event){
     //bail if it's not us
-    if(that.connInfo.nick !== event.nick) return
+    if(that.conn.nick() !== event.nick) return
     that.connInfo.channel = event.params[0]
   })
   //Channel state and attendance tracking section
   ;['JOIN','PART','KICK','QUIT'].forEach(function(e){
     that.conn.on(e,function(event){that.updateAttendance(event.channel || that.connInfo.channel)})
   })
+  //log nick changes
+  that.conn.on('nick',function(nick){
+    that.logger.info('Nickname set to "' + nick + '"')
+  })
   //log motd events
   that.conn.on('motd', function(){
     this.motd.trim().split('\n').forEach(function(l){
-      that.logger.info('<' + that.connInfo.server + ' MOTD> ' + l)
+      that.logger.info('<' + that.connInfo.host + ' MOTD> ' + l)
     })
   })
   //log NAMES events
@@ -314,29 +326,29 @@ Irc.prototype.connect = function(opts,connectedCb){
   //log JOIN events
   that.conn.on('JOIN',function(event){
     that.logger.info('<' + event.params[0] + '> ' +
-        ((that.connInfo.nick === event.nick) ? '' : event.nick + ' ') +
+        ((that.conn.nick() === event.nick) ? '' : event.nick + ' ') +
         'joined'
     )
   })
   //log PART events
   that.conn.on('PART',function(event){
     that.logger.info('<' + event.params[0] + '> ' +
-        ((that.connInfo.nick === event.nick) ? '' : event.nick + ' ') +
+        ((that.conn.nick() === event.nick) ? '' : event.nick + ' ') +
         'parted'
     )
   })
   //log KICK events
   that.conn.on('KICK',function(event){
     that.logger.info('<' + event.params[0] + '> ' +
-        ((that.connInfo.nick === event.nick) ? '' : event.nick + ' ') +
-        'kicked ' + ((that.connInfo.nick === event.params[1]) ? 'me' : event.params[1]) +
+        ((that.conn.nick() === event.nick) ? '' : event.nick + ' ') +
+        'kicked ' + ((that.conn.nick() === event.params[1]) ? 'me' : event.params[1]) +
         ((event.params[2]) ? ' (' + event.params[2] + ')' : '')
     )
   })
   //log QUIT events
   that.conn.on('QUIT',function(event){
-    that.logger.info('<' + that.connInfo.server + '> ' +
-        ((that.connInfo.nick === event.nick) ? '' : event.nick + ' ') +
+    that.logger.info('<' + that.connInfo.host + '> ' +
+        ((that.conn.nick() === event.nick) ? '' : event.nick + ' ') +
         'has quit' + ((event.params[0]) ? ' (' + event.params[0] + ')' : '')
     )
   })
@@ -353,9 +365,60 @@ Irc.prototype.connect = function(opts,connectedCb){
     //bail if it's a CTCP payload (handled by plugin, which may not be loaded)
     if(that.conn.ctcp && that.conn.isCtcp(event)) return
     event.data = messageDecode(event.params.join(' '))
-    that.logger.info('<' + event.nick + ' NOTICE> ' + event.params.join(' '))
+    that.logger.info('<' + event.nick + ' NOTICE> ' + event.params.splice(1).join(' '))
     if(event.data.command) that.logger.info(' :data:',event.data)
   })
+
+  //CTCP DCC support
+  //dcc chat
+  var dccLogHdr = function(e,x){
+    return ['<' + e.nick,'DCC',e.type,e.handle,x].join(' ').trim() + '>'
+  }
+  that.conn.on('ctcp_dcc_chat_request',function(event){
+    that.logger.info(dccLogHdr(event,'REQUEST') + '...accepting')
+    that.conn.acceptDccRequest(event.handle)
+  })
+  that.conn.on('ctcp_dcc_chat_error',function(event){
+    that.logger.info(dccLogHdr(event,'REQUEST') + '...ERROR: ' + event.message)
+  })
+  that.conn.on('ctcp_dcc_chat_connecting',function(event){
+    that.logger.info(dccLogHdr(event,'REQUEST') + '...connecting')
+  })
+  that.conn.on('ctcp_dcc_chat_connect',function(event){
+    that.logger.info(dccLogHdr(event,'REQUEST') + '...connected')
+  })
+  that.conn.on('ctcp_dcc_chat_message',function(event){
+    event.data = messageDecode(event.message)
+    that.logger.info(dccLogHdr(event) + ' ' + event.message)
+    if(event.data.command) that.logger.info(' :data:',event.data)
+  })
+  that.conn.on('ctcp_dcc_chat_close',function(event){
+    that.logger.info(dccLogHdr(event,'REQUEST') + '...closed')
+  })
+  //dcc send
+  that.conn.on('ctcp_dcc_send_request',function(event){
+    that.logger.info(dccLogHdr(event) + '...accepting')
+    that.conn.acceptDccRequest(event.handle)
+  })
+  that.conn.on('ctcp_dcc_send_error',function(event){
+    that.logger.info(dccLogHdr(event) + '...ERROR: ' + event.message)
+  })
+  that.conn.on('ctcp_dcc_send_connecting',function(event){
+    that.logger.info(dccLogHdr(event) + '...connecting')
+  })
+  that.conn.on('ctcp_dcc_send_connect',function(event){
+    that.logger.info(dccLogHdr(event) + '...connected')
+  })
+  that.conn.on('ctcp_dcc_send_open',function(event){
+    that.logger.info(dccLogHdr(event) + '...creating file "' + event.filename + '"')
+  })
+  that.conn.on('ctcp_dcc_send_progress',function(event){
+    that.logger.info(dccLogHdr(event) + '...wrote ' + event.wrote + (event.size?'/' + event.size:''))
+  })
+  that.conn.on('ctcp_dcc_send_close',function(event){
+    that.logger.info(dccLogHdr(event) + '...closed')
+  })
+  that.conn.connect()
 }
 
 

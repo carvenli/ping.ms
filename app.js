@@ -1,8 +1,8 @@
 'use strict';
-var config = require('./config')
-
-var logger = require('./helpers/logger').create()
 var async = require('async')
+
+var config = require('./config')
+var logger = require('./helpers/logger').create()
 
 //services that dont require mongoose
 logger.info('Starting services that don\'t require mongoose...')
@@ -52,7 +52,7 @@ if(config.get('mongoose.enabled')){
             require('./main').start(next)
           } else next()
         }
-      ],function(){
+      ],function(err){
         if(err){
           logger.error('Startup failed: ' + err)
           process.exit()

@@ -1,5 +1,6 @@
 'use strict';
 var async = require('async')
+var debug = require('debug')('pingms:main')
 var flash = require('connect-flash')
 var shortId = require('shortid')
 
@@ -17,43 +18,53 @@ var generateHandle = function(){return shortId.generate().replace(/[-_]/g,'').to
 
 var irc
 var startIrc = function(next){
-  irc = new Irc({tag:logger.tagExtend('irc'),version:config.get('version')})
+  irc = new Irc({
+    tag: logger.tagExtend('irc'),
+    version: config.get('title') + '-MUX v' + config.get('version')
+  })
   //parse uri into ircFactory compatible options
   var uri = config.get('main.mux.uri')
   var parseEx = /^([^:]*):\/\/([^@:]*)[:]?([^@]*)@([^:]*):([0-9]*)\/(#.*)$/i;
   var secure
   var nick
   var password
-  var server
+  var host
   var port
   var channel
   if(parseEx.test(uri)){
     secure = ('ircs' === uri.replace(parseEx,'$1'))
     nick = uri.replace(parseEx,'$2')
     password = uri.replace(parseEx,'$3')
-    server = uri.replace(parseEx,'$4')
+    host = uri.replace(parseEx,'$4')
     port = uri.replace(parseEx,'$5')
     channel = uri.replace(parseEx,'$6')
   }
   async.series(
     [
       function(next){
-        if(!(server && port && nick)){
-          next('IRC couldnt connect, no server/port/nick in config')
+        if(!(host && port && nick)){
+          next('IRC couldnt connect, no host/port/nick in config')
           return
         }
         irc.connect({
-          server:server,
-          port:+port
+          host: host,
+          port: +port,
+          secure: secure,
+          nick: nick,
+          realname: 'Ping.ms MUX',
+          ident: nick.toLowerCase()
         },function(){
           irc.conn.on('close',function(){
-            irc.logger.warning('Connection closed, retrying...')
-            startIrc()
-            setTimeout(function(){startIrc()},1000)
+           debug('close',arguments)
+						irc.logger.warning('Connection closed, retrying in 1s...')
+           setTimeout(function(){
+             startIrc()
+           },1000)
           })
           irc.conn.on('error',function(){
+            debug('error',arguments)
+						irc.logger.warning('Connection error, retrying in 1s...')
             setTimeout(function(){
-              irc.logger.warning('Connection error, retrying...')
               startIrc()
             },1000)
           })
@@ -61,12 +72,8 @@ var startIrc = function(next){
             irc.logger.warning('Connection seems stale, retrying...')
             startIrc()
           },11000)
-          irc.conn.version = ['ping.ms MUX',config.get('version'),'nodejs'].join(':')
           next()
         })
-      },
-      function(next){
-        irc.nick(nick,next)
       },
       function(next){
         irc.join(channel,next)
