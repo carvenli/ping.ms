@@ -274,7 +274,7 @@ Irc.prototype.connect = function(opts,connectedCb){
   })
   //load irc-connect plugins
   that.conn.use(irc.pong,irc.motd,irc.names,ircChannels,ircCtcp,ircCtcp.dcc)
-  if(that.options.get('version')) that.conn.ctcp.setOption('version',that.options.get('version'))
+  if(that.options.get('version')) that.conn.ctcpSetOption('version',that.options.get('version'))
   //map welcome and error events to callback, if any
   if('function' === typeof connectedCb){
     that.conn.once('welcome',function(){connectedCb()})
@@ -355,7 +355,7 @@ Irc.prototype.connect = function(opts,connectedCb){
   //log PRIVMSG events
   that.conn.on('PRIVMSG',function(event){
     //bail if it's a CTCP payload (handled by plugin, which may not be loaded)
-    if(that.conn.ctcp && that.conn.isCtcp(event)) return
+    if(that.conn.isCtcp && that.conn.isCtcp(event)) return
     event.data = messageDecode(event.params.join(' '))
     that.logger.info('<' + event.nick + '>' + ((event.params[1]) ? ' ' + event.params[1] : ''))
     if(event.data.command) that.logger.info(' :data:',event.data)
@@ -363,7 +363,7 @@ Irc.prototype.connect = function(opts,connectedCb){
   //log NOTICE events
   that.conn.on('NOTICE',function(event){
     //bail if it's a CTCP payload (handled by plugin, which may not be loaded)
-    if(that.conn.ctcp && that.conn.isCtcp(event)) return
+    if(that.conn.isCtcp && that.conn.isCtcp(event)) return
     event.data = messageDecode(event.params.join(' '))
     that.logger.info('<' + event.nick + ' NOTICE> ' + event.params.splice(1).join(' '))
     if(event.data.command) that.logger.info(' :data:',event.data)
@@ -376,7 +376,7 @@ Irc.prototype.connect = function(opts,connectedCb){
   }
   that.conn.on('ctcp_dcc_chat_request',function(event){
     that.logger.info(dccLogHdr(event,'REQUEST') + '...accepting')
-    that.conn.acceptDccRequest(event.handle)
+    that.conn.dccRequestAccept(event.handle)
   })
   that.conn.on('ctcp_dcc_chat_error',function(event){
     that.logger.info(dccLogHdr(event,'REQUEST') + '...ERROR: ' + event.message)
@@ -398,7 +398,7 @@ Irc.prototype.connect = function(opts,connectedCb){
   //dcc send
   that.conn.on('ctcp_dcc_send_request',function(event){
     that.logger.info(dccLogHdr(event) + '...accepting')
-    that.conn.acceptDccRequest(event.handle)
+    that.conn.dccRequestAccept(event.handle)
   })
   that.conn.on('ctcp_dcc_send_error',function(event){
     that.logger.info(dccLogHdr(event) + '...ERROR: ' + event.message)
