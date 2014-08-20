@@ -2,8 +2,6 @@
 var debug = require('debug')('irc:ctcp')
 var moment = require('moment')
 
-var propCopy = function(obj){return JSON.parse(JSON.stringify(obj))}
-
 
 
 /**
@@ -76,7 +74,7 @@ CtcpPlugin.prototype.isPayload = function(event){
  */
 CtcpPlugin.prototype.payloadDecode = function(event){
   if(!this.isPayload(event)) return false
-  var rv = propCopy(event)
+  var rv = Object.create(event)
   rv.target = event.params[0]
   var message = event.params[1]
   message = (message[0] === '+') ? message.slice(2) : message.slice(1)

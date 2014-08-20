@@ -2,8 +2,6 @@
 var async = require('async')
 var debug = require('debug')('irc:ctcp:mesh')
 
-var propCopy = function(obj){return JSON.parse(JSON.stringify(obj))}
-
 
 
 /**
@@ -84,7 +82,7 @@ CtcpMesh.prototype.isParticipant = function(channel,nick){
   //setup a response timeout to see who didn't reply
   if(that.info[channel][nick].timeout) clearTimeout(that.info[channel][nick].timeout)
   //grab an attendance snapshot
-  var attendance = propCopy(that.irc.chanInfo[channel].attendance)
+  var attendance = Object.create(that.irc.chanInfo[channel].attendance)
   var inAttendance = function(nick){return -1 < attendance.indexOf(nick)}
   async.filter(attendance,function(nick,next){next((!inAttendance(nick)))},function(newbs){
     attendance = newbs

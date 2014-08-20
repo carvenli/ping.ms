@@ -3,13 +3,12 @@ var async = require('async')
 var logger = require('../helpers/logger').create('main:mux')
 var config = require('../config')
 var Mux = require('../helpers/mux.js')
-var propCopy = function(obj){return JSON.parse(JSON.stringify(obj))}
 
 var options = config.get('main.mux')
 var sockets = []
 module.exports = function(done){
   async.each(options.connections,function(conn,next){
-    var muxOpts = propCopy(conn)
+    var muxOpts = Object.create(conn)
     muxOpts.tag = logger.tagExtend(sockets.length)
     muxOpts.version = config.get('version')
     muxOpts.title = config.get('title')

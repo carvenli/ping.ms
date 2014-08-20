@@ -1,16 +1,12 @@
 'use strict';
 var async = require('async')
 var EventEmitter = require('events').EventEmitter
-var shortId = require('shortid')
 var util = require('util')
 
 var Logger = require('./logger')
 var Bot = require('../models/bot').model
 
 var botInterface = {}
-
-var propCopy = function(obj){return JSON.parse(JSON.stringify(obj))}
-var generateHandle = function(){return shortId.generate().replace(/[-_]/g,'').toUpperCase()}
 
 
 
@@ -84,7 +80,7 @@ Mux.prototype.connect = function(done){
     return
 
   //setup irc
-  var muxOpts = propCopy(that.options)
+  var muxOpts = Object.create(that.options)
   muxOpts.type = 'mux'
   muxOpts.appName = that.options.title + ' ' + muxOpts.type.toUpperCase()
   muxOpts.logger = that.logger

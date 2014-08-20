@@ -3,7 +3,6 @@ var async = require('async')
 var logger = require('../helpers/logger').create('bot')
 var config = require('../config')
 var Bot = require('../helpers/bot.js')
-var propCopy = function(obj){return JSON.parse(JSON.stringify(obj))}
 
 var options = config.get('bot')
 var sockets = []
@@ -76,7 +75,7 @@ var startIrc = function(next){
 
 module.exports = function(done){
   async.each(options.connections,function(conn,next){
-    var botOpts = propCopy(conn)
+    var botOpts = Object.create(conn)
     botOpts.tag = logger.tagExtend(sockets.length)
     botOpts.version = config.get('version')
     botOpts.title = config.get('title')
