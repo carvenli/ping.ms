@@ -369,6 +369,30 @@ Irc.prototype.connect = function(opts,connectedCb){
     if(event.data.command) that.logger.info(' :data:',event.data)
   })
 
+  //CTCP MESH support
+  //CTCP DCC support
+  //dcc chat
+  var meshLogHdr = function(e,x){
+    return ['<' + e.nick,'MESH',e.type,e.address,x].join(' ').trim() + '>'
+  }
+  that.conn.on('ctcp_mesh_hello_request',function(event){
+    var rv = {}
+    async.series([
+      function(next){
+        that.logger.info(meshLogHdr(event,'HELLO') + '...identifying')
+        //db lookup here
+        next()
+      }
+    ],
+    function(err){
+      if(err){
+        rv.error = true
+        rv.message = err
+      }
+      that.conn.meshHelloResponse(rv)
+    })
+  })
+
   //CTCP DCC support
   //dcc chat
   var dccLogHdr = function(e,x){

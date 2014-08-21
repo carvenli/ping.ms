@@ -87,6 +87,28 @@ var DNS = function(host){
 
 
 /**
+ * Resolve a hostname to IP(s)
+ * @param {array|string} host
+ * @param {function} done
+ */
+DNS.prototype.ip = function(host,done){
+  var that = this
+  if(!(host instanceof Array)) host = [host]
+  that.logger.info('DNS.ip"' + host.join(',') + '"\n')
+  async.series(
+    [
+      function(next){
+        hostToIp(host,function(err,addrs){
+          next(err,addrs)
+        })
+      }
+    ],
+    done
+  )
+}
+
+
+/**
  * Resolve an IP to PTR
  * @param {array|string} ip
  * @param {function} done
@@ -94,7 +116,7 @@ var DNS = function(host){
 DNS.prototype.ptr = function(ip,done){
   var that = this
   if(!(ip instanceof Array)) ip = [ip]
-  that.logger.info('DNS.ipToPtr"' + ip.join(',') + '"\n')
+  that.logger.info('DNS.ptr"' + ip.join(',') + '"\n')
   async.series(
     [
       function(next){

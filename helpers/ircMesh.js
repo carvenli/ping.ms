@@ -1,18 +1,59 @@
 'use strict';
 var async = require('async')
 var debug = require('debug')('irc:ctcp:mesh')
+var dnsHelper = require('./dns')
 
 
 
 /**
  * Plugin constructor, contain reference to client
- * @param {Irc} irc Reference to Irc helper object
  * @constructor
  */
-var CtcpMesh = function(irc){
+var IrcMesh = function(){
   var that = this
-  that.irc = irc
-  that.info = {}
+  that.options = {
+    site: 'setme.tosomething.org'
+  }
+  that.registered = {}
+  that.sessions = {}
+  return that
+}
+
+
+/**
+ * Get an option
+ * @param {string} option Option
+ * @return {*} Value (no filter, could return undefined, null, whatever)
+ */
+IrcMesh.prototype.getOption = function(option){
+  var that = this
+  var value = that.options[option]
+  debug('getting options[\''+option+'\'] which is currently ' + value)
+  return value
+}
+
+
+/**
+ * Set an option
+ * @param {string} option Option
+ * @param {*} value Value
+ */
+IrcMesh.prototype.setOption = function(option,value){
+  var that = this
+  debug('setting options[\''+option+'\'] = ' + value)
+  that.options[option] = value
+}
+
+
+/**
+ * Send a DCC CHAT Request
+ * @param {string} target Target
+ * @return {void} fire escape
+ */
+IrcMesh.prototype.chatRequest = function(target){
+  if(!target) return
+  var that = this
+  that.ctcpRequestSend(target,'DCC',['CHAT','chat',ip.toLong('127.6.6.6'),'1666'])
 }
 
 
@@ -22,7 +63,7 @@ var CtcpMesh = function(irc){
  * @param {string} channel Channel
  * @param {string} nick Nick
  */
-CtcpMesh.prototype.ensureStruct = function(channel,nick){
+IrcMesh.prototype.ensureStruct = function(channel,nick){
   var that = this
   that.info[channel] = that.info[channel] || {}
   that.info[channel][nick] = that.info[channel][nick] || {}
@@ -34,7 +75,7 @@ CtcpMesh.prototype.ensureStruct = function(channel,nick){
  * @param {string} channel Channel
  * @param {string} nick Nick
  */
-CtcpMesh.prototype.addParticipant = function(channel,nick){
+IrcMesh.prototype.addParticipant = function(channel,nick){
   var that = this
   that.ensureStruct(channel,nick)
   that.info[channel][nick].meshed = true
@@ -46,7 +87,7 @@ CtcpMesh.prototype.addParticipant = function(channel,nick){
  * @param {string} channel Channel
  * @param {string} nick Nick
  */
-CtcpMesh.prototype.addNonparticipant = function(channel,nick){
+IrcMesh.prototype.addNonparticipant = function(channel,nick){
   var that = this
   that.ensureStruct(channel,nick)
   that.info[channel][nick].meshed = false
@@ -59,7 +100,7 @@ CtcpMesh.prototype.addNonparticipant = function(channel,nick){
  * @param {string} command Mesh Command
  * @param {object} append Additional properties to add to packet
  */
-CtcpMesh.prototype.sendMeshRequest = function(nick,command,append){
+IrcMesh.prototype.sendMeshRequest = function(nick,command,append){
   var that = this
   if('object' !== typeof append) append = {}
   that.irc.ctcpRequest(nick,'MESH',Object.merge(append,{command:command.toUpperCase()}))
@@ -73,7 +114,7 @@ CtcpMesh.prototype.sendMeshRequest = function(nick,command,append){
  * @param {string} nick Nick
  * @return {boolean} if we already know this nick and it's participating
  */
-CtcpMesh.prototype.isParticipant = function(channel,nick){
+IrcMesh.prototype.isParticipant = function(channel,nick){
   var that = this
   that.ensureStruct(channel,nick)
   var exists = ('boolean' === typeof that.info[channel][nick].meshed)
@@ -109,53 +150,141 @@ CtcpMesh.prototype.isParticipant = function(channel,nick){
 
 
 /**
- * Get MESH Command
+ * Detect MESH Type
  * @param {object} event Event from CTCP plugin event
- * @return {string|boolean} Command, or false if not MESH
+ * @return {string|boolean} Type, or false if not MESH
  */
-CtcpMesh.prototype.getMeshCommand = function(event){
-  return ('MESH' === event.type && event.data.command) ? event.data.command.toUpperCase() : false
+IrcMesh.prototype.typeDetect = function(event){
+  return ('MESH' === event.type) ? event.params[0].toUpperCase() : false
+}
+
+var address = null
+var dnsResolve = function(host,done){
+  if(!host){
+    done('Passed host "' + host + '" evaluates false')
+    return
+  }
+  dnsHelper.ip(host,function(err,addresses){
+    if(err || !addresses.length){
+      done('Could not resolve host "' + host + '"')
+      return
+    }
+    if(1 < addresses.length)
+      debug('WARNING: Host "' + host + '" has multiple address records:',addresses)
+    address = addresses[0]
+    done()
+  })
 }
 
 
 /**
- * Register plugin and return self-reference
- * @return {CtcpMesh}
+ * Event receiver for ctcp_request events
+ * @param {object} event Event from irc-connect-ctcp
+ * @return {void} fire escape
  */
-CtcpMesh.prototype.register = function(){
+IrcMesh.prototype.meshRequestRecv = function(type,event){
   var that = this
-  if(!that.irc.conn.ctcp){
-    debug('irc-connect CTCP plugin not loaded, bailing')
-    return false
-  }
-  /*
-   * CTCP MESH handlers
-   */
-  //MESH HELLO response
-  that.irc.conn.on('ctcp_response',function(event){
-    if('HELLO' !== that.getMeshCommand(event)) return
-    if(event.data && event.data.channel && that.irc.options.get('version') === event.data.version){
-      //func you if you don't like this mapper hack
-      var m = function(func){return that[func](event.data.channel,event.nick)}
-      if(!m('isParticipant')) m('addParticipant')
-    }
-  })
-  //MESH HELLO request
-  that.irc.conn.on('ctcp_request',function(event){
-    if('HELLO' !== that.getMeshCommand(event)) return
+  if('HELLO' === type){
+    that.clientOn('')
     if(event.data && event.nick && event.type){
       event.data.version = that.irc.options.get('version')
       event.data.channel = that.irc.connInfo.channel
       that.irc.ctcpResponse(event.nick,event.type,event.data)
     }
-  })
-  debug('Plugin registered')
-  return that
+    that.ctcpResponseSend(event.nick,type,params)
+  }
+}
+
+
+/**
+ * Event handler for ctcp_response events
+ * @param {object} event Event from irc-connect-ctcp
+ * @return {void} fire escape
+ */
+IrcMesh.prototype.meshResponseRecv = function(type,event){
+  var that = this
+  if('HELLO' === type){
+    if(event.data && event.data.channel && that.irc.options.get('version') === event.data.version){
+      //func you if you don't like this mapper hack
+      var m = function(func){return that[func](event.data.channel,event.nick)}
+      if(!m('isParticipant')) m('addParticipant')
+    }
+  }
+}
+
+
+/**
+ * Event receiver for ctcp_request and ctcp_response events
+ * @param {object} event Event from irc-connect-ctcp
+ * @return {void} fire escape
+ */
+IrcMesh.prototype.eventReceiver = function(event){
+  var that = this
+  var type = that.typeDetect(event)
+  //TODO decide which req/res we are routing to
+  var handler = function(){}
+  //bail on non-MESH or unhandled types
+  if(!type || -1 === ['HELLO','SESSION','CMD'].indexOf(type)) return
+  async.series([
+      function(next){ dnsResolve(event,next) },
+      function(next){
+        that.sessions[address] = {
+          nick: event.nick,
+          authorized: false
+        }
+        debug('Session "' + address + '" created for "' + event.nick + '"')
+        next()
+      }
+    ],function(err){
+      if(err) debug(err)
+      else {
+        handler(type,event)
+        /*
+         that.emit('request',address)
+         //set the session expiration in case it is never accepted (60 seconds)
+         that.sessionTimeout[address] = setTimeout(function(){
+         debug('Session ' + address + ' timed out')
+         that.emit('error',address,{message:'TimedOut'})
+         that.clearSession(address)
+         },60000)
+         */
+      }
+    }
+  )
 }
 
 
 /**
  * Export plugin
- * @type {CtcpMesh}
+ * @type {object}
+ * @return {void} fire escape
  */
-module.exports = CtcpMesh
+module.exports = {
+  __irc: function(client){
+    if(!client.isCtcp){
+      debug('irc-connect-ctcp plugin not loaded, bailing')
+      return false
+    }
+    //safety check complete
+    var mesh = new IrcMesh()
+    //bind upper emit/send
+    mesh.clientVersion = client.getMainVersion.bind(client)
+    mesh.clientEmit = client.emit.bind(client)
+    mesh.clientSend = client.send.bind(client)
+    //no need to double rebind these
+    mesh.ctcpRequestSend = client.ctcpRequestSend
+    mesh.ctcpResponseSend = client.ctcpResponseSend
+    //client function bindery
+    client.meshSetOption = mesh.setOption.bind(mesh)
+    client.meshGetOption = mesh.getOption.bind(mesh)
+    client.meshRequestAccept = mesh.requestAccept.bind(mesh)
+    client.meshChatWrite = mesh.chatWrite.bind(mesh)
+    //client event hooks
+    client
+      .on('ctcp_request',mesh.eventReceiver.bind(mesh))
+    client
+      .on('ctcp_response',mesh.eventReceiver.bind(mesh))
+
+    debug('Plugin registered')
+  }
+}
