@@ -8,8 +8,8 @@ var ircCtcp = require('irc-connect-ctcp')
 var ObjectManage = require('object-manage')
 var util = require('util')
 
-var Logger = require('../../helpers/logger')
-ircCtcp.mesh = require('./ctcp/mesh')
+var Logger = require('./logger')
+var ircMesh = require('./ircMesh')
 
 
 /**

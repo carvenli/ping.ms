@@ -84,7 +84,7 @@ Mux.prototype.connect = function(done){
   muxOpts.type = 'mux'
   muxOpts.appName = that.options.title + ' ' + muxOpts.type.toUpperCase()
   muxOpts.logger = that.logger
-  that.ircMesh = require('./Irc').create(muxOpts)
+  that.ircMesh = require('./irc').create(muxOpts)
   that.ircMesh.on('debug',function(msg){that.logger.info(msg)})
   that.ircMesh.on('verbose',function(msg){that.logger.info(msg)})
   that.ircMesh.on('connecting',function(where){ that.logger.info('Connecting to ' + where) })
