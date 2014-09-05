@@ -9,7 +9,7 @@ var ObjectManage = require('object-manage')
 var util = require('util')
 
 var Logger = require('./logger')
-var ircMesh = require('./ircMesh')
+//var ircMesh = require('./ircMesh')
 
 
 /**
@@ -65,10 +65,10 @@ var Irc = function(opts){
   EventEmitter.apply(that)
   //handle options
   that.options = new ObjectManage()
-  that.options.load(that.defaultOptions)
-  that.options.load(opts)
+  that.options.$load(that.defaultOptions)
+  that.options.$load(opts)
   //setup logger
-  that.logger = Logger.create(that.options.get('tag'))
+  that.logger = Logger.create(that.options.tag)
   //setup object internals
   that.conn = null    //the actual connection (irc-connect instance)
   that.connDog = null //watchdog reconnection timeout pointer
@@ -259,22 +259,22 @@ Irc.prototype.connect = function(opts,connectedCb){
   var that = this
   //handle options
   var options = new ObjectManage()
-  options.load(that.defaultConnectOptions)
-  options.load(opts)
+  options.$load(that.defaultConnectOptions)
+  options.$load(opts)
   //log some activity
-  that.logger.info('connecting to ' + options.get('host') + ':' + options.get('port'))
+  that.logger.info('connecting to ' + options.host + ':' + options.port)
   //setup irc-connect
   that.conn = irc.create({
-    host: options.get('host'),
-    port: +options.get('port'),
-    secure: options.get('secure')?'semi':false,
-    nick: options.get('nick'),
-    realname: options.get('realname'),
-    ident: options.get('ident')
+    host: options.host,
+    port: +options.port,
+    secure: options.secure?'semi':false,
+    nick: options.nick,
+    realname: options.realname,
+    ident: options.ident
   })
   //load irc-connect plugins
   that.conn.use(irc.pong,irc.motd,irc.names,ircChannels,ircCtcp,ircCtcp.dcc)
-  if(that.options.get('version')) that.conn.ctcpSetOption('version',that.options.get('version'))
+  if(that.options.version) that.conn.ctcpSetOption('version',that.options.version)
   //map welcome and error events to callback, if any
   if('function' === typeof connectedCb){
     that.conn.once('welcome',function(){connectedCb()})
@@ -291,7 +291,7 @@ Irc.prototype.connect = function(opts,connectedCb){
     //log the connect
     that.logger.info('Connected')
     //connInfo inherits main options
-    that.connInfo = options.get()
+    that.connInfo = options.$get()
     //add the welcome message string for posterity
     that.connInfo.welcome = msg
     //channel state, object with channel as key

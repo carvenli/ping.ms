@@ -1,17 +1,20 @@
 'use strict';
 var async = require('async')
+
 var logger = require('../helpers/logger').create('main:mux')
-var config = require('../config')
 var Mux = require('../helpers/mux.js')
 
-var options = config.get('main.mux')
+var config = require('../config')
+
+var options = config.main.mux
 var sockets = []
+
 module.exports = function(done){
   async.each(options.connections,function(conn,next){
     var muxOpts = Object.create(conn)
     muxOpts.tag = logger.tagExtend(sockets.length)
-    muxOpts.version = config.get('version')
-    muxOpts.title = config.get('title')
+    muxOpts.version = config.version
+    muxOpts.title = config.title
     var mux = Mux.create(muxOpts)
     sockets.push(mux)
     //handle resolve requests

@@ -1,6 +1,6 @@
 'use strict';
 var mongoose = require('mongoose')
-  , schema
+var schema
 
 //load plugins
 mongoose.plugin(require('mongoose-list'))

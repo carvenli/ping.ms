@@ -1,9 +1,10 @@
 'use strict';
 var async = require('async')
-  , IP = require('ip')
-  , hostbyname = require('hostbyname')
-  , dns = require('dns')
-  , Logger = require('../helpers/logger')
+var dns = require('dns')
+var hostbyname = require('hostbyname')
+var IP = require('ip')
+
+var Logger = require('../helpers/logger')
 
 
 /**

@@ -1,12 +1,14 @@
 'use strict';
+var Table = require('cli-table')
 var program = require('commander')
-  , Table = require('cli-table')
-  , mongoose = require('mongoose')
-  , config = require('../config')
-  , logger = require('../helpers/logger').create('Staff Manage')
-  , Staff = require('../models/staff').model
+var mongoose = require('mongoose')
 
-mongoose.connect(config.get('mongoose.dsn'),config.get('mongoose.options'),function(err){
+var logger = require('../helpers/logger').create('staff')
+var Staff = require('../models/staff').model
+
+var config = require('../config')
+
+mongoose.connect(config.mongoose.dsn,config.mongoose.options,function(err){
   if(err) throw err
   //create
   program
@@ -19,7 +21,7 @@ mongoose.connect(config.get('mongoose.dsn'),config.get('mongoose.options'),funct
       if(!opts.email || !opts.password){
         throw new Error('Email and password are required')
       }
-      var doc  = new Staff({
+      var doc = new Staff({
         email: opts.email,
         password: opts.password,
         name: opts.name,
@@ -90,7 +92,7 @@ mongoose.connect(config.get('mongoose.dsn'),config.get('mongoose.options'),funct
         process.exit()
       })
     })
-  program.version(config.get('version'))
+  program.version(config.version)
   var cli = program.parse(process.argv)
   if(!cli.args.length) program.help()
 })

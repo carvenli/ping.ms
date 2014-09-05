@@ -25,20 +25,20 @@
     "node": ">=0.10.0"
   },
   "dependencies": {
-    "async": "^0.8.0",
-    "caterpillar": "^2.0.7",
-    "caterpillar-filter": "^2.0.3",
-    "caterpillar-human": "^2.1.2",
-    "debug": "^1.0.4",
-    "hostbyname": "^0.1.0",
-    "ip": "^0.3.0",
-    "irc-channels": "^3.6.2",
-    "irc-connect": "^2.1.2",
-    "mkdirp": "^0.5.0",
-    "moment": "^2.7.0",
-    "net-ping": "^1.1.10",
-    "object-manage": "^0.7.1",
-    "pkginfo": "^0.3.0",
-    "shortid": "^2.0.0"
+    "async": "0.9.x",
+    "caterpillar": "2.0.x",
+    "caterpillar-filter": "2.0.x",
+    "caterpillar-human": "2.1.x",
+    "debug": "2.0.x",
+    "hostbyname": "0.1.x",
+    "ip": "0.3.x",
+    "irc-channels": "3.6.x",
+    "irc-connect": "2.1.x",
+    "mkdirp": "0.5.x",
+    "moment": "2.8.x",
+    "net-ping": "1.1.x",
+    "object-manage": "0.8.x",
+    "pkginfo": "0.3.x",
+    "shortid": "2.0.x"
   }
 }

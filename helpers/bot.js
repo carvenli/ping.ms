@@ -1,9 +1,10 @@
 'use strict';
-var util = require('util')
 //var async = require('async')
-var Logger = require('./logger')
-var BotSession = require('./botSession')
 var EventEmitter = require('events').EventEmitter
+var util = require('util')
+
+var BotSession = require('../helpers/botSession')
+var Logger = require('../helpers/logger')
 
 
 
@@ -83,6 +84,7 @@ Bot.prototype.resolve = function(handle,host,done){
 /**
  * Connect to irc
  * @param {function} done Callback for authorized connect
+ * @return {void} fire escape
  */
 Bot.prototype.connect = function(done){
   var that = this
@@ -112,7 +114,7 @@ Bot.prototype.connect = function(done){
   that.ircMesh.on('debug',function(msg){that.logger.info(msg)})
   that.ircMesh.on('verbose',function(msg){that.logger.info(msg)})
   that.ircMesh.on('connecting',function(where){ that.logger.info('Connecting to ' + where) })
-  that.ircMesh.on('attendance:#test',function(msg){that.logger.info('attendance:',msg)})
+  that.ircMesh.on('attendance:#pingms',function(msg){that.logger.info('attendance:',msg)})
   //wire normal message types
   that.ircMesh.on('privmsg',function(o){
     console.log(o)

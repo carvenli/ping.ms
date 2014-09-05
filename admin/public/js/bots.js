@@ -33,7 +33,7 @@ $(document).ready(function(){
     'passwordLength': 15,
     'uppercase': true,
     'lowercase': true,
-    'numbers':   true,
+    'numbers': true,
     'specialChars': false
   })
 })

@@ -1,9 +1,11 @@
 'use strict';
+var markdown = require('markdown').markdown
 var mongoose = require('mongoose')
-  , validator = require('validator')
-  , markdown = require('markdown').markdown
-  , urlname = require('../helpers/urlname')
-  , schema
+var validator = require('validator')
+
+var urlname = require('../helpers/urlname')
+
+var schema
 
 //load plugins
 mongoose.plugin(require('mongoose-merge-plugin'))

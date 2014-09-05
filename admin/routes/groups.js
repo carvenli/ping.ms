@@ -1,10 +1,15 @@
 'use strict';
-var list = require('../helpers/list')
-  , async = require('async')
+var async = require('async')
 
+var list = require('../helpers/list')
 var Group = require('../../models/group').model
 
 
+/**
+ * Remove a group by ID
+ * @param {string} groupId
+ * @param {function} next
+ */
 var remove = function(groupId,next){
   var group
   async.series(

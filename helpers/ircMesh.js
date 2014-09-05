@@ -1,7 +1,9 @@
 'use strict';
 var async = require('async')
 var debug = require('debug')('irc:ctcp:mesh')
-var dnsHelper = require('./dns')
+var ip = require('ip')
+
+var dnsHelper = require('../helpers/dns')
 
 
 
@@ -179,15 +181,17 @@ var dnsResolve = function(host,done){
 
 /**
  * Event receiver for ctcp_request events
+ * @param {string} type Type
  * @param {object} event Event from irc-connect-ctcp
  * @return {void} fire escape
  */
 IrcMesh.prototype.meshRequestRecv = function(type,event){
   var that = this
+  var params = {}
   if('HELLO' === type){
     that.clientOn('')
     if(event.data && event.nick && event.type){
-      event.data.version = that.irc.options.get('version')
+      event.data.version = that.irc.options.version
       event.data.channel = that.irc.connInfo.channel
       that.irc.ctcpResponse(event.nick,event.type,event.data)
     }
@@ -198,13 +202,14 @@ IrcMesh.prototype.meshRequestRecv = function(type,event){
 
 /**
  * Event handler for ctcp_response events
+ * @param {string} type Type
  * @param {object} event Event from irc-connect-ctcp
  * @return {void} fire escape
  */
 IrcMesh.prototype.meshResponseRecv = function(type,event){
   var that = this
   if('HELLO' === type){
-    if(event.data && event.data.channel && that.irc.options.get('version') === event.data.version){
+    if(event.data && event.data.channel && that.irc.options.version === event.data.version){
       //func you if you don't like this mapper hack
       var m = function(func){return that[func](event.data.channel,event.nick)}
       if(!m('isParticipant')) m('addParticipant')

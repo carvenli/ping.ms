@@ -1,9 +1,10 @@
 'use strict';
 var async = require('async')
-  , util = require('util')
-  , Logger = require('../helpers/logger')
-  , DNS = require('../helpers/dns.js')
 var EventEmitter = require('events').EventEmitter
+var util = require('util')
+
+var DNS = require('../helpers/dns.js')
+var Logger = require('../helpers/logger')
 
 //setup our netPing session early and save it for reuse privately
 var netPing = require('net-ping')

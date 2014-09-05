@@ -1,11 +1,16 @@
 'use strict';
+var async = require('async')
+
 var list = require('../helpers/list')
-  , async = require('async')
-
 var Bot = require('../../models/bot').model
-  , Group = require('../../models/group').model
+var Group = require('../../models/group').model
 
 
+/**
+ * Remove a bot by ID
+ * @param {string} botId
+ * @param {function} next
+ */
 var remove = function(botId,next){
   var bot
   async.series(
@@ -27,6 +32,11 @@ var remove = function(botId,next){
   )
 }
 
+
+/**
+ * Get the standard list of groups
+ * @param {function} next
+ */
 var groupList = function(next){
   Group.list(
     {sort: 'name'},

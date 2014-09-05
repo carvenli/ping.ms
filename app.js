@@ -11,11 +11,10 @@ async.series(
   [
     //bot
     function(next){
-      if(config.get('bot.enabled')){
+      if(config.bot.enabled){
         logger.info('Starting Bot...')
-        require('./bot')
-      }
-      next()
+        require('./bot').start(next)
+      } else next()
     }
   ],
   function(err){
@@ -26,12 +25,12 @@ async.series(
   }
 )
 
-if(config.get('mongoose.enabled')){
+if(config.mongoose.enabled){
   var mongoose = require('mongoose')
   //services that do require mongoose
   logger.info('Starting services that do require mongoose...')
   //connect to mongoose first
-  mongoose.connect(config.get('mongoose.dsn'),config.get('mongoose.options'),function(err){
+  mongoose.connect(config.mongoose.dsn,config.mongoose.options,function(err){
     if(err){
       logger.error('Failed to connect to mongoose: ' + err)
       process.exit()
@@ -40,14 +39,14 @@ if(config.get('mongoose.enabled')){
       [
         function(next){
           //admin
-          if(config.get('admin.enabled')){
+          if(config.admin.enabled){
             logger.info('Starting Admin...')
             require('./admin').start(next)
           } else next()
         },
         function(next){
           //main
-          if(config.get('main.enabled')){
+          if(config.main.enabled){
             logger.info('Starting Main...')
             require('./main').start(next)
           } else next()

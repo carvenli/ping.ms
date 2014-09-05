@@ -1,9 +1,11 @@
 'use strict';
+var async = require('async')
+var bcrypt = require('bcrypt')
 var mongoose = require('mongoose')
-  , validate = require('mongoose-validator').validate
-  , bcrypt = require('bcrypt')
-  , async = require('async')
-  , schema, model
+var validate = require('mongoose-validator').validate
+
+var schema
+var model
 
 //load plugins
 mongoose.plugin(require('mongoose-merge-plugin'))
@@ -80,8 +82,8 @@ schema = new mongoose.Schema({
 
 schema.statics.login = function(email,password,done){
   var now = new Date()
-    , errorMessage = 'Invalid email address or password'
-    , staff = {}
+  var errorMessage = 'Invalid email address or password'
+  var staff = {}
   async.series(
     [
       //find the staff member

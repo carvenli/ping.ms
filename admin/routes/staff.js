@@ -1,7 +1,13 @@
 'use strict';
+var list = require('../helpers/list')
 var Model = require('../../models/staff').model
-  , list = require('../helpers/list')
 
+
+/**
+ * List staff members
+ * @param {Object} req
+ * @param {Object} res
+ */
 exports.list = function(req,res){
   if('post' === req.method.toLowerCase() && req.body.remove && req.body.remove.length){
     list.remove(Model,req.body.remove,function(err,count){
@@ -12,8 +18,8 @@ exports.list = function(req,res){
       }
     })
   } else {
-    var limit = parseInt(req.query.limit,10) || 10
-    var start = parseInt(req.query.start,10) || 0
+    var limit = +req.query.limit || 10
+    var start = +req.query.start || 0
     var search = req.query.search || ''
     if(start < 0) start = 0
     Model.list({start: start, limit: limit, search: search},function(err,count,results){
@@ -28,6 +34,12 @@ exports.list = function(req,res){
   }
 }
 
+
+/**
+ * Output an edit/create form
+ * @param {Object} req
+ * @param {Object} res
+ */
 exports.form = function(req,res){
   Model.findById(req.query.id,function(err,result){
     if(err){
@@ -48,6 +60,12 @@ exports.form = function(req,res){
   })
 }
 
+
+/**
+ * Save staff member
+ * @param {Object} req
+ * @param {Object} res
+ */
 exports.save = function(req,res){
   Model.findById(req.body.id,function(err,doc){
     if(!doc) doc = new Model()
@@ -67,6 +85,12 @@ exports.save = function(req,res){
   })
 }
 
+
+/**
+ * Login
+ * @param {Object} req
+ * @param {Object} res
+ */
 exports.login = function(req,res){
   if('post' === req.method.toLowerCase()){
     Model.login(req.body.email,req.body.password,function(err,staff){
@@ -83,6 +107,12 @@ exports.login = function(req,res){
   }
 }
 
+
+/**
+ * Logout
+ * @param {Object} req
+ * @param {Object} res
+ */
 exports.logout = function(req,res){
   delete req.session.staff
   res.redirect('/login')

@@ -7,7 +7,7 @@ require('pkginfo')(module,'version')
 //setup config object
 config = new ObjectManage()
 //dist config schema
-config.load({
+config.$load({
   title: 'ping.ms',
   version: module.exports.version,
   mongoose: {
@@ -15,6 +15,11 @@ config.load({
     name: 'ping-ms',
     dsn: 'mongodb://localhost/ping-ms',
     options: {native_parser: true} // jshint ignore:line
+  },
+  redis: {
+    host: '127.0.0.1',
+    port: 6379,
+    options: {}
   },
   admin: {
     enabled: false,
@@ -53,7 +58,7 @@ config.load({
 })
 //load user config
 if(fs.existsSync(__dirname + '/config.local.js')){
-  config.load(require(__dirname + '/config.local.js'))
+  config.$load(require(__dirname + '/config.local.js'))
 }
 
 

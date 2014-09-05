@@ -1,16 +1,23 @@
 'use strict';
 var async = require('async')
+var bodyParser = require('body-parser')
+var cookieParser = require('cookie-parser')
 var flash = require('connect-flash')
-
 var express = require('express')
+var session = require('express-session')
+var morgan = require('morgan')
+var errorHandler = require('errorhandler')
+
+var RedisStore = require('connect-redis')(session)
 var app = express()
 var server = require('http').createServer(app)
 
-var config = require('../config')
 var logger = require('../helpers/logger').create('admin')
-var RedisStore = require('connect-redis')(express)
+var redis = require('../helpers/redis')
 
+var config = require('../config')
 var routes = require('./routes')
+
 
 /**
  * Start Admin
@@ -22,20 +29,22 @@ exports.start = function(started){
       function(next){
         //global tpl vars
         app.locals.pretty = true
-        app.locals.version = config.get('version')
+        app.locals.version = config.version
         app.locals.moment = require('moment')
 
         app.set('views',__dirname + '/' + 'views')
         app.set('view engine','jade')
-        app.use(express.urlencoded())
-        app.use(express.json())
-        app.use(express.cookieParser(config.get('admin.cookie.secret')))
-        app.use(express.session({
+        app.use(bodyParser.urlencoded({extended:false}))
+        app.use(bodyParser.json())
+        app.use(cookieParser(config.admin.cookie.secret))
+        app.use(session({
           cookie: {
-            maxAge: config.get('admin.cookie.maxAge')
+            maxAge: config.admin.cookie.maxAge
           },
-          store: new RedisStore(),
-          secret: config.get('admin.cookie.secret')
+          store: new RedisStore({client:redis}),
+          secret: config.admin.cookie.secret,
+          resave: true,
+          saveUninitialized: true
         }))
         app.use(flash())
         app.use(function(req,res,next){
@@ -53,9 +62,9 @@ exports.start = function(started){
         })
 
         // development only
-        if('development' === app.get('env')){
-          app.use(express.logger('dev'))
-          app.use(express.errorHandler())
+        if('development' === process.env.NODE_ENV){
+          app.use(morgan('dev'))
+          app.use(errorHandler())
         }
 
         //auth
@@ -94,11 +103,11 @@ exports.start = function(started){
         //home page
         app.get('/',routes.index)
 
-        server.listen(config.get('admin.port'),config.get('admin.host'),function(){
+        server.listen(config.admin.port,config.admin.host,function(){
           logger.info(
               'Express listening on port ' +
-              (config.get('admin.host') || '0.0.0.0') +
-              ':' + config.get('admin.port')
+              (config.admin.host || '0.0.0.0') +
+              ':' + config.admin.port
           )
           next()
         })

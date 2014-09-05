@@ -2,31 +2,30 @@
 var async = require('async')
 var debug = require('debug')('pingms:main')
 
+var Irc = require('../helpers/irc')
+var logger = require('../helpers/logger').create('main')
+
 var config = require('../config')
-var Logger = require('../helpers/logger')
-var logger = Logger.create('main')
 
 var irc
-var startIrc = function(next){
-  var Irc = require('../helpers/irc')
-
+var startIrc = function(done){
   irc = new Irc({
     tag: logger.tagExtend('irc'),
-    version: config.get('title') + '-MUX v' + config.get('version')
+    version: config.title + '-MUX v' + config.version
   })
   //parse uri into ircFactory compatible options
-  var uri = config.get('main.mux.uri')
+  var uri = config.main.mux.uri
   var parseEx = /^([^:]*):\/\/([^@:]*)[:]?([^@]*)@([^:]*):([0-9]*)\/(#.*)$/i;
   var secure
   var nick
-  var password
+  //var password
   var host
   var port
   var channel
   if(parseEx.test(uri)){
     secure = ('ircs' === uri.replace(parseEx,'$1'))
     nick = uri.replace(parseEx,'$2')
-    password = uri.replace(parseEx,'$3')
+    //password = uri.replace(parseEx,'$3')
     host = uri.replace(parseEx,'$4')
     port = uri.replace(parseEx,'$5')
     channel = uri.replace(parseEx,'$6')
@@ -47,15 +46,15 @@ var startIrc = function(next){
           ident: nick.toLowerCase()
         },function(){
           irc.conn.on('close',function(){
-           debug('close',arguments)
-						irc.logger.warning('Connection closed, retrying in 1s...')
-           setTimeout(function(){
-             startIrc()
-           },1000)
+            debug('close',arguments)
+            irc.logger.warning('Connection closed, retrying in 1s...')
+            setTimeout(function(){
+              startIrc()
+            },1000)
           })
           irc.conn.on('error',function(){
             debug('error',arguments)
-						irc.logger.warning('Connection error, retrying in 1s...')
+            irc.logger.warning('Connection error, retrying in 1s...')
             setTimeout(function(){
               startIrc()
             },1000)
@@ -71,31 +70,34 @@ var startIrc = function(next){
         irc.join(channel,next)
       }
     ],
-    next
+    done
   )
 }
 
-var startExpress = function(next){
+var startExpress = function(done){
   var bodyParser = require('body-parser')
-  var express = require('express')
   var flash = require('connect-flash')
   var cookieParser = require('cookie-parser')
+  var errorHandler = require('errorhandler')
+  var express = require('express')
+  var session = require('express-session')
   var methodOverride = require('method-override')
   var morgan = require('morgan')
-  var session = require('express-session')
 
   var app = express()
-  var server = require('http').Server(app)
+  var server = require('http').createServer(app)
   var io = require('socket.io')(server)
-  var RedisStore = require('connect-redis')(express)
+  var RedisStore = require('connect-redis')(session)
 
+  var logger = require('../helpers/logger').create('main')
+  var redis = require('../helpers/redis')
   var routes = require('./routes')
 
   /**
    * Local tpl vars
    * @type {{title: *}}
    */
-  app.locals.app = {title: config.get('title')}
+  app.locals.app = {title: config.title}
   app.locals.moment = require('moment')
 
   // middleware stack
@@ -104,13 +106,13 @@ var startExpress = function(next){
   app.use(bodyParser.urlencoded({extended:true}))
   app.use(bodyParser.json())
   app.use(methodOverride())
-  app.use(cookieParser(config.get('main.cookie.secret')))
+  app.use(cookieParser(config.main.cookie.secret))
   app.use(session({
     cookie: {
-      maxAge: config.get('main.cookie.maxAge')
+      maxAge: config.main.cookie.maxAge
     },
-    store: new RedisStore(),
-    secret: config.get('main.cookie.secret'),
+    store: new RedisStore({client:redis}),
+    secret: config.main.cookie.secret,
     resave: true,
     saveUninitialized: true
   }))
@@ -138,8 +140,8 @@ var startExpress = function(next){
   // development only
   if('development' === app.get('env')){
     app.locals.pretty = true
-    app.use(express.errorHandler())
     app.use(morgan('dev'))
+    app.use(errorHandler())
   }
 
   //home page
@@ -151,13 +153,13 @@ var startExpress = function(next){
   //socket.io routing
   io.on('connection',require('./sockio').connection)
 
-  server.listen(config.get('main.port'),config.get('main.host'),function(){
+  server.listen(config.main.port,config.main.host,function(){
     logger.info(
         'Express listening on port ' +
-        (config.get('main.host') || '0.0.0.0') +
-        ':' + config.get('main.port')
+        (config.main.host || '0.0.0.0') +
+        ':' + config.main.port
     )
-    next()
+    done()
   })
 }
 

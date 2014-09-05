@@ -63,6 +63,7 @@ Mux.prototype.pingSanitize = function(data,next){
 /**
  * Connect to irc
  * @param {function} done Callback for authorized connect
+ * @return {void} fire escape
  */
 Mux.prototype.connect = function(done){
   var that = this
