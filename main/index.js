@@ -1,87 +1,24 @@
 'use strict';
 var async = require('async')
-var debug = require('debug')('pingms:main')
+//var debug = require('debug')('ping.ms:main')
 
-var Irc = require('../helpers/irc')
-var logger = require('../helpers/logger').create('main')
+var AxonProxy = require('../helpers/AxonProxy')
+var redis = require('../helpers/redis')
 
 var config = require('../config')
+var logger = require('../helpers/Logger').create('main')
 
-var irc
-var startIrc = function(done){
-  irc = new Irc({
-    tag: logger.tagExtend('irc'),
-    version: config.title + '-MUX v' + config.version
-  })
-  //parse uri into ircFactory compatible options
-  var uri = config.main.mux.uri
-  var parseEx = /^([^:]*):\/\/([^@:]*)[:]?([^@]*)@([^:]*):([0-9]*)\/(#.*)$/i;
-  var secure
-  var nick
-  //var password
-  var host
-  var port
-  var channel
-  if(parseEx.test(uri)){
-    secure = ('ircs' === uri.replace(parseEx,'$1'))
-    nick = uri.replace(parseEx,'$2')
-    //password = uri.replace(parseEx,'$3')
-    host = uri.replace(parseEx,'$4')
-    port = uri.replace(parseEx,'$5')
-    channel = uri.replace(parseEx,'$6')
-  }
-  async.series(
-    [
-      function(next){
-        if(!(host && port && nick)){
-          next('IRC couldnt connect, no host/port/nick in config')
-          return
-        }
-        irc.connect({
-          host: host,
-          port: +port,
-          secure: secure,
-          nick: nick,
-          realname: 'Ping.ms MUX',
-          ident: nick.toLowerCase()
-        },function(){
-          irc.conn.on('close',function(){
-            debug('close',arguments)
-            irc.logger.warning('Connection closed, retrying in 1s...')
-            setTimeout(function(){
-              startIrc()
-            },1000)
-          })
-          irc.conn.on('error',function(){
-            debug('error',arguments)
-            irc.logger.warning('Connection error, retrying in 1s...')
-            setTimeout(function(){
-              startIrc()
-            },1000)
-          })
-          irc.connDog = setTimeout(function(){
-            irc.logger.warning('Connection seems stale, retrying...')
-            startIrc()
-          },11000)
-          next()
-        })
-      },
-      function(next){
-        irc.join(channel,next)
-      }
-    ],
-    done
-  )
-}
 
+/**
+ * Set the express server
+ * @param {function} done
+ */
 var startExpress = function(done){
   var bodyParser = require('body-parser')
   var flash = require('connect-flash')
   var cookieParser = require('cookie-parser')
-  var errorHandler = require('errorhandler')
   var express = require('express')
   var session = require('express-session')
-  var methodOverride = require('method-override')
   var morgan = require('morgan')
 
   var app = express()
@@ -89,8 +26,6 @@ var startExpress = function(done){
   var io = require('socket.io')(server)
   var RedisStore = require('connect-redis')(session)
 
-  var logger = require('../helpers/logger').create('main')
-  var redis = require('../helpers/redis')
   var routes = require('./routes')
 
   /**
@@ -105,7 +40,6 @@ var startExpress = function(done){
   app.set('view engine','jade')
   app.use(bodyParser.urlencoded({extended:true}))
   app.use(bodyParser.json())
-  app.use(methodOverride())
   app.use(cookieParser(config.main.cookie.secret))
   app.use(session({
     cookie: {
@@ -141,7 +75,6 @@ var startExpress = function(done){
   if('development' === app.get('env')){
     app.locals.pretty = true
     app.use(morgan('dev'))
-    app.use(errorHandler())
   }
 
   //home page
@@ -150,12 +83,63 @@ var startExpress = function(done){
   //bot list
   app.get('/bots',routes.bot)
 
-  //socket.io routing
-  io.on('connection',require('./sockio').connection)
+  //handle socket.io
+  io.on('connection',function(socket){
+    //TODO: this should iterate the database and setup a handle per bot
+    var bot = {
+      reqRep: {
+        host: null,
+        port: 3001
+      },
+      pubSub: {
+        host: null,
+        port: 3002
+      }
+    }
+    //setup a new proxy object to handle the connection
+    var proxy = new AxonProxy(socket,bot.reqRep,bot.pubSub)
+    //dns lookups
+    proxy.clientRequest('resolve',function(req,reply){
+      var that = this
+      that.reqRepSocket.send('resolve',req,function(err,payload){
+        if(err) return reply(that.prepareError(err))
+        reply(payload)
+      })
+    })
+    //ptr lookups
+    proxy.clientRequest('ptr',function(req,reply){
+      var that = this
+      that.reqRepSocket.send('ptr',req,function(err,payload){
+        if(err) return reply(that.prepareError(err))
+        reply(payload)
+      })
+    })
+    //ping request
+    proxy.clientRequest('ping',function(req,reply){
+      var that = this
+      that.reqRepSocket.send('ping',req,function(err,payload){
+        if(err) return reply(that.prepareError(err))
+        reply(payload)
+      })
+    })
+    //ping responses
+    proxy.serverEvent('pingResponse',function(err,payload){
+      var that = this
+      if(err) return that.io.emit('ping:error',that.prepareError(err))
+      that.io.emit(payload + ':ping:response'.token,payload)
+    })
+    //start the proxy session
+    proxy.start(function(err){
+      if(err){
+        logger.warning('Failed to start AxonProxy',err)
+      }
+    })
+  })
 
+  //setup an listen
   server.listen(config.main.port,config.main.host,function(){
     logger.info(
-        'Express listening on port ' +
+        'Main listening on port ' +
         (config.main.host || '0.0.0.0') +
         ':' + config.main.port
     )
@@ -166,14 +150,15 @@ var startExpress = function(done){
 
 /**
  * Start Main
- * @param {function} started Callback when finished with startup
+ * @param {function} done Callback when finished with startup
  */
-exports.start = function(started){
+exports.start = function(done){
   async.series(
     [
-      startIrc,
-      startExpress
+      function(next){
+        startExpress(next)
+      }
     ],
-    started
+    done
   )
 }

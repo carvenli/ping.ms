@@ -153,7 +153,7 @@ $(document).ready(function(){
 
 
   /**
-   * Handle DNS errors
+   * Handle Dns errors
    */
   var pingTableDnsError = function(err){
     setError(true,err)
@@ -173,7 +173,7 @@ $(document).ready(function(){
     pingResults[index] = []
     var row = pingTable.find('tr#' + index)
     var ip = dnsResult.ip[0]
-    row.find('td.ip').html(ip || '<span class="text-danger">[DNS Failed]</span>')
+    row.find('td.ip').html(ip || '<span class="text-danger">[Dns Failed]</span>')
     row.find('td.loss').html(ip ? '-' : '100')
     setResultsRow(index,true)
     if(!ip) pulsarFinal(index)
@@ -189,7 +189,7 @@ $(document).ready(function(){
   var pingTableRowUpdate = function(index,pingResult){
     var row = pingTable.find('tr#' + index)
     if('-' !== pingResult.avg) pingResult.avg = pingResult.avg.toPrecision(5)
-    row.find('.ip').html(pingResult.target)
+    row.find('.ip').html(pingResult.reqRepTarget)
     row.find('.min').html(pingResult.min)
     row.find('.avg').html(pingResult.avg)
     row.find('.max').html(pingResult.max)
@@ -310,7 +310,7 @@ $(document).ready(function(){
       }
     })
     pingTableRowUpdate(data.id,{
-      target: data.target,
+      target: data.reqRepTarget,
       min: min, max: max, avg: avg,
       fails: fails, total: pingResults[data.id].length,
       currentlyFailed: currentlyFailed
@@ -381,7 +381,7 @@ $(document).ready(function(){
       host: host,
       group: group
     }
-    //send the DNS resolve to the backend
+    //send the Dns resolve to the backend
     socket.emit('resolve',query,function(data){
       if(data.error) return done(data.error,data.results)
       done(null,data.results)

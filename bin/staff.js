@@ -3,7 +3,7 @@ var Table = require('cli-table')
 var program = require('commander')
 var mongoose = require('mongoose')
 
-var logger = require('../helpers/logger').create('staff')
+var logger = require('../helpers/Logger').create('staff')
 var Staff = require('../models/staff').model
 
 var config = require('../config')

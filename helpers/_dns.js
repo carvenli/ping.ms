@@ -1,10 +1,9 @@
 'use strict';
 var async = require('async')
+var debug = require('debug')('ping.ms:helper:dns')
 var dns = require('dns')
 var hostbyname = require('hostbyname')
 var IP = require('ip')
-
-var Logger = require('../helpers/logger')
 
 
 /**
@@ -20,7 +19,7 @@ var hostToIp = function(host,done){
     async.eachSeries(results,function(r,next){
       var rv = false
       if(-1 === [
-        //Charter DNS bogus hosts
+        //Charter Dns bogus hosts
         '198.105.244.24',
         '198.105.244.35',
         '198.105.254.24',
@@ -80,9 +79,8 @@ var ipToPtr = function(ip,done){
  * @param {string} host
  * @constructor
  */
-var DNS = function(host){
+var Dns = function(host){
   var that = this
-  that.logger = Logger.create('DNS')
   that.host = host.toString()
 }
 
@@ -92,10 +90,9 @@ var DNS = function(host){
  * @param {array|string} host
  * @param {function} done
  */
-DNS.prototype.ip = function(host,done){
-  var that = this
+Dns.prototype.ip = function(host,done){
   if(!(host instanceof Array)) host = [host]
-  that.logger.info('DNS.ip"' + host.join(',') + '"\n')
+  debug('dns.ip"' + host.join(',') + '"\n')
   async.series(
     [
       function(next){
@@ -114,10 +111,9 @@ DNS.prototype.ip = function(host,done){
  * @param {array|string} ip
  * @param {function} done
  */
-DNS.prototype.ptr = function(ip,done){
-  var that = this
+Dns.prototype.ptr = function(ip,done){
   if(!(ip instanceof Array)) ip = [ip]
-  that.logger.info('DNS.ptr"' + ip.join(',') + '"\n')
+  debug('dns.ptr"' + ip.join(',') + '"\n')
   async.series(
     [
       function(next){
@@ -135,9 +131,9 @@ DNS.prototype.ptr = function(ip,done){
  * Resolve a host
  * @param {function} done
  */
-DNS.prototype.resolve = function(done){
+Dns.prototype.resolve = function(done){
   var that = this
-  that.logger.info('DNS.resolve: ' + that.host)
+  debug('dns.resolve: ' + that.host)
   async.waterfall(
     [
       //resolve the host to ip
@@ -161,17 +157,7 @@ DNS.prototype.resolve = function(done){
 
 
 /**
- * Create instance
- * @param {string} host
- * @return {DNS}
- */
-DNS.create = function(host){
-  return new DNS(host)
-}
-
-
-/**
  * Export module
- * @type {DNS}
+ * @type {Dns}
  */
-module.exports = DNS
+module.exports = Dns

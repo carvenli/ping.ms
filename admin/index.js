@@ -12,7 +12,7 @@ var RedisStore = require('connect-redis')(session)
 var app = express()
 var server = require('http').createServer(app)
 
-var logger = require('../helpers/logger').create('admin')
+var logger = require('../helpers/Logger').create('admin')
 var redis = require('../helpers/redis')
 
 var config = require('../config')

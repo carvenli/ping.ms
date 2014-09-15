@@ -2,7 +2,7 @@
 var async = require('async')
 
 var config = require('./config')
-var logger = require('./helpers/logger').create()
+var logger = require('./helpers/Logger').create()
 
 //services that dont require mongoose
 logger.info('Starting services that don\'t require mongoose...')
