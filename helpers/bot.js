@@ -108,7 +108,7 @@ Bot.prototype.connect = function(done){
   botOpts.type = 'bot'
   botOpts.appName = that.options.title + ' ' + botOpts.type.toUpperCase()
   botOpts.logger = that.logger
-  that.ircMesh = require('./irc').create(botOpts)
+  that.ircMesh = require('../helpers/ircMesh').create(botOpts)
 
   //wire events
   that.ircMesh.on('debug',function(msg){that.logger.info(msg)})

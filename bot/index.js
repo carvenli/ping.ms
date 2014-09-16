@@ -10,15 +10,18 @@ var config = require('../config')
 
 var options = config.bot
 var sockets = []
+var reportFunc = function(err){ if(err) debug('ERROR:',err) }
 
-var irc
-var startIrc = function(done){
-  irc = new Irc({
-    tag: logger.tagExtend('irc'),
+var irc = {}
+var startIrc = function(conn,done){
+  if('function' !== typeof done) done = reportFunc
+  var uri = '' + conn.uri + ''
+  var index = ':' + (Object.keys(irc).length)
+  irc[uri] = new Irc({
+    tag: logger.tagExtend('irc' + index),
     version: config.title + '-BOT v' + config.version
   })
   //parse uri into ircFactory compatible options
-  var uri = config.main.mux.uri
   var parseEx = /^([^:]*):\/\/([^@:]*)[:]?([^@]*)@([^:]*):([0-9]*)\/(#.*)$/i;
   var secure
   var nick
@@ -26,6 +29,7 @@ var startIrc = function(done){
   var host
   var port
   var channel
+  console.log(uri)
   if(parseEx.test(uri)){
     secure = ('ircs' === uri.replace(parseEx,'$1'))
     nick = uri.replace(parseEx,'$2')
@@ -41,37 +45,37 @@ var startIrc = function(done){
           next('IRC couldnt connect, no host/port/nick in config')
           return
         }
-        irc.connect({
+        irc[uri].connect({
           host: host,
           port: +port,
           secure: secure,
           nick: nick,
-          realname: 'Ping.ms MUX',
+          realname: 'Ping.ms BOT',
           ident: nick.toLowerCase()
         },function(){
-          irc.conn.on('close',function(){
+          irc[uri].conn.on('close',function(){
             debug('close',arguments)
-            irc.logger.warning('Connection closed, retrying in 1s...')
+            irc[uri].logger.warning('Connection closed, retrying in 1s...')
             setTimeout(function(){
-              startIrc()
+              startIrc(uri)
             },1000)
           })
-          irc.conn.on('error',function(){
+          irc[uri].conn.on('error',function(){
             debug('error',arguments)
-            irc.logger.warning('Connection error, retrying in 1s...')
+            irc[uri].logger.warning('Connection error, retrying in 1s...')
             setTimeout(function(){
-              startIrc()
+              startIrc(uri)
             },1000)
           })
-          irc.connDog = setTimeout(function(){
-            irc.logger.warning('Connection seems stale, retrying...')
-            startIrc()
+          irc[uri].connDog = setTimeout(function(){
+            irc[uri].logger.warning('Connection seems stale, retrying...')
+            startIrc(uri)
           },11000)
           next()
         })
       },
       function(next){
-        irc.join(channel,next)
+        irc[uri].join(channel,next)
       }
     ],
     done
@@ -81,8 +85,8 @@ var startIrc = function(done){
 var startBot = function(done){
   async.each(
     options.connections,
-    function(conn,next){
-      var botOpts = Object.create(conn)
+    function(uri,next){
+      var botOpts = Object.create(uri)
       botOpts.tag = logger.tagExtend(sockets.length)
       botOpts.version = config.version
       botOpts.title = config.title
@@ -123,7 +127,16 @@ var startBot = function(done){
 exports.start = function(started){
   async.series(
     [
-      startIrc,
+      function(next){
+        async.each(
+          options.connections,
+          startIrc,
+          function(err){
+            reportFunc(err)
+            next(err)
+          }
+        )
+      },
       startBot
     ],
     started
