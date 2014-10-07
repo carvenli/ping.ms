@@ -137,79 +137,103 @@ restServer.on('message',function(cmd,req,reply){
 
 
 /**
- * Send a ping to a host with a promise and write it to a socket
- *   we need a function to use as an interval to send the pings
- * @param {object} socket
- * @param {netPing.Session} ping
- * @param {string} ip
- * @param {number} interval
+ * Parse a new stream connection and return a promise that will resolve
+ *   with the resulting request
+ * @param {net.Socket} socket
+ * @return {P}
  */
-var sendPing = function(socket,ping,ip,interval){
-  ping.pingHostAsync(ip)
-    .then(function(target,sent,received){
-      var ms = sent - received
-      socket.write(amp.encode({result: {
-        target: target,
-        sent: sent,
-        received: received,
-        ms: ms
-      }}))
+var parseStreamConnection = function(socket){
+  return new P(function(resolve,reject){
+    //parse out the request early here and setup our promise chain
+    var req
+    //note: i found this sweet stream parser inside of AMP undocumented used in
+    //axon which was basically the point of using axon but it makes it easier
+    //having this socket serve a more specific purpose, i think it could be
+    //upgraded to do traceroutes without much hassle and its already good for
+    //ipv6 support
+    var parser = new amp.Stream()
+    parser.once('data',function(data){
+      req = data
     })
-    .catch(function(err){
-      //at this point we send an error and tear down the socket
-      if(interval) clearInterval(interval)
-      socket.end(amp.encode(new Error('Ping has failed: ' + err)))
-    })
+    //once the pipe finishes we know we have the request so lets start pinging
+    promisePipe(socket,parser)
+      .then(function(){
+        if('object' !== typeof req)
+          reject('Invalid request sent to open result stream')
+        else
+        resolve(req)
+      }).catch(reject)
+  })
+}
+
+
+/**
+ * Setup a new ping session and return a promise that is fulfilled when the
+ *  duration has been completed
+ * @param {net.Socket} socket
+ * @param {object} req
+ * @return {P}
+ */
+var pingSession = function(socket,req){
+  var ping
+  if(!req.ip) throw new Error('No IP provided to ping')
+  if(!validator.isIP(req.ip))
+    throw new Error('Invalid IP address')
+  if(req.packets && !validator.isNumeric(req.packets))
+    throw new Error('Invalid duration')
+  //default to 4 packets
+  if(!req.packets) req.packets = 4
+  //get the correct ping instance
+  if(validator.isIP(req.ip,4))
+    ping = ping4
+  if(validator.isIP(req.ip,6))
+    ping = ping6
+  //send the first ping
+  return new P(function(resolve,reject){
+    var sentCount = 0
+    var sendPing = function(ip){
+      sentCount++
+      //if we have packets left just set another timeout
+      if(sentCount <= req.packets){
+        setTimeout(function(){sendPing(ip)},1000)
+      }
+      //otherwise end the socket and resolve the promise
+      else {
+        socket.end()
+        resolve()
+        return
+      }
+      //if we got here send a new ping packet and write the result to the stream
+      ping.pingHostAsync(ip)
+        .then(function(target,sent,received){
+          socket.write(amp.encode({result: {
+            target: target,
+            sent: sent,
+            received: received,
+            ms: sent - received
+          }}))
+        }).catch(reject)
+    }
+    //get the party started
+    sendPing(req.ip)
+  })
 }
 
 
 //setup our connection handling for the stream results
 streamServer.on('connection',function(socket){
-  //setup our ping handler
-  var pingInterval
-  //parse out the request early here and setup our promise chain
-  var req
-  //note: i found this sweet stream parser inside of AMP undocumented used in
-  //axon which was basically the point of using axon but it makes it easier
-  //having this socket serve a more specific purpose, i think it could be
-  //upgraded to do traceroutes without much hassle and its already good for
-  //ipv6 support
-  var parser = new amp.Stream()
-  parser.once('data',function(data){
-    req = data
-  })
-  //once the pipe finishes we know we have the request so lets start pinging
-  promisePipe(socket,parser)
-    .then(function(){
-      var ping
-      if(!req.ip) throw new Error('No IP provided to ping')
-      if(!validator.isIP(req.ip))
-        throw new Error('Invalid IP address')
-      if(req.duration && !validator.isNumeric(req.duration))
-        throw new Error('Invalid duration')
-      //default to 4 packets (we kill before so it will never fire the last
-      //interval, this could probably cleaned up to use a packet counter instead
-      if(!req.duration) req.duration = 4999
-      //get the correct ping instance
-      if(validator.isIP(req.ip,4))
-        ping = ping4
-      if(validator.isIP(req.ip,6))
-        ping = ping6
-      //send the first ping
-      sendPing(ping,req.ip)
-      //now set up the interval for it to continue
-      pingInterval = setInterval(function(){
-        sendPing(ping,req.ip,pingInterval)
-      },1000)
-      //setup the duration timer to teardown
-      setTimeout(function(){
-        if(pingInterval) clearInterval(pingInterval)
-        socket.end()
-      },req.duration)
+  //parse out our request
+  parseStreamConnection(socket)
+    .then(function(req){
+      //determine the request type
+      if('ping' === req.type || !req.type)
+        return pingSession(socket,req)
+      //if('traceroute' === req.type)
+        //return traceSession(socket,req)
+      throw new Error('Invalid result stream requested')
     })
     .catch(function(err){
-      if(pingInterval) clearInterval(pingInterval)
-      socket.end(amp.encode(new Error('Failed to make ping session: ' + err)))
+      socket.end(amp.encode(err))
     })
 })
 
