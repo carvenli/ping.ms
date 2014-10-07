@@ -217,6 +217,81 @@ var pingSession = function(socket,req){
 }
 
 
+/**
+ * Run a single traceroute and return the result
+ * @param {netPing} ping
+ * @param {string} ip
+ * @return {P}
+ */
+var runTrace = function(ping,ip){
+  return new P(function(resolve,reject){
+    var result = []
+    ping.traceRoute(
+      ip,
+      function(err,target,ttl,sent,received){
+        result.push({
+          error: err,
+          target: target,
+          ttl: ttl,
+          sent: sent,
+          received: received,
+          ms: received - sent
+        })
+      },
+      function(err){
+        if(err) reject(err)
+        else resolve(result)
+      })
+  })
+}
+
+
+/**
+ * Setup a new trace session and return a promise that is fulfilled when the
+ *  duration has been completed
+ * @param {net.Socket} socket
+ * @param {object} req
+ * @return {P}
+ */
+var traceSession = function(socket,req){
+  var ping
+  if(!req.ip) throw new Error('No IP provided to ping')
+  if(!validator.isIP(req.ip))
+    throw new Error('Invalid IP address')
+  if(req.packets && !validator.isNumeric(req.packets))
+    throw new Error('Invalid duration')
+  //default to 4 packets
+  if(!req.packets) req.packets = 4
+  //get the correct ping instance
+  if(validator.isIP(req.ip,4))
+    ping = ping4
+  if(validator.isIP(req.ip,6))
+    ping = ping6
+  //send the first ping
+  return new P(function(resolve,reject){
+    var sentCount = 0
+    var sendTrace = function(ip){
+      sentCount++
+      //if we have packets left just set another timeout
+      if(sentCount < req.packets)
+        setTimeout(function(){sendTrace(ip)},1000)
+      //if we got here send a new ping packet and write the result to the stream
+      runTrace(ping,ip)
+        .then(function(result){
+          var msg = new AmpMessage()
+          msg.push(null)
+          msg.push(result)
+          if(sentCount < req.packets)
+            socket.write(msg.toBuffer())
+          else
+            socket.end(msg.toBuffer())
+        }).catch(reject)
+    }
+    //get the party started
+    sendTrace(req.ip)
+  })
+}
+
 //setup our connection handling for the stream results
 streamServer.on('connection',function(socket){
   //parse out our request
@@ -225,13 +300,14 @@ streamServer.on('connection',function(socket){
       //determine the request type
       if('ping' === req.type || !req.type)
         return pingSession(socket,req)
-      //if('traceroute' === req.type)
-        //return traceSession(socket,req)
+      if('trace' === req.type)
+        return traceSession(socket,req)
       throw new Error('Invalid result stream requested')
     })
     .catch(function(err){
       var msg = new AmpMessage()
-      msg.push(err)
+      if(err instanceof Error) msg.push(err.toString())
+      else msg.push(err)
       socket.end(msg.toBuffer())
     })
 })

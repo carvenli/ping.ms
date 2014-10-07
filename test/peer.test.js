@@ -6,7 +6,6 @@ var P = require('bluebird')
 var expect = require('chai').expect
 var net = require('net')
 var promisePipe = require('promisepipe')
-//var through2 = require('through2')
 
 var config = require('../config')
 var peer = require('../peer/worker')
@@ -82,6 +81,37 @@ describe('peer',function(){
       expect(result).to.be.an('array')
       expect(result.length).to.equal(3)
       expect(result[0].ms).to.be.a('number')
+      done()
+    }).catch(done)
+  })
+  it('should trace a host',function(done){
+    this.timeout(5000)
+    var result = []
+    var errors = []
+    var parser = new amp.Stream()
+    parser.on('data',function(data){
+      var msg = new AmpMessage(data)
+      //check if we have an error
+      var err = msg.shift()
+      if(err) errors.push(err)
+      //the second argument should be our result
+      else result.push(msg.shift())
+    })
+    var socket = net.connect(
+      +config.peer.stream.port,
+      config.peer.stream.host || '127.0.0.1'
+    )
+    P.try(function(){
+      //send our request by submitting one packet and closing the socket
+      var msg = new AmpMessage()
+      msg.push({type: 'trace', ip: '127.0.0.1', packets: 3})
+      socket.end(msg.toBuffer())
+      return promisePipe(socket,parser)
+    }).then(function(){
+      if(errors.length) throw errors
+      expect(result).to.be.an('array')
+      expect(result.length).to.equal(3)
+      expect(result[0][0].ms).to.be.a('number')
       done()
     }).catch(done)
   })
