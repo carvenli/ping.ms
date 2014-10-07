@@ -42,5 +42,5 @@ exports.stop = function(done){
 
 //worker startup through infant
 if(require.main === module)
-  worker(server,'main:worker',exports.start,exports.stop)
+  worker(server,'ping.ms:main:worker',exports.start,exports.stop)
 

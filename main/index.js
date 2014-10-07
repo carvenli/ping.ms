@@ -7,7 +7,7 @@ var config = require('../config')
 
 if(require.main === module){
   child(
-    'main:master',
+    'ping.ms:main:master',
     function(done){
       cluster = clusterSetup(
         './worker',

@@ -341,4 +341,4 @@ exports.stop = function(done){
 
 //worker startup through infant
 if(require.main === module)
-  worker(restServer,'peer:worker',exports.start,exports.stop)
+  worker(restServer,'ping.ms:peer:worker',exports.start,exports.stop)
