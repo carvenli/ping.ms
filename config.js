@@ -38,13 +38,18 @@ config.$load({
   },
   peer: {
     enabled: false,
-    hosts: [
-      {
-        port: 3001,
-        host: 'localhost',
-        token: ''
-      }
-    ]
+    rest: {
+      port: 3004,
+      host: null
+    },
+    stream: {
+      port: 3005,
+      host: null
+    },
+    workers: {
+      count: 1,
+      maxConnections: 1000
+    }
   }
 })
 

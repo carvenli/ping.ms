@@ -25,16 +25,21 @@
     "node": ">=0.10.0"
   },
   "dependencies": {
-    "bluebird": "^0.11.6",
+    "amp": "0.3.x",
+    "axon": "2.0.x",
+    "bluebird": "0.11.x",
     "caterpillar": "2.0.x",
     "caterpillar-filter": "2.0.x",
     "caterpillar-human": "2.1.x",
     "debug": "2.0.x",
-    "express": "^4.9.5",
-    "graceful-fs": "^3.0.3",
-    "infant": "^0.8.1",
+    "express": "4.9.x",
+    "graceful-fs": "3.0.x",
+    "infant": "0.8.x",
     "net-ping": "1.1.x",
     "object-manage": "0.8.x",
-    "socket.io": "1.1.x"
+    "promisepipe": "1.0.x",
+    "socket.io": "1.1.x",
+    "through2": "0.6.x",
+    "validator": "3.19.x"
   }
 }
