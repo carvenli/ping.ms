@@ -1,0 +1,56 @@
+extends layout
+append js
+  script(src='//bowercdn.net/c/jquery-hashchange-0310f3847f9010faefa0b6abfcf56e8103096192/jquery.ba-hashchange.min.js')
+  script.
+    var socket = io.connect()
+    var sourceId = '!{sourceId}'
+  script(src='/js/main.js')
+block content
+  +alerts()
+  .main
+    p.site-description Free online ping test service with multiple locations worldwide
+    form.form-inline#pingForm(action="#", method="post")
+      .form-group.has-feedback#hostInput
+        input.form-control.ping#host(type="text", name="host", size="48", value="")
+        span.glyphicon.form-control-feedback#feedback
+      .form-group#groupInput
+        select#group(name="group")
+          option(value='all') All
+          each row in groups
+            option(value=row.name)= row.name
+      .form-group#submitInput
+        button.btn.btn-success#pingBtn(type="submit") Ping
+    .instructions Enter a hostname or an IP address, e.g.
+      a.example#host(href="#") google.com
+      | or
+      a.example#ip(href="#")= exampleIp
+      | (results are in milliseconds)
+  #pingResultWrapper.wrapper.hidden
+    #pingResults.results
+      table#pingTable.table.table-bordered
+        thead
+          tr
+            th(style='width:1%;')
+              span.glyphicon.glyphicon-link
+            th(colspan='2') Location
+            th IP
+            th.text-right Min
+            th.text-right Max
+            th.text-right Avg
+            th.text-right Loss (%)
+        tbody
+          tr#waiting
+            td.terminus(colspan='8') Waiting for results...
+          tr.hidden#ping-row-template
+            td.pulsar
+              span.glyphicon.glyphicon-link.text-warning
+            td.group.text-right
+              span.label.label-success.hidden#primaryGroupLabel
+            td.location
+              a(href="javascript:false")
+                span.terminus#text
+            td.terminus.ip -
+            td.terminus.min.text-right -
+            td.terminus.max.text-right -
+            td.terminus.avg.text-right -
+            td.terminus.loss.text-right -

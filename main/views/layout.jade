@@ -1,0 +1,89 @@
+include alerts
+doctype html
+html
+  head
+    block meta
+      meta(charset='utf-8')
+      meta(name='author', content='Ping.ms')
+      meta(property='og:type', content='website')
+      meta(property='og:url', content='http://ping.ms/')
+      meta(property='og:site_name', content='Ping.ms')
+      meta(property='og:title', content='#{pageTitle || "Ping.ms"}')
+      meta(property='og:description', content='ping.ms offers free online ping and free online traceroute service with multiple locations worldwide.')
+      meta(property='og:image', content='http://ping.ms/images/pingms-icon.png')
+      meta(property='fb:app_id', content='1503375086562896')
+      meta(name='keywords', content='ping test, ping, traceroute, reverse traceroute, online ping, remote ping, server, web site, website speed, network speed, traceroutes, ping website')
+      meta(name='description', content='ping.ms offers free online ping and free online traceroute service with multiple locations worldwide.')
+    title #{pageTitle || 'Online Ping Test, Online Trace Route, Internet Test'}
+    block css
+      link(rel='stylesheet', href='//bowercdn.net/c/html5-boilerplate-4.3.0/css/normalize.css')
+      link(rel='stylesheet', href='//bowercdn.net/c/html5-boilerplate-4.3.0/css/main.css')
+      link(rel='stylesheet', href='//bowercdn.net/c/bootstrap-3.2.0/dist/css/bootstrap.min.css')
+      link(rel='stylesheet', href='/css/style.css')
+    link(rel='shortcut icon', href='/favicon.ico', sizes='16x16')
+    link(rel='icon', href='/favicon.ico', sizes='16x16')
+    link(rel='icon', href='/favicon128.ico', sizes='128x128')
+    link(rel='icon', href='/images/pingms-icon.png', sizes='318x317', type='image/png')
+  body
+    script.
+      var scriptLoader = function(id,src){
+        if(document.getElementById(id)) return
+        var js = document.createElement('script')
+        js.id = id; js.src = src; js.defer=true; js.async=true; js.type='text/javascript'
+        var fjs = document.getElementsByTagName('script')[0]
+        fjs.parentNode.insertBefore(js,fjs)
+      }
+    #header
+      #title
+        h1
+          a(href="/")
+            img#logo(src='/images/pingms-logo.png', alt='Ping.ms')
+    //main content
+    block content
+    //footer
+    #footer
+      .share
+        //facebook
+        #fb-root
+        script.
+          scriptLoader('facebook-jssdk','//connect.facebook.net/en_US/sdk.js#xfbml=1&appId=1503375086562896&version=v2.0')
+        .fb-like(data-layout='button_count', colorscheme='dark', data-action='like', data-show-faces='false', data-share='true')
+        //end facebook
+        //twitter
+        a.twitter-share-button(href='//twitter.com/share', data-lang='en') Tweet
+        script.
+          scriptLoader('twitter-wjs','//platform.twitter.com/widgets.js')
+        //end twitter
+        //whos.amung.us
+        script(id='_wau5ni').
+          var _wau = _wau || []; _wau.push(["small", "wmkiodnoh3et", "5ni"]);
+          scriptLoader('wauScript','//widgets.amung.us/small.js')
+        //end whos.amung.us
+      .links
+        a(href='/peers') Peer List
+        a(href='/news') News
+        //a(href='http://en.wikipedia.org/wiki/Ping_(networking_utility)') What is Ping?
+        //a(href='http://en.wikipedia.org/wiki/Traceroute') What is Traceroute?
+    //load scripts
+    block js
+      script(src='//bowercdn.net/c/jquery-1.11.1/dist/jquery.min.js')
+      script(src='//bowercdn.net/c/bootstrap-3.2.0/dist/js/bootstrap.min.js')
+      script(src='/socket.io/socket.io.js')
+      //piwik
+      script.
+        var _paq = _paq || []
+        _paq.push(['trackPageView'])
+        _paq.push(['enableLinkTracking'])
+        _paq.push(['setTrackerUrl', (('https:' === document.location.protocol) ? 'https' : 'http') + '://stats.esited.com/piwik.php'])
+        _paq.push(['setSiteId', 2])
+        scriptLoader('paqScript','//stats.esited.com/piwik.js')
+      //end piwik
+      //google analytics
+      script.
+        (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+        m=s.getElementsByTagName(o)[0];a.defer=true;a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+        })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+              ga('create', 'UA-52059391-1', 'ping.ms');
+        ga('send', 'pageview');
+      //end google analytics

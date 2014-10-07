@@ -1,0 +1,181 @@
+@font-face {
+  font-family: 'Terminus';
+  src: url('../fonts/Terminus.eot?#iefix') format('embedded-opentype'),
+  url('../fonts/Terminus.woff') format('woff'),
+  url('../fonts/Terminus.ttf')  format('truetype'),
+  url('../fonts/Terminus.svg#svgFontName') format('svg');
+}
+.terminus {
+  font: 12pt Terminus,'Courier New',monospace;
+}
+
+body {
+  background-color: #000;
+  color: #444;
+}
+h1, h2, h3, h4, h5 {
+  color:#f1f1f1;
+}
+h1 a {
+  color: #444;
+}
+a {
+  text-decoration: none;
+  color: #034500;
+}
+a:hover {
+  text-decoration: none;
+  color: #0f0;
+}
+#header, #footer, .site-description, .wrapper, .main, .bots, .news {
+  width: 720px;
+  margin: 0 auto;
+  overflow: hidden;
+}
+.results, .bots, .news {
+  margin-top: 0;
+  padding: 5px;
+  background: #fff;
+  border: 3px solid #034500;
+  border-radius: 10px;
+  -moz-border-radius: 10px;
+  -webkit-border-radius: 10px;
+}
+#header {
+  margin-bottom: 0;
+}
+#header h1 {
+  margin: 0;
+}
+#footer {
+  padding-top: 4px;
+}
+#footer div {
+  padding: 0;
+  vertical-align: top;
+}
+#footer .links {
+  padding-left: 16px;
+  font-size: 11px;
+  display: inline-block;
+  width: auto;
+  float: left;
+}
+#footer .links div {
+  padding-right: 8px;
+}
+#footer .links a {
+  margin: 3px;
+}
+#footer .share {
+  padding-right: 16px;
+  font-size: 11px;
+  float: right!important;
+}
+#footer .share div {
+  padding-right: 8px;
+}
+#logo {
+  width: 320px;
+  height: 77px;
+}
+.site-description {
+  margin-top: 0;
+  margin-bottom: 0;
+  padding: 0;
+}
+.main {
+  padding: 15px;
+  margin: auto;
+  border: 1px solid #cbcbcb;
+  border-radius: 10px;
+  -moz-border-radius: 10px;
+  -webkit-border-radius: 10px;
+  font-size: 14px;
+  background: #034500;
+  color: #fff;
+}
+.instructions {
+  display:block;
+  font-weight:bold;
+  color:#f1f1f1;
+  font: 10px arial,helvetica,sans-serif;
+  text-transform: uppercase;
+  margin: 12px 0 4px;
+}
+input, textarea, select {
+  padding: 7px;
+  border: 1px solid #aaa;
+  font: 16px arial,helvetica,sans-serif;
+  width: 490px;
+  color: #999;
+  border-radius: 5px;
+  -moz-border-radius: 5px;
+  -webkit-border-radius: 5px;
+}
+input.ping {
+  background: #fff;
+  padding: 7px;
+  border: 1px solid #333;
+  font: 16px arial,helvetica,sans-serif;
+  color: #999;
+  border-radius: 5px;
+  -moz-border-radius: 5px;
+  -webkit-border-radius: 5px;
+}
+input.ping.error {
+  background: #fcc;
+}
+select {
+  width: auto;
+}
+.table>thead>tr>th, .table>tbody>tr>th, .table>tfoot>tr>th, .table>thead>tr>td, .table>tbody>tr>td, .table>tfoot>tr>td {
+  padding: 4px;
+  vertical-align: middle;
+}
+.table {
+  margin-bottom: 0;
+}
+.table td.group {
+  margin: 0;
+  padding: 0;
+  border-right: 0;
+  white-space: nowrap;
+  width: 1%;
+}
+.label-success {
+  background-color: #3c763d;
+  color: #000;
+}
+.table td.location {
+  margin-left: 0;
+  padding-left: 8px;
+  border-left: 0;
+  white-space: nowrap;
+}
+
+.bots h2 {
+  margin-top: 0;
+  color: #3c763d;
+}
+
+.news p {
+  margin-bottom: 0;
+}
+.news h1 {
+  margin-top: 0;
+}
+
+.example {
+  padding: 7px;
+  text-decoration: none;
+  color: #fff;
+}
+.example:hover {
+  text-decoration: underline;
+  color: #0f0;
+}
+
+.content h1, .content h2, .content h3, .content h4, .content h5, .content h6 {
+  color: #111;
+}

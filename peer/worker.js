@@ -128,7 +128,7 @@ var restCommands = {
 //setup a basic router for incoming messages on the rest server
 restServer.on('message',function(cmd,req,reply){
   if(!restCommands[cmd])
-    return reply(new Error('Unsupported command'))
+    return reply('Unsupported command')
   //call the command
   restCommands[cmd](req,reply)
 })
@@ -179,10 +179,10 @@ var session = function(type,socket,req,onSend){
   if(!req.ip) throw new Error('No IP provided to ' + type)
   if(!validator.isIP(req.ip))
     throw new Error('Invalid IP address')
-  if(req.packets && !validator.isNumeric(req.packets))
+  if(req.count && !validator.isNumeric(req.count))
     throw new Error('Invalid duration')
   //default to 4 packets
-  if(!req.packets) req.packets = 4
+  if(!req.count) req.count = 4
   //get the correct ping instance
   if(validator.isIP(req.ip,4))
     ping = ping4
@@ -194,10 +194,10 @@ var session = function(type,socket,req,onSend){
     var send = function(ip){
       sentCount++
       //if we have packets left just set another timeout
-      if(sentCount < req.packets)
+      if(sentCount < req.count)
         setTimeout(function(){send(ip)},1000)
       //if we got here send a new ping packet and write the result to the stream
-      onSend(ping,ip,sentCount,req.packets).then(resolve,reject)
+      onSend(ping,ip,sentCount,req.count).then(resolve,reject)
     }
     //get the party started
     send(req.ip)
@@ -222,7 +222,7 @@ var pingSession = function(socket,req){
           target: result[0],
           sent: result[1],
           received: result[2],
-          ms: result[2] - result[1]
+          rtt: result[2] - result[1]
         })
         if(count < max)
           socket.write(msg.toBuffer())
@@ -251,7 +251,7 @@ var runTrace = function(ping,ip){
           ttl: ttl,
           sent: sent,
           received: received,
-          ms: received - sent
+          rtt: received - sent
         })
       },
       function(err){

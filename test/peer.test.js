@@ -73,14 +73,14 @@ describe('peer',function(){
     P.try(function(){
       //send our request by submitting one packet and closing the socket
       var msg = new AmpMessage()
-      msg.push({type: 'ping', ip: '127.0.0.1', packets: 3})
+      msg.push({type: 'ping', ip: '127.0.0.1', count: 3})
       socket.end(msg.toBuffer())
       return promisePipe(socket,parser)
     }).then(function(){
       if(errors.length) throw errors
       expect(result).to.be.an('array')
       expect(result.length).to.equal(3)
-      expect(result[0].ms).to.be.a('number')
+      expect(result[0].rtt).to.be.a('number')
       done()
     }).catch(done)
   })
@@ -104,14 +104,14 @@ describe('peer',function(){
     P.try(function(){
       //send our request by submitting one packet and closing the socket
       var msg = new AmpMessage()
-      msg.push({type: 'trace', ip: '127.0.0.1', packets: 3})
+      msg.push({type: 'trace', ip: '127.0.0.1', count: 3})
       socket.end(msg.toBuffer())
       return promisePipe(socket,parser)
     }).then(function(){
       if(errors.length) throw errors
       expect(result).to.be.an('array')
       expect(result.length).to.equal(3)
-      expect(result[0][0].ms).to.be.a('number')
+      expect(result[0][0].rtt).to.be.a('number')
       done()
     }).catch(done)
   })

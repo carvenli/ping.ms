@@ -10,6 +10,11 @@ config = new ObjectManage()
 config.$load({
   title: 'Ping.ms',
   version: require('./package.json').version,
+  mongoose: {
+    name: 'pingms',
+    dsn: 'mongodb://localhost/pingms',
+    options: {native_parser: true} // jshint ignore:line
+  },
   admin: {
     enabled: false,
     port: 3003,
@@ -19,7 +24,7 @@ config.$load({
       maxConnections: 1000
     },
     cookie: {
-      secret: '',
+      secret: 'ping.ms',
       maxAge: 2592000000 //30 days
     }
   },
@@ -32,7 +37,7 @@ config.$load({
       maxConnections: 1000
     },
     cookie: {
-      secret: '',
+      secret: 'ping.ms',
       maxAge: 2592000000 //30 days
     }
   },
