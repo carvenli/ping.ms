@@ -7,7 +7,7 @@ var config = require('../config')
 
 if(require.main === module){
   child(
-    'admin:master',
+    'peer:master',
     function(done){
       cluster = clusterSetup(
         './worker',
@@ -15,8 +15,8 @@ if(require.main === module){
           enhanced: true,
           stopTimeout: 120000,
           recycleTimeout: 120000,
-          count: config.admin.workers.count,
-          maxConnections: config.admin.workers.maxConnections
+          count: config.peer.workers.count,
+          maxConnections: config.peer.workers.maxConnections
         }
       )
       cluster.start(function(err){

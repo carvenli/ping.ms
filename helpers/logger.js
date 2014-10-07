@@ -1,5 +1,5 @@
 'use strict';
-var fs = require('fs')
+var fs = require('graceful-fs')
 var mkdirp = require('mkdirp')
 var util = require('util')
 
@@ -36,8 +36,6 @@ var stringify = function(args){
   })
   return args
 }
-//"tag" formatter
-var newTag = function(tag){return (tag) ? '[' + tag.toUpperCase() + ']' : ''}
 
 
 
@@ -48,22 +46,7 @@ var newTag = function(tag){return (tag) ? '[' + tag.toUpperCase() + ']' : ''}
  */
 var Logger = function(tag){
   var that = this
-  that.tag = newTag(tag)
-}
-
-
-/**
- * tagExtend utility function for generating child logger instance tags
- * @param {multiple} subTag String or something which has toString()
- * @return {string} newTag Augmented current tag with : and subTag injected
- */
-Logger.prototype.tagExtend = function(subTag){
-  var that = this
-  if(('string' !== typeof subTag) && ('function' === typeof subTag.toString))
-    subTag = subTag.toString()
-  if(undefined === subTag) subTag = ''
-  var tagEx = /^\[([^\]]+)\]$/
-  return (tagEx.test(that.tag) ? that.tag.replace(tagEx,'$1:' + subTag) : newTag(subTag))
+  that.tag = '[' + (tag || 'oose').toUpperCase() + '] '
 }
 
 
@@ -74,7 +57,6 @@ Logger.prototype.log = function(){
   var args = unshift(arguments,this.tag)
   var level = args[1]
   args.splice(1,1)
-  if(!this.tag) args.shift()
   args.unshift(level)
   args = stringify(args)
   logger.log.apply(logger,args)
