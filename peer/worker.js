@@ -1,5 +1,6 @@
 'use strict';
 var amp = require('amp')
+var AmpMessage = require('amp-message')
 var axon = require('axon')
 var dns = require('dns')
 var P = require('bluebird')
@@ -61,19 +62,18 @@ var restCommands = {
    * @param {function} reply
    */
   resolve: function(req,reply){
-    new P()
-      .then(function(){
-        if(!req.domain || !validator.isFQDN(req.domain))
-          throw new Error('Invalid domain name')
-      }).then(function(){
-        return dns.resolve(req.domain)
-      })
-      .then(function(results){
-        reply(null,results)
-      })
-      .catch(function(err){
-        reply(new Error('Could not lookup domain: ' + err))
-      })
+    P.try(function(){
+      if(!req.domain || !validator.isFQDN(req.domain))
+        throw new Error('Invalid domain name')
+    }).then(function(){
+      return dns.resolveAsync(req.domain)
+    })
+    .then(function(results){
+      reply(null,results)
+    })
+    .catch(function(err){
+      reply('Could not lookup domain: ' + err)
+    })
   },
   /**
    * PTR Lookups (IP4 and IP6)
@@ -81,20 +81,19 @@ var restCommands = {
    * @param {function} reply
    */
   ptr: function(req,reply){
-    new P()
-      .then(function(){
-        if(!req.ip) throw new Error('No IP provided')
-        if(!validator.isIP(req.ip))
-          throw new Error('Invalid IP provided')
-      }).then(function(){
-        return dns.reverse(req.ip)
-      })
-      .then(function(results){
-        reply(null,results)
-      })
-      .catch(function(err){
-        reply(new Error('could not lookup PTR: ' + err))
-      })
+    P.try(function(){
+      if(!req.ip) throw new Error('No IP provided')
+      if(!validator.isIP(req.ip))
+        throw new Error('Invalid IP provided')
+    }).then(function(){
+      return dns.reverseAsync(req.ip)
+    })
+    .then(function(results){
+      reply(null,results)
+    })
+    .catch(function(err){
+      reply('could not lookup PTR: ' + err)
+    })
   },
   /**
    * Check if host is alive (IP4 and IP6)
@@ -102,27 +101,26 @@ var restCommands = {
    * @param {function} reply
    */
   alive: function(req,reply){
-    new P()
-      .then(function(){
-        if(!req.ip) throw new Error('No IP provided')
-        if(!validator.isIP(req.ip))
-          throw new Error('Invalid IP provided')
-      }).then(function(){
-        var ping
-        if(validator.isIP(req.ip,4))
-          ping = ping4
-        if(validator.isIP(req.ip,6))
-          ping = ping6
-        if(!ping)
-          throw new Error('Could not find valid ping backend (bad ip)')
-        return ping.pingHostAsync(req.ip)
-      }).then(function(){
-        reply(null,true)
-      }).catch(netPing.RequestTimedOutError,function(){
-        reply(null,false)
-      }).catch(function(err){
-        reply(new Error('Host alive check failed: ' + err))
-      })
+    P.try(function(){
+      if(!req.ip) throw new Error('No IP provided')
+      if(!validator.isIP(req.ip))
+        throw new Error('Invalid IP provided')
+    }).then(function(){
+      var ping
+      if(validator.isIP(req.ip,4))
+        ping = ping4
+      if(validator.isIP(req.ip,6))
+        ping = ping6
+      if(!ping)
+        throw new Error('Could not find valid ping backend (bad ip)')
+      return ping.pingHostAsync(req.ip)
+    }).then(function(){
+      reply(null,true)
+    }).catch(netPing.RequestTimedOutError,function(){
+      reply(null,false)
+    }).catch(function(err){
+      reply(new Error('Host alive check failed: ' + err))
+    })
   }
 }
 
@@ -153,7 +151,7 @@ var parseStreamConnection = function(socket){
     //ipv6 support
     var parser = new amp.Stream()
     parser.once('data',function(data){
-      req = data
+      req = new AmpMessage(data).shift()
     })
     //once the pipe finishes we know we have the request so lets start pinging
     promisePipe(socket,parser)
@@ -194,24 +192,23 @@ var pingSession = function(socket,req){
     var sendPing = function(ip){
       sentCount++
       //if we have packets left just set another timeout
-      if(sentCount <= req.packets){
+      if(sentCount < req.packets)
         setTimeout(function(){sendPing(ip)},1000)
-      }
-      //otherwise end the socket and resolve the promise
-      else {
-        socket.end()
-        resolve()
-        return
-      }
       //if we got here send a new ping packet and write the result to the stream
       ping.pingHostAsync(ip)
-        .then(function(target,sent,received){
-          socket.write(amp.encode({result: {
-            target: target,
-            sent: sent,
-            received: received,
-            ms: sent - received
-          }}))
+        .then(function(result){
+          var msg = new AmpMessage()
+          msg.push(null)
+          msg.push({
+            target: result[0],
+            sent: result[1],
+            received: result[2],
+            ms: result[2] - result[1]
+          })
+          if(sentCount < req.packets)
+            socket.write(msg.toBuffer())
+          else
+            socket.end(msg.toBuffer())
         }).catch(reject)
     }
     //get the party started
@@ -233,7 +230,9 @@ streamServer.on('connection',function(socket){
       throw new Error('Invalid result stream requested')
     })
     .catch(function(err){
-      socket.end(amp.encode(err))
+      var msg = new AmpMessage()
+      msg.push(err)
+      socket.end(msg.toBuffer())
     })
 })
 

@@ -26,6 +26,7 @@
   },
   "dependencies": {
     "amp": "0.3.x",
+    "amp-message": "^0.1.2",
     "axon": "2.0.x",
     "bluebird": "0.11.x",
     "caterpillar": "2.0.x",
@@ -41,5 +42,13 @@
     "socket.io": "1.1.x",
     "through2": "0.6.x",
     "validator": "3.19.x"
+  },
+  "devDependencies": {
+    "chai": "1.9.x",
+    "mocha": "1.21.x"
+  },
+  "scripts": {
+    "start": "node app",
+    "test": "node ./node_modules/mocha/bin/mocha"
   }
 }
