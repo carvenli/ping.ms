@@ -166,15 +166,17 @@ var parseStreamConnection = function(socket){
 
 
 /**
- * Setup a new ping session and return a promise that is fulfilled when the
- *  duration has been completed
+ * Create a result stream session, with a callback handler that is all promise
+ *  based
+ * @param {string} type
  * @param {net.Socket} socket
  * @param {object} req
+ * @param {function} onSend
  * @return {P}
  */
-var pingSession = function(socket,req){
+var session = function(type,socket,req,onSend){
   var ping
-  if(!req.ip) throw new Error('No IP provided to ping')
+  if(!req.ip) throw new Error('No IP provided to ' + type)
   if(!validator.isIP(req.ip))
     throw new Error('Invalid IP address')
   if(req.packets && !validator.isNumeric(req.packets))
@@ -189,30 +191,44 @@ var pingSession = function(socket,req){
   //send the first ping
   return new P(function(resolve,reject){
     var sentCount = 0
-    var sendPing = function(ip){
+    var send = function(ip){
       sentCount++
       //if we have packets left just set another timeout
       if(sentCount < req.packets)
-        setTimeout(function(){sendPing(ip)},1000)
+        setTimeout(function(){send(ip)},1000)
       //if we got here send a new ping packet and write the result to the stream
-      ping.pingHostAsync(ip)
-        .then(function(result){
-          var msg = new AmpMessage()
-          msg.push(null)
-          msg.push({
-            target: result[0],
-            sent: result[1],
-            received: result[2],
-            ms: result[2] - result[1]
-          })
-          if(sentCount < req.packets)
-            socket.write(msg.toBuffer())
-          else
-            socket.end(msg.toBuffer())
-        }).catch(reject)
+      onSend(ping,ip,sentCount,req.packets).then(resolve,reject)
     }
     //get the party started
-    sendPing(req.ip)
+    send(req.ip)
+  })
+}
+
+
+/**
+ * Setup a new ping session and return a promise that is fulfilled when the
+ *  duration has been completed
+ * @param {net.Socket} socket
+ * @param {object} req
+ * @return {P}
+ */
+var pingSession = function(socket,req){
+  return session('ping',socket,req,function(ping,ip,count,max){
+    return ping.pingHostAsync(ip)
+      .then(function(result){
+        var msg = new AmpMessage()
+        msg.push(null)
+        msg.push({
+          target: result[0],
+          sent: result[1],
+          received: result[2],
+          ms: result[2] - result[1]
+        })
+        if(count < max)
+          socket.write(msg.toBuffer())
+        else
+          socket.end(msg.toBuffer())
+      })
   })
 }
 
@@ -254,41 +270,17 @@ var runTrace = function(ping,ip){
  * @return {P}
  */
 var traceSession = function(socket,req){
-  var ping
-  if(!req.ip) throw new Error('No IP provided to ping')
-  if(!validator.isIP(req.ip))
-    throw new Error('Invalid IP address')
-  if(req.packets && !validator.isNumeric(req.packets))
-    throw new Error('Invalid duration')
-  //default to 4 packets
-  if(!req.packets) req.packets = 4
-  //get the correct ping instance
-  if(validator.isIP(req.ip,4))
-    ping = ping4
-  if(validator.isIP(req.ip,6))
-    ping = ping6
-  //send the first ping
-  return new P(function(resolve,reject){
-    var sentCount = 0
-    var sendTrace = function(ip){
-      sentCount++
-      //if we have packets left just set another timeout
-      if(sentCount < req.packets)
-        setTimeout(function(){sendTrace(ip)},1000)
-      //if we got here send a new ping packet and write the result to the stream
-      runTrace(ping,ip)
-        .then(function(result){
-          var msg = new AmpMessage()
-          msg.push(null)
-          msg.push(result)
-          if(sentCount < req.packets)
-            socket.write(msg.toBuffer())
-          else
-            socket.end(msg.toBuffer())
-        }).catch(reject)
-    }
-    //get the party started
-    sendTrace(req.ip)
+  return session('trace',socket,req,function(ping,ip,count,max){
+    return runTrace(ping,ip)
+      .then(function(result){
+        var msg = new AmpMessage()
+        msg.push(null)
+        msg.push(result)
+        if(count < max)
+          socket.write(msg.toBuffer())
+        else
+          socket.end(msg.toBuffer())
+      })
   })
 }
 
