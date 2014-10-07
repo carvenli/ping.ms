@@ -185,6 +185,11 @@ streamServer.on('connection',function(socket){
       if(!req.ip) throw new Error('No IP provided to ping')
       if(!validator.isIP(req.ip))
         throw new Error('Invalid IP address')
+      if(req.duration && !validator.isNumeric(req.duration))
+        throw new Error('Invalid duration')
+      //default to 4 packets (we kill before so it will never fire the last
+      //interval, this could probably cleaned up to use a packet counter instead
+      if(!req.duration) req.duration = 4999
       //get the correct ping instance
       if(validator.isIP(req.ip,4))
         ping = ping4
@@ -196,6 +201,11 @@ streamServer.on('connection',function(socket){
       pingInterval = setInterval(function(){
         sendPing(ping,req.ip,pingInterval)
       },1000)
+      //setup the duration timer to teardown
+      setTimeout(function(){
+        if(pingInterval) clearInterval(pingInterval)
+        socket.end()
+      },req.duration)
     })
     .catch(function(err){
       if(pingInterval) clearInterval(pingInterval)
