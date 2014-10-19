@@ -1,16 +1,93 @@
 'use strict';
 var mongoose = require('mongoose')
+var ip = require('ip')
+var fs = require('graceful-fs')
+var config = require('../config')
+
+//moment and the duration plugin
+require('moment-duration-format')
+var moment = require('moment')
 var schema
 
 //load plugins
-mongoose.plugin(require('mongoose-list'))
+mongoose.plugin(require('mongoose-list'),{
+  'sort': 'host'
+})
 
+
+/**
+ * Schema type definition
+ */
 schema = new mongoose.Schema({
   host: {
     type: String,
     unique: true,
     required: true,
     index: true
+  },
+  ip: {
+    type: Number,
+    required: true,
+    index: true,
+    set: function(val){
+      return ip.toLong(val)
+    },
+    get: function(val){
+      return ip.fromLong(val)
+    }
+  },
+  config: {
+    type: String,
+    default: fs.readFileSync(config.admin.defaultConfig)
+  },
+  version: {
+    type: String,
+    default: 'unknown'
+  },
+  sshUsername: {
+    type: String,
+    default: 'root'
+  },
+  sshPort: {
+    type: Number,
+    default: 22
+  },
+  status: {
+    type: String,
+    required: true,
+    index: true,
+    enum: [
+      'unknown',
+      'staging',
+      'stopped',
+      'ok',
+      'error'
+    ],
+    default: 'unknown'
+  },
+  log: [
+    {
+      date: {
+        type: Date,
+        required: true,
+        default: Date.now
+      },
+      message: String,
+      level: {
+        type: String,
+        default: 'info'
+      }
+    }
+  ],
+  //meta info
+  os: {
+    type: String,
+    name: String,
+    version: String,
+    arch: String,
+    kernel: String,
+    uptime: String,
+    load: Array
   },
   port: {
     type: Number,
@@ -38,6 +115,12 @@ schema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  secret: {
+    type: String,
+    required: true,
+    unique: true,
+    index: true
+  },
   notes: String,
   active: {
     type: Boolean,
@@ -47,7 +130,7 @@ schema = new mongoose.Schema({
   },
   metrics: {
     dateCreated: {
-      label: 'Created',
+      label: 'Creation Date',
       type: Date,
       default: Date.now,
       required: true,
@@ -69,6 +152,18 @@ schema = new mongoose.Schema({
   }
 })
 
+
+/**
+ * Do some shit here that makes the uptime fancy
+ * @return {*}
+ * @this {PeerModel}
+ */
+schema.methods.uptime = function(){
+  return moment.duration(this.os.uptime * 1000).format(
+    'd [days], h [hrs], m [min]'
+  )
+}
+
 // handling of created/modified and uri creation
 schema.pre('save',function(next){
   var that = this
@@ -78,14 +173,15 @@ schema.pre('save',function(next){
   that.metrics.dateModified = now
   //dateCreated
   // (null->now, !null{RW})
-  var _ref = that.get('metrics.dateCreated')
-  if((void 0) === _ref || null === _ref)
+  if(that.isNew){
+    that.log.push({message: 'Peer created'})
     that.metrics.dateCreated = now
+  }
   //groups
   // (null->'', [str]->',[str],')
   // also splits [str] into _groupArray for internal use
   var _groupArray = []
-  _ref = that.get('groups')
+  var _ref = that.get('groups')
   if((void 0) === _ref || null === _ref)
     that.groups = ''
   if('string' === typeof _ref){
@@ -127,7 +223,28 @@ schema.pre('save',function(next){
 
 
 /**
- * Export Model
+ * Model name
+ * @type {string}
+ */
+exports.name = 'peer'
+
+
+/**
+ * Model description
+ * @type {string}
+ */
+exports.description = 'Peer model'
+
+
+/**
+ * Mongoose schema
+ * @type {mongoose.Schema}
+ */
+exports.schema = schema
+
+
+/**
+ * Mongoose model
  * @type {mongoose.Model}
  */
-module.exports = mongoose.model('Peer',schema)
+exports.model = mongoose.model('Peer',schema)

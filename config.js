@@ -19,6 +19,8 @@ config.$load({
     enabled: false,
     port: 3003,
     host: null,
+    user: 'admin',
+    defaultConfig:__dirname + '/peer/config.default.js',
     workers: {
       count: 1,
       maxConnections: 1000

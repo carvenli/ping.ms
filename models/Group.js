@@ -11,12 +11,43 @@ schema = new mongoose.Schema({
     required: true,
     unique: true,
     index: true
+  },
+  tag: {
+    type: String,
+    required: true,
+    unique: true,
+    index: true
+  },
+  label: {
+    type: String,
+    required: true
   }
 })
 
 
 /**
- * Export Model
+ * Model name
+ * @type {string}
+ */
+exports.name = 'group'
+
+
+/**
+ * Model description
+ * @type {string}
+ */
+exports.description = 'Group model'
+
+
+/**
+ * Mongoose schema
+ * @type {mongoose.Schema}
+ */
+exports.schema = schema
+
+
+/**
+ * Mongoose model
  * @type {mongoose.Model}
  */
-module.exports = mongoose.model('Group',schema)
+exports.model = mongoose.model('Group',schema)
