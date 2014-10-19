@@ -1,0 +1,60 @@
+extends ../layout
+block append js
+  script(src='/js/table.js')
+block content
+  .container
+    +tableHeader('Peers','/peer/create','Create Peer')
+    +alerts()
+    form(method='post', role='form')
+      table.table.table-bordered
+        thead
+          tr
+            th
+              input#toggle(type='checkbox')
+            th Hostname/IP
+            th Status
+            th Version
+            th Location
+            th Groups
+            th Sponsor
+            th Hits
+            th Created
+            th Updated
+            th Seen
+            th Active
+        tbody
+          each row,i in list
+            tr
+              td
+                input(type='checkbox', name='remove[]', value=row.id)
+              td(style='white-space:nowrap;')
+                a(href='/peer/edit?id=#{row.id}')
+                  =row.host
+                  br
+                  | (#{row.ip})
+              td= row.status
+              td(style='white-space:nowrap;')= row.metrics.version
+              td(style='white-space:nowrap;')= row.location
+              td
+                if(!row.groups.length)
+                  span.label.label-default (none)
+                else
+                  each g,i in row.groups.split(',')
+                    if(g)
+                      if(row.primaryGroup === g)
+                        span.label.label-primary= g
+                      else
+                        span.label.label-default= g
+                      =' '
+              td(style='white-space:nowrap;')= row.sponsor.name
+              td= row.hits
+              td(style='white-space:nowrap;')= (new Date(row.metrics.dateCreated)).toLocaleString().replace(/\s+\([^)]+\)$/,'')
+              td(style='white-space:nowrap;')= (new Date(row.metrics.dateModified)).toLocaleString().replace(/\s+\([^)]+\)$/,'')
+              td(style='white-space:nowrap;')
+                if row.metrics.dateSeen
+                  | #{moment(row.metrics.dateSeen).diff(new Date(),'seconds')} sec
+                else
+                  | (never)
+              td
+                span.glyphicon.glyphicon-align-center(class='glyphicon-'+(row.active?'ok-circle text-success':'ban-circle text-danger'))
+      +tableFooter(page,count)

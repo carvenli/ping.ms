@@ -1,0 +1,24 @@
+extends ../layout
+block append js
+  script(src='/js/table.js')
+block content
+  .container
+    h1 #{group.location}
+    +alerts()
+    form.form-horizontal(action='/group/save', method='post', role='form')
+      input(type='hidden', name='id', value=group.id)
+      .form-group
+        label.control-label.col-sm-2 Name
+        .col-sm-10
+          input.form-control(type='text', name='name', placeholder='Group Name', value=group.name)
+      .form-group
+        label.control-label.col-sm-2 Tag
+        .col-sm-10
+          input.form-control(type='text', name='tag', placeholder='Group Tag', value=group.tag)
+      .form-group
+        label.control-label.col-sm-2 Label
+        .col-sm-10
+          input.form-control(type='text', name='label', placeholder='Group Label', value=group.label)
+      .form-group
+        .col-sm-offset-2.col-sm-10
+          button.btn.btn-success(type='submit') Save

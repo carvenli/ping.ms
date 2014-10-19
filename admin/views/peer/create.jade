@@ -1,0 +1,34 @@
+extends ../layout
+block append js
+  script(src='/js/peer.js')
+block content
+  .container
+    h1 Create Peer
+    +alerts()
+    form.form-horizontal(action='/peer/save', method='post', role='form')
+      .form-group
+        label.control-label.col-sm-2 Hostname
+        .col-sm-10
+          input.form-control(type='text', name='host', placeholder='FQDN for the peer')
+      .form-group
+        label.control-label.col-sm-2 IP
+        .col-sm-10
+          input.form-control(type='text', name='ip', placeholder='IP Address (leave blank for resolution from host name)')
+      .form-group
+        label.control-label.col-sm-2 Location
+        .col-sm-10
+          input.form-control(type='text', name='location', placeholder='Peer Location')
+      .form-group
+        label.control-label.col-sm-2 Secret
+        .col-sm-10
+          .input-group
+            input.form-control(type='text', name='secret', placeholder='Peer Secret')
+            span.input-group-btn
+              button.btn.btn-default.btn-generate(type='button') Generate
+      .form-group
+        label.control-label.col-sm-2 Active
+        .col-sm-10
+          input(type='checkbox', name='active', checked=true)
+      .form-group
+        .col-sm-offset-2.col-sm-10
+          button.btn.btn-success(type='submit') Save

@@ -1,0 +1,182 @@
+extends ../layout
+block append js
+  script(src='/js/table.js')
+  script(src='/js/peer.js')
+block append css
+  link(rel='stylesheet', href='//bowercdn.net/c/bootstrap-multiselect-0.9.5/css/bootstrap-multiselect.css')
+block content
+  .container
+    h1
+      | Manage Peer
+      button.btn.btn-success(type='submit') Save
+      button.btn.btn-warning(type='reset') Reset
+    +alerts()
+    form.form-horizontal(action='/peer/save', method='post', role='form')
+      if peer.id
+        input(type='hidden', name='id', value=peer.id)
+      .form-group
+        .col-sm-offset-2.col-sm-8
+      .form-group
+        label.control-label.col-sm-2 Hostname
+        .col-sm-10
+          input.form-control(type='text', name='host', placeholder='FQDN of peer', value=peer.host)
+      .form-group
+        label.control-label.col-sm-2 IP
+        .col-sm-10
+          input.form-control(type='text', name='ip', placeholder='IP of peer, leave blank for resolution on save', value=peer.ip)
+      .form-group
+        label.control-label.col-sm-2 SSH Port
+        .col-sm-10
+          input.form-control(type='text', name='sshPort', placeholder='SSH port', value=peer.sshPort)
+      .form-group
+        label.control-label.col-sm-2 Configuration
+        .col-sm-10
+          textarea.form-control(name='config', style='height: 100px;')= peer.config
+      .form-group
+        label.control-label.col-sm-2 Status
+        .col-sm-10
+          select(name='status')
+            each status in statuses
+              option(value=status, selected=(status == peer.status))= S(status).capitalize().s
+      if peer.os
+        .form-group
+          label.control-label.col-sm-2 OS
+          .col-sm-10
+            .form-control-static #{peer.os.name} #{peer.os.version} #{peer.os.arch} #{peer.os.kernel}
+        if peer.os.uptime
+          .form-group
+            label.control-label.col-sm-2 Uptime
+            .col-sm-10
+              .form-control-static= peer.uptime()
+        if peer.os.load.length
+          .form-group
+            label.control-label.col-sm-2 Load
+            .col-sm-10
+              .form-control-static= peer.os.load.join(', ')
+      if peer.version
+        .form-group
+          label.control-label.col-sm-2 OOSE Version
+          .col-sm-10
+            .form-control-static= peer.version
+      if peer.location
+        .form-group
+          label.control-label.col-sm-2 Location
+          .col-sm-8
+            input.form-control(type='text', name='location', placeholder='Peer Location', value=peer.location)
+      if peer.secret
+        .form-group
+          label.control-label.col-sm-2 Secret
+          .col-sm-8
+            .input-group
+              input.form-control(type='text', name='secret', placeholder='Peer Secret', value=peer.secret)
+              span.input-group-btn
+                button.btn.btn-default.btn-generate(type='button') Generate
+      if groups
+        .form-group
+          label.control-label.col-sm-2 Groups
+          .col-sm-8
+            select.multiselect(name='groups', multiple='multiple')
+              each g,i in groups
+                option(value=g.tag, selected=(peer.groups.split(',').indexOf(g.tag) > -1)) #{g.label}
+      .form-group
+        label.control-label.col-sm-3 Primary
+        .col-sm-6
+          select.multiselect(name='primaryGroup')
+            option(value='', selected=(''===peer.primaryGroup)) (none)
+            each g,i in groups
+              option(value=g.tag, selected=(g.tag===peer.primaryGroup)) #{g.label}
+      .form-group
+        label.control-label.col-sm-2 Sponsor Name
+        .col-sm-8
+          input.form-control(type='text', name='sponsorName', value=peer.sponsor.name)
+      .form-group
+        label.control-label.col-sm-2 Sponsor URL
+        .col-sm-8
+          input.form-control(type='text', name='sponsorUrl', value=peer.sponsor.url)
+      .form-group
+        label.control-label.col-sm-2 Active
+        .col-sm-8
+          input.checkbox(type='checkbox', name='active', checked=peer.active)
+      .form-group
+        label.control-label.col-sm-2 Notes
+        .col-sm-8
+          textarea.form-control(rows='5', name='notes')= peer.notes
+      .form-group
+        .col-sm-offset-2.col-sm-8
+          button.btn.btn-success(type='submit') Save
+          button.btn.btn-warning(type='reset') Reset
+    h2 Authentication
+    p
+      | In order for this panel to be able to manage a peer it must have root SSH access.
+      | Please add the following public SSH key to your <strong>/root/.ssh/authorized_keys</strong> file
+    if ssh.publicKey
+      div
+        small (triple click inside the box to select the key)
+      div.ssh-key= ssh.publicKey
+    else
+      div.text-danger No public key defined, please update the admin config and restart
+    h4.text-success Lifecycle
+    div
+      a.btn.btn-success(href='/peer/start?id=#{peer.id}')
+        span.glyphicon.glyphicon-play
+        |  Start
+      | &nbsp;
+      a.btn.btn-danger(href='/peer/stop?id=#{peer.id}')
+        span.glyphicon.glyphicon-stop
+        |  Stop
+      | &nbsp;
+      a.btn.btn-primary(href='/peer/restart?id=#{peer.id}')
+        span.glyphicon.glyphicon-refresh
+        |  Restart
+    h4.text-warning Operations
+    div
+      a.btn.btn-primary(href='/peer/test?id=#{peer.id}')
+        span.glyphicon.glyphicon-resize-small
+        |  Test
+      | &nbsp;
+      a.btn.btn-info(href='/peer/refresh?id=#{peer.id}')
+        span.glyphicon.glyphicon-refresh
+        |  Refresh
+      | &nbsp;
+      a.btn.btn-warning(href='/peer/prepare?id=#{peer.id}', target='_blank')
+        span.glyphicon.glyphicon-refresh
+        |  Prepare
+      | &nbsp;
+      a.btn.btn-success(href='/peer/install?id=#{peer.id}', target='_blank')
+        span.glyphicon.glyphicon-download
+        |  Install
+      | &nbsp;
+      a.btn.btn-primary(href='/peer/upgrade?id=#{peer.id}', target='_blank')
+        span.glyphicon.glyphicon-upload
+        |  Upgrade
+      | &nbsp;
+      a.btn.btn-warning(href='/peer/updateConfig?id=#{peer.id}')
+        span.glyphicon.glyphicon-cog
+        |  Update Config
+    h4.text-primary Custom
+      form(method='post', action='/peer/runCommand', target='_blank')
+        input(type='hidden', name='id', value=peer.id)
+        div
+          input.form-control(style='display: inline; width: 300px;', type='text', name='command', placeholder='Command to run on this peer')
+          button.btn.btn-success(name='runCommand', value='true', type='submit')
+            span.glyphicon.glyphicon-flash
+            |  Run
+    h2 Log
+    table.table.table-bordered
+      thead
+        tr
+          th.col-sm-2 Date
+          th Message
+      tbody
+        - var logCssClass = function(row){
+        -   if('info' === row.level) return ''
+        -   if('success' === row.level) return 'alert-success'
+        -   if('warning' === row.level) return 'alert-warning'
+        -   if('error' === row.level) return 'alert-error'
+        - }
+        - var log = peer.log
+        - log.sort(function(a,b){ return new Date(b.date).getTime() - new Date(a.date).getTime() })
+        each row in log
+          tr(class=logCssClass(row))
+            td= moment(row.date).format('M-D-YY HH:mm:ss')
+            td= row.message
