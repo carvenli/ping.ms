@@ -185,8 +185,12 @@ schema.pre('save',function(next){
   if((void 0) === _ref || null === _ref)
     that.groups = ''
   if('string' === typeof _ref){
-    _groupArray = _ref.split(',')
-    that.groups = ',' + _ref + ','
+    _groupArray = _ref.split(',').filter(
+      function(e){
+        return ('string' === typeof e) && (0 < e.length)
+      }
+    )
+    that.groups = ',' + _groupArray.join(',') + ','
   }
   //primaryGroup
   // (null->(groups==''->'', groups.len==1->groups[0], !null{RW}:[dfl]||IN(groups)->[val])
@@ -201,16 +205,21 @@ schema.pre('save',function(next){
   if((void 0) === _ref || null === _ref)
     _default()
   else {
-    var i = 0, found = false
-    if(_gLen)
-      do {
+    var i = 0, j = 1, tmp = new Array(_gLen)
+    if(_gLen){
+      for(; i < _gLen; i++){
         if(_groupArray[i] === _ref){
           that.primaryGroup = _ref
-          found = true
+          tmp[0] = _ref
+        } else {
+          tmp[j] = _groupArray[i]
+          j++
         }
-        i = (found) ? _gLen : i + 1
-      } while(i < _gLen)
-    if(!found)
+      }
+      _groupArray = tmp
+      that.groups = ',' + _groupArray.join(',') + ','
+    }
+    if(!that.primaryGroup)
       _default()
   }
   //metrics.version

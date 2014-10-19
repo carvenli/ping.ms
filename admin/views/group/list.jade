@@ -23,4 +23,13 @@ block content
             td
               a(href='/group/edit?id=#{row.id}')= row.name
             td= row.label
-      +tableFooter(page,count)
+      div
+        .pull-right.btn-group
+          a.btn.btn-default(href='/group?start=#{page.previous}&search=#{search}') Previous
+          a.btn.btn-default(href='/group?start=#{page.next}&search=#{search}') Next
+        span #{page.start + 1} - #{page.end} of #{count} entries
+        h4.text-danger Destructive
+        div
+          button.btn.btn-danger#tableDelete(name='delete', value='true', type='submit')
+            span.glyphicon.glyphicon-remove
+            | Delete Checked

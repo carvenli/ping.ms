@@ -66,7 +66,6 @@ exports.list = function(req,res){
         search: search
       },
       function(err,count,results){
-        console.log(err,count,results)
         if(err) return res.send(err)
         res.render('group/list',{
           page: list.pagination(start,count,limit),
