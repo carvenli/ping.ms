@@ -2,7 +2,7 @@
 var util = require('util')
 
 var list = require('../helpers/list')
-var Model = require('../../models/page').model
+var Model = require('../../models/Page').model
 
 
 /**

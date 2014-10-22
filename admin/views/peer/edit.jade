@@ -6,12 +6,12 @@ block append css
   link(rel='stylesheet', href='//bowercdn.net/c/bootstrap-multiselect-0.9.5/css/bootstrap-multiselect.css')
 block content
   .container
-    h1
-      | Manage Peer
-      button.btn.btn-success(type='submit') Save
-      button.btn.btn-warning(type='reset') Reset
-    +alerts()
     form.form-horizontal(action='/peer/save', method='post', role='form')
+      h1
+        | Manage Peer
+        button.btn.btn-success(type='submit') Save
+        button.btn.btn-warning(type='reset') Reset
+      +alerts()
       if peer.id
         input(type='hidden', name='id', value=peer.id)
       .form-group

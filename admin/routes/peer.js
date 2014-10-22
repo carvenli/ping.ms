@@ -7,8 +7,8 @@ var through2 = require('through2')
 
 var peerHelper = require('../helpers/peer')
 var list = require('../helpers/list')
-var Peer = require('../../models/peer').model
-var Group = require('../../models/group').model
+var Peer = require('../../models/Peer').model
+var Group = require('../../models/Group').model
 
 var operationCompleteMessage =
   'Operation complete, close this window and refresh the previous page'
@@ -63,7 +63,7 @@ var encodeEntities = function(res){
  */
 var groupList = function(next){
   Group.list(
-    {sort: 'name'},
+    {sort: 'name',limit: 10000},
     function(err,count,results){
       if(err) return next(err)
       next(null,results)
@@ -248,19 +248,31 @@ exports.list = function(req,res){
     }
   } else {
     // jshint bitwise:false
-    var limit = (req.query.limit >> 0) || 10
+    var limit = (req.query.limit >> 0) || 25
     var start = (req.query.start >> 0) || 0
     var search = req.query.search || ''
     if(start < 0) start = 0
     Peer.list(
       {
         start: start,
-        sort: 'primaryGroup location',
+        sort: 'host',
         limit: limit,
         find: search
       },
       function(err,count,results){
         if(err) return res.send(err)
+/*
+        var i = 0, j = 0, tmp = new Array(count), r = null
+        for(; i < count; i++){
+          r = results[i]
+           = r.groups.split(',').slice(1)
+          for(j=0;j<c;j++){
+
+          }
+          if(r.){}
+          tmp[i] = results[i]
+        }
+*/
         res.render('peer/list',{
           page: list.pagination(start,count,limit),
           count: count,

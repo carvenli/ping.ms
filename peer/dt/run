@@ -1,0 +1,5 @@
+#!/bin/sh
+BASE=`pwd`
+cd /opt/ping.ms
+exec 2>&1
+exec envuidgid node envdir ${BASE}/env node app

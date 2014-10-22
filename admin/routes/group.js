@@ -2,7 +2,7 @@
 var async = require('async')
 
 var list = require('../helpers/list')
-var Group = require('../../models/group').model
+var Group = require('../../models/Group').model
 
 
 /**
@@ -54,7 +54,7 @@ exports.list = function(req,res){
       }
     )
   } else {
-    var limit = parseInt(req.query.limit,10) || 10
+    var limit = parseInt(req.query.limit,10) || 25
     var start = parseInt(req.query.start,10) || 0
     var search = req.query.search || ''
     if(start < 0) start = 0
