@@ -1,0 +1,4 @@
+#!/bin/bash
+pushd "$(dirname ${0})" > /dev/null
+node "$(basename ${0}).js" $*
+popd > /dev/null
