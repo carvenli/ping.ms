@@ -1,9 +1,8 @@
 'use strict';
 var async = require('async')
-var mongoose = require('mongoose')
 
 var list = require('../helpers/list')
-var Group = mongoose.model('Group')
+var Group = require('../../models/Group').model
 
 
 /**

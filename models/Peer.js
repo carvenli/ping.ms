@@ -38,7 +38,8 @@ schema = new mongoose.Schema({
   },
   config: {
     type: String,
-    default: fs.readFileSync(config.admin.defaultConfig)
+    default: fs.existsSync(config.admin.defaultConfig) ?
+      fs.readFileSync(config.admin.defaultConfig) : null
   },
   version: {
     type: String,

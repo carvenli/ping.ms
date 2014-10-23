@@ -3,7 +3,7 @@ var mongoose = require('mongoose')
 var util = require('util')
 
 var list = require('../helpers/list')
-var Page = mongoose.model('Page')
+var Page = require('../../models/Page').model
 
 
 /**

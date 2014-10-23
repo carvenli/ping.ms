@@ -2,7 +2,7 @@
 var basicAuth = require('basic-auth')
 var P = require('bluebird')
 var bodyParser = require('body-parser')
-var debug = require('debug')('ping.ms:admin:worker')
+//var debug = require('debug')('ping.ms:admin:worker')
 var flash = require('connect-flash')
 var cookieParser = require('cookie-parser')
 var express = require('express')
@@ -16,57 +16,28 @@ var app = express()
 var server = http.createServer(app)
 var RedisStore = require('connect-redis')(session)
 
-var logger = require('../helpers/logger').create('admin')
-
 var config = require('../config')
 var routes = require('./routes')
-
-var running = false
 
 //make some promises
 P.promisifyAll(server)
 P.promisifyAll(mongoose)
 
-//setup app
-
 
 /**
- * Pretty html output
- * @type {boolean}
+ * Global template vars
+ * @type {object}
  */
-app.locals.pretty = true
-
-
-/**
- * App version
- * @type {string}
- */
-app.locals.version = config.version
-
-
-/**
- * Load moment into jade
- * @type {moment}
- */
-app.locals.moment = require('moment')
-
-
-/**
- * String helpers
- * @type {string}
- * @type {string}
- */
-app.locals.S = require('string')
-
-
-/**
- * Read public ssh key for use in templates
- */
-app.locals.ssh = {
-  publicKey:
-    fs.existsSync(config.admin.ssh.publicKey) ?
+app.locals = {
+  pretty: true,
+  version: config.version,
+  moment: require('moment'),
+  S: require('string'),
+  ssh: {
+    publicKey: fs.existsSync(config.admin.ssh.publicKey) ?
       fs.readFileSync(config.admin.ssh.publicKey) :
       null
+  }
 }
 
 app.use(function(req,res,next){
@@ -160,25 +131,10 @@ app.get('/',routes.index)
  * @return {void} fire escape
  */
 exports.start = function(done){
-  if(!config.admin.user || !config.admin.password){
-    var errmsg = 'Refusing to start admin, missing username and/or password'
-    logger.warning(errmsg)
-    return done(errmsg)
-  }
   mongoose.connectAsync(config.mongoose.dsn,config.mongoose.options)
     .then(function(){
-      //load all models to avoid odd scoping
-      var Group = require('./models/Group')
-      var Peer = require('./models/Peer')
-      var Page = require('./models/Page')
       return server.listenAsync(config.admin.port,config.admin.host)
     }).then(function(){
-      running = true
-      logger.info(
-          'Admin listening on ' +
-          (config.admin.host || '0.0.0.0') +
-          ':' + config.admin.port
-      )
       done()
     }).catch(done)
 }
@@ -189,11 +145,8 @@ exports.start = function(done){
  * @param {function} done
  */
 exports.stop = function(done){
-  if('function' !== typeof done) done = function(){}
-  if(server && running){
-    server.close()
-    running = false
-  }
+  mongoose.close()
+  server.close()
   done()
 }
 

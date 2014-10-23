@@ -5,10 +5,9 @@ var fs = require('graceful-fs')
 var net = require('net')
 var shortid = require('shortid')
 var string = require('string')
-var mongoose = require('mongoose')
 
 var SSH = require('../helpers/ssh')
-var Peer = mongoose.model('Peer')
+var Peer = require('../../models/Peer').model
 
 var config = require('../../config')
 

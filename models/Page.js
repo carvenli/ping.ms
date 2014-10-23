@@ -92,15 +92,8 @@ exports.description = 'Page model'
 exports.schema = schema
 
 
-var Model
-if(mongoose.models.Page)
-  Model = mongoose.model('Page')
-else
-  Model = mongoose.model('Page',schema)
-
-
 /**
  * Mongoose model
  * @type {mongoose.Model}
  */
-exports.model = Model
+exports.model = mongoose.model('Page',schema)

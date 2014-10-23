@@ -20,7 +20,12 @@ config.$load({
     port: 3003,
     host: null,
     user: 'admin',
+    password: null,
     defaultConfig:__dirname + '/peer/config.default.js',
+    ssh: {
+      privateKey: 'admin/ssh/ping.ms.key',
+      publicKey: 'admin/ssh/ping.ms.pub'
+    },
     workers: {
       count: 1,
       maxConnections: 1000

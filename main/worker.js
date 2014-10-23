@@ -22,9 +22,9 @@ var RedisStore = require('connect-redis')(session)
 
 var config = require('../config')
 
-var Group = mongoose.model('Group')
-var Peer = mongoose.model('Peer')
-var Page = mongoose.model('Page')
+var Group = require('../models/Group').model
+var Peer = require('../models/Peer').model
+var Page = require('../models/Page').model
 
 var peerConnections = {}
 

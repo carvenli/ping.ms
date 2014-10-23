@@ -4,10 +4,6 @@ var clusterSetup = require('infant').cluster
 
 var cluster
 var config = require('../config')
-//load all models to avoid odd scoping
-var Group = require('../models/Group')
-var Peer = require('../models/Peer')
-var Page = require('../models/Page')
 
 if(require.main === module){
   child(
@@ -34,4 +30,4 @@ if(require.main === module){
       })
     }
   )
-} else console.log('whatSHIT')
+}

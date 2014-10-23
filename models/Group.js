@@ -46,15 +46,8 @@ exports.description = 'Group model'
 exports.schema = schema
 
 
-var Model
-if(mongoose.models[exports.name])
-  Model = mongoose.model(exports.name)
-else
-  Model = mongoose.model(exports.name,exports.schema)
-
-
 /**
  * Mongoose model
  * @type {mongoose.Model}
  */
-exports.model = Model
+exports.model = mongoose.model('Group',schema)
