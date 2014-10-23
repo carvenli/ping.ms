@@ -120,7 +120,7 @@ exports.stop = function(done){
 
 if(require.main === module){
   child(
-    'animegg:master',
+    'ping.ms:app',
     function(done){
       exports.start(done)
     },
