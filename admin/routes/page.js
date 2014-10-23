@@ -1,5 +1,4 @@
 'use strict';
-var mongoose = require('mongoose')
 var util = require('util')
 
 var list = require('../helpers/list')
@@ -73,7 +72,7 @@ exports.form = function(req,res){
 exports.save = function(req,res){
   Page.findById(req.body.id,function(err,doc){
     if(err) throw err
-    if(!doc) doc = new Model()
+    if(!doc) doc = new Page()
     doc.title = req.body.title
     if(req.body.uri) doc.uri = req.body.uri
     doc.content = req.body.content || ''
