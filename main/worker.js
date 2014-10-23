@@ -22,8 +22,9 @@ var RedisStore = require('connect-redis')(session)
 
 var config = require('../config')
 
-var Group = require('../models/Group')
-var Peer = require('../models/Peer')
+var Group = mongoose.model('Group')
+var Peer = mongoose.model('Peer')
+var Page = mongoose.model('Page')
 
 var peerConnections = {}
 
@@ -60,7 +61,6 @@ app.use(function(req,res,next){
 
 //try to find a news page matching the uri, if not continue
 app.use(function(req,res,next){
-  var Page = require('../models/Page')
   Page.findOne({uri: req.path},function(err,result){
     if(err) return next(err.message)
     if(!result) return next()

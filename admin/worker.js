@@ -167,6 +167,10 @@ exports.start = function(done){
   }
   mongoose.connectAsync(config.mongoose.dsn,config.mongoose.options)
     .then(function(){
+      //load all models to avoid odd scoping
+      var Group = require('./models/Group')
+      var Peer = require('./models/Peer')
+      var Page = require('./models/Page')
       return server.listenAsync(config.admin.port,config.admin.host)
     }).then(function(){
       running = true

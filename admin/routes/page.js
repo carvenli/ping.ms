@@ -1,8 +1,9 @@
 'use strict';
+var mongoose = require('mongoose')
 var util = require('util')
 
 var list = require('../helpers/list')
-var Model = require('../../models/Page').model
+var Page = mongoose.model('Page')
 
 
 /**
@@ -12,7 +13,7 @@ var Model = require('../../models/Page').model
  */
 exports.list = function(req,res){
   if('post' === req.method.toLowerCase() && req.body.remove && req.body.remove.length){
-    list.remove(Model,req.body.remove,function(err,count){
+    list.remove(Page,req.body.remove,function(err,count){
       if(err) req.flash('error','Removed ' + count + ' item(s) before removal failed ' + err)
       else {
         req.flash('success','Deleted ' + count + ' item(s)')
@@ -24,7 +25,7 @@ exports.list = function(req,res){
     var start = +req.query.start || 0
     var search = req.query.search || ''
     if(start < 0) start = 0
-    Model.list({start: start, limit: limit, search: search},function(err,count,results){
+    Page.list({start: start, limit: limit, search: search},function(err,count,results){
       res.render('page/list',{
         page: list.pagination(start,count,limit),
         count: count,
@@ -43,7 +44,7 @@ exports.list = function(req,res){
  * @param {Object} res
  */
 exports.form = function(req,res){
-  Model.findById(req.query.id,function(err,result){
+  Page.findById(req.query.id,function(err,result){
     if(err){
       req.flash('error',util.inspect(err))
       res.redirect('/page')
@@ -70,7 +71,7 @@ exports.form = function(req,res){
  * @param {Object} res
  */
 exports.save = function(req,res){
-  Model.findById(req.body.id,function(err,doc){
+  Page.findById(req.body.id,function(err,doc){
     if(err) throw err
     if(!doc) doc = new Model()
     doc.title = req.body.title

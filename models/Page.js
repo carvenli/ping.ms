@@ -72,7 +72,35 @@ schema.pre('save',function(next){
 
 
 /**
- * Export the Model
+ * Model name
+ * @type {string}
+ */
+exports.name = 'Page'
+
+
+/**
+ * Model description
+ * @type {string}
+ */
+exports.description = 'Page model'
+
+
+/**
+ * Mongoose schema
+ * @type {mongoose.Schema}
+ */
+exports.schema = schema
+
+
+var Model
+if(mongoose.models.Page)
+  Model = mongoose.model('Page')
+else
+  Model = mongoose.model('Page',schema)
+
+
+/**
+ * Mongoose model
  * @type {mongoose.Model}
  */
-module.exports = mongoose.model('Page',schema)
+exports.model = Model

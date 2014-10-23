@@ -156,7 +156,7 @@ schema = new mongoose.Schema({
 /**
  * Do some shit here that makes the uptime fancy
  * @return {*}
- * @this {PeerModel}
+ * @this {Peer}
  */
 schema.methods.uptime = function(){
   return moment.duration(this.os.uptime * 1000).format(

@@ -5,14 +5,14 @@ var fs = require('graceful-fs')
 var net = require('net')
 var shortid = require('shortid')
 var string = require('string')
+var mongoose = require('mongoose')
 
 var SSH = require('../helpers/ssh')
-var Peer = require('../../models/peer')
-var PeerModel = Peer.model
+var Peer = mongoose.model('Peer')
 
 var config = require('../../config')
 
-var validStatuses = PeerModel.schema.path('status').enum().enumValues
+var validStatuses = Peer.schema.path('status').enum().enumValues
 
 
 /**
@@ -58,7 +58,7 @@ var commandFail = function(next){
  * @param {function} done
  */
 var peerFind = function(id,done){
-  PeerModel.findById(id,function(err,result){
+  Peer.findById(id,function(err,result){
     if(err) return done(err.message)
     if(!result) return done('Could not find peer')
     done(null,result)
@@ -68,7 +68,7 @@ var peerFind = function(id,done){
 
 /**
  * Connect to a peer using net
- * @param {PeerModel} peer
+ * @param {Peer} peer
  * @param {function} done
  * @return {*}
  */
@@ -88,7 +88,7 @@ var peerNetConnect = function(peer,done){
 
 /**
  * Start a new SSH helper and connect to a peer
- * @param {PeerModel} peer
+ * @param {Peer} peer
  * @param {function} done
  */
 var peerSshConnect = function(peer,done){
@@ -99,7 +99,7 @@ var peerSshConnect = function(peer,done){
 
 /**
  * Log the result of an action to the peer
- * @param {Peer._schema} peer
+ * @param {Object} peer
  * @param {string} level
  * @param {string} msg
  * @param {string} status

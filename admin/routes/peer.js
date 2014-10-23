@@ -3,12 +3,13 @@ var async = require('async')
 var dns = require('dns')
 var debug = require('debug')('ping.ms:admin:peer')
 var entities = new (require('html-entities').XmlEntities)()
+var mongoose = require('mongoose')
 var through2 = require('through2')
 
 var peerHelper = require('../helpers/peer')
 var list = require('../helpers/list')
-var Peer = require('../../models/Peer').model
-var Group = require('../../models/Group').model
+var Peer = mongoose.model('Peer')
+var Group = mongoose.model('Group')
 
 var operationCompleteMessage =
   'Operation complete, close this window and refresh the previous page'
