@@ -55,7 +55,7 @@ block content
               .form-control-static= peer.os.load.join(', ')
       if peer.version
         .form-group
-          label.control-label.col-sm-2 OOSE Version
+          label.control-label.col-sm-2 Version
           .col-sm-10
             .form-control-static= peer.version
       if peer.location
@@ -79,7 +79,7 @@ block content
               each g,i in groups
                 option(value=g.tag, selected=(peer.groups.split(',').indexOf(g.tag) > -1)) #{g.label}
       .form-group
-        label.control-label.col-sm-3 Primary
+        label.control-label.col-sm-2 Primary
         .col-sm-6
           select.multiselect(name='primaryGroup')
             option(value='', selected=(''===peer.primaryGroup)) (none)

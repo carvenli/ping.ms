@@ -14,6 +14,7 @@ var mongoose = require('mongoose')
 var net = require('net')
 var promisePipe = require('promisepipe')
 var shortId = require('shortid')
+var validator = require('validator')
 
 var app = express()
 var server = http.createServer(app)
@@ -192,18 +193,29 @@ io.on('connection',function(socket){
   })
   socket.on('resolve',function(req,reply){
     var results = {}
-    groupAction(req.group,function(peer){
-      return peerConnect(peer).then(function(sock){
-        return sock.sendAsync('resolve',{domain: req.host})
-      }).then(function(result){
-        results[peer._id] = {handle: shortId.generate(), ip: result}
+    //dont lookup dns for ips
+    if(validator.isIP(req.host)){
+      groupAction(req.group,function(peer){
+        results[peer._id] = {handle: shortId.generate(), ip: [req.host]}
+      }).then(function(){
+        reply({results: results})
       })
-    }).then(function(){
-      reply({results: results})
-    }).catch(function(err){
-      console.log(err)
-      reply({error: err})
-    })
+    }
+    //otherwise do lookup
+    else{
+      groupAction(req.group,function(peer){
+        return peerConnect(peer).then(function(sock){
+          return sock.sendAsync('resolve',{domain: req.host})
+        }).then(function(result){
+          results[peer._id] = {handle: shortId.generate(),ip: result}
+        })
+      }).then(function(){
+        reply({results: results})
+      }).catch(function(err){
+        console.error('resolve failed',err)
+        reply({error: err})
+      })
+    }
   })
   socket.on('pingStart',function(req){
     var peerId = req.bot

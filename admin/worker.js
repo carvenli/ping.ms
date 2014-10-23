@@ -145,9 +145,9 @@ exports.start = function(done){
  * @param {function} done
  */
 exports.stop = function(done){
-  mongoose.close()
   server.close()
-  done()
+  mongoose.disconnectAsync()
+    .then(done).catch(done)
 }
 
 //worker startup through infant
