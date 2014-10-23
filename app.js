@@ -29,7 +29,7 @@ program
 
 //set log verbosity
 debug('setting up console logging with level',+program.verbose)
-Logger.consoleFilter.setConfig({level: (+program.verbose || 0) + 4})
+Logger.consoleFilter.setConfig({level: (+program.verbose || 2) + 4})
 
 //setup lifecycle logging
 lifecycle.on('start',function(item){
