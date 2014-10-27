@@ -131,10 +131,10 @@ var peerConnect = function(peer){
     if(peerConnections[peer._id])
       process.nextTick(function(){resolve(peerConnections[peer._id])})
     var client = axon.socket('req')
-    peerConnections[peer._id] = client
     P.promisifyAll(client)
     client.connectAsync(+peer.port,peer.host || '127.0.0.1')
       .then(function(){
+        peerConnections[peer._id] = client
         resolve(client)
       }).catch(reject)
   })
@@ -229,6 +229,11 @@ io.on('connection',function(socket){
           })
           .then(function(result){
             results[peer._id] = {handle: shortId.generate(),ip: result}
+          },function(err){
+            results[peer._id] = {error: 'Failed to resolve host: ' + err}
+          })
+          .catch(P.TimeoutError,function(err){
+            results[peer._id] = {error: 'Failed to connect to peer: ' + err}
           })
       })
         .then(function(){
@@ -248,7 +253,7 @@ io.on('connection',function(socket){
       var msg = new AmpMessage(buff)
       var err = msg.shift()
       var result = msg.shift()
-      if(err) socket.emit(resEvent,{error: err})
+      if(err) socket.emit(resEvent,{id: peerId, error: err})
       else {
         result.id = peerId
         socket.emit(resEvent,result)

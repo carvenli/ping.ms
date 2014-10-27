@@ -27,14 +27,15 @@ $(document).ready(function(){
   /**
    * Clear a pulsar since its complete
    * @param {string} id
+   * @param {boolean} error
    */
-  var pulsarFinal = function(id){
+  var pulsarFinal = function(id,error){
     var row = $('tr#' + id)
     var loss = +row.find('.loss').html()
     var glyph = 'glyphicon-question-sign text-warning'
     if(loss === 0)
       glyph = 'glyphicon-ok-sign text-success'
-    if(loss === 100)
+    if(loss === 100 || error)
       glyph = 'glyphicon-remove-sign text-danger'
     //we replace the html here ON PURPOSE to autocancel all other previous animations
     //do not convert to simple class refuckery, thanks
@@ -164,6 +165,27 @@ $(document).ready(function(){
 
 
   /**
+   * Set a row to an erroneous state
+   * @param {number} index
+   * @param {object} row
+   * @param {string} error
+   */
+  var pingTableRowError = function(index,row,error){
+    row.addClass('bg-danger')
+    row.find('.min').addClass('hidden')
+    row.find('.avg').addClass('hidden')
+    row.find('.max').addClass('hidden')
+    row.find('.loss').addClass('hidden')
+    row.find('.ip').attr('colspan',5)
+    row.find('.ip').css('font-family','arial')
+    row.find('.ip').css('font-size','12px')
+    row.find('.ip').html(error)
+    setVisible(row,true)
+    pulsarFinal(index,true)
+  }
+
+
+  /**
    * Seed a ping result row
    * @param {string} index
    * @param {object} dnsResult
@@ -173,12 +195,17 @@ $(document).ready(function(){
     setError(false)
     pingResults[index] = []
     var row = pingTable.find('tr#' + index)
-    var ip = dnsResult.ip[0]
-    row.find('td.ip').html(ip || '<span class="text-danger">[DNS Failed]</span>')
-    row.find('td.loss').html(ip ? '-' : '100')
-    setResultsRow(index,true)
-    if(!ip) pulsarFinal(index)
-    return(ip ? true : false)
+    if(dnsResult.error){
+      pingTableRowError(index,row,dnsResult.error)
+      return false
+    } else {
+      var ip = dnsResult.ip[0]
+      row.find('td.ip').html(ip || '<span class="text-danger">[DNS Failed]</span>')
+      row.find('td.loss').html(ip ? '-' : '100')
+      setResultsRow(index,true)
+      if(!ip) pulsarFinal(index)
+      return(ip ? true : false)
+    }
   }
 
 
@@ -189,13 +216,18 @@ $(document).ready(function(){
    */
   var pingTableRowUpdate = function(index,pingResult){
     var row = pingTable.find('tr#' + index)
-    if('-' !== pingResult.avg) pingResult.avg = pingResult.avg.toPrecision(5)
-    row.find('.ip').html(pingResult.target)
-    row.find('.min').html(pingResult.min)
-    row.find('.avg').html(pingResult.avg)
-    row.find('.max').html(pingResult.max)
-    row.find('.loss').html(((pingResult.fails / pingResult.total) * 100).toPrecision(3))
-    pulsarBeat(index,pingResult.currentlyFailed)
+    if(pingResult.error){
+      pingTableRowError(index,row,pingResult.error)
+    } else{
+      if('-' !== pingResult.avg) pingResult.avg = pingResult.avg.toPrecision(5)
+      row.find('.ip').attr('colspan',1)
+      row.find('.ip').html(pingResult.target)
+      row.find('.min').html(pingResult.min)
+      row.find('.avg').html(pingResult.avg)
+      row.find('.max').html(pingResult.max)
+      row.find('.loss').html(((pingResult.fails / pingResult.total) * 100).toPrecision(3))
+      pulsarBeat(index,pingResult.currentlyFailed)
+    }
   }
 
   /**
@@ -293,6 +325,7 @@ $(document).ready(function(){
    * @param {object} data
    */
   var pingResult = function(data){
+    if(data.error) return pingTableRowUpdate(data.id,data)
     var min = '-'
     var max = '-'
     var avg = '-'
@@ -395,16 +428,13 @@ $(document).ready(function(){
         if(!results) results = {}
         if(err) return pingTableDnsError(err)
         dnsResults = results
-        var allFailed = true
         for(var i in dnsResults){
           if(dnsResults.hasOwnProperty(i)){
             if(pingTableRowInit(i,dnsResults[i])){
-              allFailed = false
               pingStart(sourceId + ':' + dnsResults[i].handle,i,dnsResults[i].ip[0])
             }
           }
         }
-        if(allFailed) return pingTableDnsError()
       })
     })
   })
