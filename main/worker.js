@@ -10,6 +10,7 @@ var express = require('express')
 var session = require('express-session')
 var http = require('http')
 var worker = require('infant').worker
+var moment = require('moment')
 var mongoose = require('mongoose')
 var net = require('net')
 var promisePipe = require('promisepipe')
@@ -33,6 +34,15 @@ var peerConnections = {}
 P.promisifyAll(server)
 P.promisifyAll(mongoose)
 P.promisifyAll(net)
+
+
+/**
+ * Global template vars
+ * @type {{moment: (moment|exports)}}
+ */
+app.locals = {
+  moment: moment
+}
 
 //setup templating
 app.set('views',__dirname + '/views')
@@ -143,12 +153,16 @@ var peerStreamConnect = function(peer,type,ip,count){
   return new P(function(resolve,reject){
     var client = net.connect(+peer.portStream,peer.host || '127.0.0.1')
     client.on('connect',function(){
-      //compose and send the request
-      var msg = new AmpMessage()
-      msg.push({type: type, ip: ip, count: count || 4})
-      client.end(msg.toBuffer())
-      //hand back the ready to be used socket which should have data incoming
-      resolve(client)
+      //update seen time
+      Peer.findByIdAndUpdate(peer._id,{'metrics.dateSeen': new Date()})
+        .exec().then(function(){
+          //compose and send the request
+          var msg = new AmpMessage()
+          msg.push({type: type, ip: ip, count: count || 4})
+          client.end(msg.toBuffer())
+          //hand back the ready to be used socket which should have data incoming
+          resolve(client)
+        },reject)
     })
     client.on('error',reject)
   })
