@@ -222,17 +222,22 @@ io.on('connection',function(socket){
     //otherwise do lookup
     else{
       groupAction(req.group,function(peer){
-        return peerConnect(peer).then(function(sock){
-          return sock.sendAsync('resolve',{domain: req.host})
-        }).then(function(result){
-          results[peer._id] = {handle: shortId.generate(),ip: result}
-        })
-      }).then(function(){
-        reply({results: results})
-      }).catch(function(err){
-        console.error('resolve failed',err)
-        reply({error: err})
+        return peerConnect(peer)
+          .timeout(config.peer.connectTimeout)
+          .then(function(sock){
+            return sock.sendAsync('resolve',{domain: req.host})
+          })
+          .then(function(result){
+            results[peer._id] = {handle: shortId.generate(),ip: result}
+          })
       })
+        .then(function(){
+          reply({results: results})
+        })
+        .catch(function(err){
+          console.error('resolve failed',err)
+          reply({error: err})
+        })
     }
   })
   socket.on('pingStart',function(req){
@@ -253,6 +258,7 @@ io.on('connection',function(socket){
       return Peer.findById(peerId).exec()
     }).then(function(peer){
       return peerStreamConnect(peer,'ping',req.ip)
+        .timeout(config.peer.connectTimeout)
     }).then(function(sock){
       return promisePipe(sock,parser)
     }).then(function(){

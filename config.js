@@ -50,6 +50,7 @@ config.$load({
   },
   peer: {
     enabled: false,
+    connectTimeout: 10000, //10s
     rest: {
       port: 3004,
       host: null
