@@ -31,14 +31,6 @@ html
         fjs.parentNode.insertBefore(js,fjs)
       }
     #header
-      #title
-        h1
-          a(href="/")
-            img#logo(src='/images/pingms-logo.png', alt='Ping.ms')
-    //main content
-    block content
-    //footer
-    #footer
       .share
         //facebook
         #fb-root
@@ -47,15 +39,24 @@ html
         .fb-like(data-layout='button_count', colorscheme='dark', data-action='like', data-show-faces='false', data-share='true')
         //end facebook
         //twitter
-        a.twitter-share-button(href='//twitter.com/share', data-lang='en') Tweet
-        script.
-          scriptLoader('twitter-wjs','//platform.twitter.com/widgets.js')
+        .twitter-share
+          a.twitter-share-button(href='//twitter.com/share', data-lang='en') Tweet
+          script.
+            scriptLoader('twitter-wjs','//platform.twitter.com/widgets.js')
         //end twitter
         //whos.amung.us
         script(id='_wau5ni').
           var _wau = _wau || []; _wau.push(["small", "wmkiodnoh3et", "5ni"]);
           scriptLoader('wauScript','//widgets.amung.us/small.js')
         //end whos.amung.us
+      #title
+        h1
+          a(href="/")
+            img#logo(src='/images/pingms-logo.png', alt='Ping.ms')
+    //main content
+    block content
+    //footer
+    #footer
       .links
         a(href='/peers') Peer List
         a(href='/news') News
@@ -77,10 +78,10 @@ html
       //end piwik
       //google analytics
       script.
-        (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-        m=s.getElementsByTagName(o)[0];a.defer=true;a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-        })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
-              ga('create', 'UA-52059391-1', 'ping.ms');
+        (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject'] = r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+        ga('create', 'UA-51999698-2', 'auto');
         ga('send', 'pageview');
       //end google analytics

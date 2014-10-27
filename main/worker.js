@@ -90,6 +90,10 @@ app.get('/',function(req,res){
   })
 })
 
+app.get('/error',function(req,res){
+  res.render('error',{error: 'fucked up'})
+})
+
 //setup a list of peers
 app.get('/peers',function(req,res){
   P.try(function(){

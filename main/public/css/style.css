@@ -27,12 +27,12 @@ a:hover {
   text-decoration: none;
   color: #0f0;
 }
-#header, #footer, .site-description, .wrapper, .main, .bots, .news {
+#header, #footer, .site-description, .wrapper, .main, .bots, .news, .our-disqus {
   width: 720px;
   margin: 0 auto;
   overflow: hidden;
 }
-.results, .bots, .news {
+.results, .bots, .news, .our-disqus {
   margin-top: 0;
   padding: 5px;
   background: #fff;
@@ -41,6 +41,9 @@ a:hover {
   -moz-border-radius: 10px;
   -webkit-border-radius: 10px;
 }
+.our-disqus {margin-top: 5px;}
+.results {margin-top: 5px;}
+
 #header {
   margin-bottom: 0;
 }
@@ -49,6 +52,7 @@ a:hover {
 }
 #footer {
   padding-top: 4px;
+  margin-bottom: 10px;
 }
 #footer div {
   padding: 0;
@@ -67,12 +71,13 @@ a:hover {
 #footer .links a {
   margin: 3px;
 }
-#footer .share {
-  padding-right: 16px;
+.share {
+  padding-top: 20px;
   font-size: 11px;
-  float: right!important;
+  float: right;
 }
-#footer .share div {
+.share div {
+  float: left;
   padding-right: 8px;
 }
 #logo {
@@ -179,3 +184,4 @@ select {
 .content h1, .content h2, .content h3, .content h4, .content h5, .content h6 {
   color: #111;
 }
+
