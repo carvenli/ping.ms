@@ -28,7 +28,7 @@ a:hover {
   color: #0f0;
 }
 #header, #footer, .site-description, .wrapper, .main, .bots, .news, .our-disqus {
-  width: 720px;
+  width: 750px;
   margin: 0 auto;
   overflow: hidden;
 }
