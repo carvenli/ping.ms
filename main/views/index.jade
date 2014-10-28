@@ -25,6 +25,11 @@ block content
       | or
       a.example#ip(href="#")= exampleIp
       | (results are in milliseconds)
+  div(style='padding: 10px; text-align: center;')
+    script.
+      var cpmstar_rnd=Math.round(Math.random()*999999);
+      var cpmstar_pid=30088;
+      document.writeln("<SCR"+"IPT language='Javascript' src='//server.cpmstar.com/view.aspx?poolid="+cpmstar_pid+"&script=1&rnd="+cpmstar_rnd+"'></SCR"+"IPT>");
   #pingResultWrapper.wrapper.hidden
     #pingResults.results
       table#pingTable.table.table-bordered
