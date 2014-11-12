@@ -59,15 +59,15 @@
     "promisepipe": "1.0.x",
     "redis": "0.12.x",
     "shortid": "2.1.x",
-    "socket.io": "1.1.x",
+    "socket.io": "1.2.x",
     "ssh2": "0.3.x",
     "stream-stream": "1.2.x",
-    "string": "2.1.x",
+    "string": "2.2.x",
     "through2": "0.6.x",
     "validator": "3.22.x"
   },
   "devDependencies": {
-    "chai": "1.9.x",
+    "chai": "1.10.x",
     "mocha": "2.0.x"
   },
   "scripts": {
