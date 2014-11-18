@@ -31,6 +31,15 @@ html
         fjs.parentNode.insertBefore(js,fjs)
       }
     #header
+      #title
+        p#description
+          | Free Online Ping Test at Ping.ms
+        h1#logo
+          a(href="/") ping.ms
+    //main content
+    block content
+    //footer
+    #footer
       .share
         //facebook
         #fb-root
@@ -49,14 +58,6 @@ html
           var _wau = _wau || []; _wau.push(["small", "wmkiodnoh3et", "5ni"]);
           scriptLoader('wauScript','//widgets.amung.us/small.js')
         //end whos.amung.us
-      #title
-        h1
-          a(href="/")
-            img#logo(src='/images/pingms-logo.png', alt='Ping.ms')
-    //main content
-    block content
-    //footer
-    #footer
       .links
         a(href='/peers') Peer List
         a(href='/news') News
