@@ -18,10 +18,10 @@ var validStatuses = Peer.schema.path('status').enum().enumValues
  * Peer action settings
  * @type {{restart: {name: string, status: string, finalStatusSuccess: string, finalStatusError: string, cmd: string}, stop: {name: string, status: string, finalStatusSuccess: string, finalStatusError: string, cmd: string}, start: {name: string, status: string, finalStatusSuccess: string, finalStatusError: string, cmd: string}}}
  */
-var servicedir = '/service/oose'
+var servicedir = '/service/ping.ms'
 var dtStop = ['svc -d ' + servicedir]
 var dtStart =
-  ['chmod +x /opt/oose/dt/run /opt/oose/dt/log/run','svc -u ' + servicedir]
+  ['chmod a+x /opt/ping.ms/dt/run /opt/ping.ms/dt/log/run','svc -u ' + servicedir]
 var actions = {
   restart: {
     name: 'restart',
@@ -300,7 +300,7 @@ exports.refresh = function(id,next){
                   next()
                 })
               },
-              //get the oose version (if we can)
+              //get the version (if we can)
               function(next){
                 client.commandBuffered(
                   'node -p "JSON.parse(' +
@@ -569,15 +569,15 @@ exports.updateConfig = function(id,next){
                 //rename old config file
                 function(next){
                   sftp.rename(
-                    '/opt/oose/config.local.js',
-                    '/opt/oose/config.local.js.bak',
+                    '/opt/ping.ms/config.local.js',
+                    '/opt/ping.ms/config.local.js.bak',
                     next
                   )
                 },
                 //upload new config file
                 function(next){
                   var stream = sftp.createWriteStream(
-                    '/opt/oose/config.local.js'
+                    '/opt/ping.ms/config.local.js'
                   )
                   stream.on('error',function(err){next(err)})
                   stream.on('finish',function(){next()})
