@@ -187,7 +187,7 @@ var groupAction = function(group,action){
     var promises = []
     var i = (results.length - 1)
     for(; i>=0; i--)
-      promises.push(action(results[i]))
+      promises.push(action(results[i]).timeout(3000))
     return P.all(promises)
   })
 }
