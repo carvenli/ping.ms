@@ -10,22 +10,21 @@
 }
 
 body {
-  background-color: #000;
+  background-color: #efefef;
   color: #444;
 }
 h1, h2, h3, h4, h5 {
   color:#f1f1f1;
 }
 h1 a {
-  color: #444;
+  color: #333;
 }
 a {
   text-decoration: none;
-  color: #034500;
+  color: #428bca;
 }
 a:hover {
-  text-decoration: none;
-  color: #0f0;
+  text-decoration: underline;
 }
 #header, #footer, .site-description, .wrapper, .main, .bots, .news, .our-disqus {
   width: 720px;
@@ -36,7 +35,7 @@ a:hover {
   margin-top: 0;
   padding: 5px;
   background: #fff;
-  border: 3px solid #034500;
+  border: 1px solid #333;
   border-radius: 10px;
   -moz-border-radius: 10px;
   -webkit-border-radius: 10px;
@@ -81,8 +80,10 @@ a:hover {
   padding-right: 8px;
 }
 #logo {
-  width: 320px;
-  height: 77px;
+  line-height: 60px;
+}
+#logo a:hover {
+  text-decoration: none;
 }
 .site-description {
   margin-top: 0;
@@ -91,13 +92,13 @@ a:hover {
 }
 .main {
   padding: 15px;
-  margin: auto;
+  margin: 10px auto;
   border: 1px solid #cbcbcb;
   border-radius: 10px;
   -moz-border-radius: 10px;
   -webkit-border-radius: 10px;
   font-size: 14px;
-  background: #034500;
+  background: #333;
   color: #fff;
 }
 .instructions {
@@ -149,7 +150,7 @@ select {
   width: 1%;
 }
 .label-success {
-  background-color: #3c763d;
+  background-color: #428bca;
   color: #000;
 }
 .table td.location {
@@ -161,7 +162,7 @@ select {
 
 .bots h2 {
   margin-top: 0;
-  color: #3c763d;
+  color: #428bca;
 }
 
 .news p {
@@ -178,10 +179,13 @@ select {
 }
 .example:hover {
   text-decoration: underline;
-  color: #0f0;
+  color: #428bca;
 }
 
 .content h1, .content h2, .content h3, .content h4, .content h5, .content h6 {
   color: #111;
 }
 
+#groupInput {margin: 0 5px;}
+
+#description {float: right; padding: 10px;}
