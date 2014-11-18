@@ -185,9 +185,15 @@ var groupAction = function(group,action){
     return Peer.find(query).sort('location').exec()
   }).then(function(results){
     var promises = []
+    var p
     var i = (results.length - 1)
-    for(; i>=0; i--)
-      promises.push(action(results[i]).timeout(3000))
+    for(; i>=0; i--){
+      p = action(results[i])
+      if(p instanceof P){
+        p.timeout(3000)
+        promises.push(p)
+      }
+    }
     return P.all(promises)
   })
 }
