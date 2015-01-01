@@ -2,4 +2,4 @@
 BASE=`pwd`
 cd /opt/ping.ms
 exec 2>&1
-exec envuidgid node envdir ${BASE}/env node app
+exec envuidgid root envdir ${BASE}/env node app

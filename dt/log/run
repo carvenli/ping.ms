@@ -1,2 +1,2 @@
 #!/bin/sh
-exec setuidgid node multilog s16777215 t /var/log/node/ping.ms
+exec setuidgid root multilog s16777215 t /var/log/node/ping.ms
