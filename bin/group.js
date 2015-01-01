@@ -3,7 +3,6 @@ var Table = require('cli-table')
 var program = require('commander')
 var mongoose = require('mongoose')
 
-var logger = require('../helpers/logger').create('group')
 var Group = require('../models/Group')
 
 var config = require('../config')
@@ -23,7 +22,7 @@ mongoose.connect(config.mongoose.dsn,config.mongoose.options,function(err){
       })
       doc.save(function(err){
         if(err) throw new Error('Failed to create group: ' + err)
-        logger.info('Group created!')
+        console.log('Group created!')
         process.exit()
       })
     })
@@ -38,9 +37,9 @@ mongoose.connect(config.mongoose.dsn,config.mongoose.options,function(err){
         if(err) throw new Error('Could not group to remove ' + err)
         doc.remove(function(err){
           if(err){
-            logger.error('Could not remove group: ' + err)
+            console.log('Error: could not remove group: ' + err)
           } else {
-            logger.info('Group removed successfully!')
+            console.log('Group removed successfully!')
           }
           process.exit()
         })

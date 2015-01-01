@@ -1,12 +1,8 @@
 'use strict';
-var program = require('commander')
-var debug = require('debug')('ping.ms:master')
 var child = require('infant').child
 var parent = require('infant').parent
 
 var lifecycle = new (require('infant').Lifecycle)()
-var Logger = require('./helpers/logger')
-var logger = Logger.create('main')
 
 var config = require('./config')
 
@@ -14,35 +10,18 @@ var admin = parent('./admin')
 var main = parent('./main')
 var peer = parent('./peer')
 
-//parse cli
-program
-  .version(config.version)
-  .option(
-  '-v, --verbose',
-  'Increase logging',
-  function(v,total){
-    return total + 1
-  },
-  0
-)
-  .parse(process.argv)
-
-//set log verbosity
-debug('setting up console logging with level',+program.verbose)
-Logger.consoleFilter.setConfig({level: (+program.verbose || 2) + 4})
-
 //setup lifecycle logging
 lifecycle.on('start',function(item){
-  logger.info('Starting ' + item.title)
+  console.log('Starting ' + item.title)
 })
 lifecycle.on('stop',function(item){
-  logger.info('Stopping ' + item.title)
+  console.log('Stopping ' + item.title)
 })
 lifecycle.on('online',function(){
-  logger.info('Startup complete')
+  console.log('Startup complete')
 })
 lifecycle.on('offline',function(){
-  logger.info('Shutdown complete')
+  console.log('Shutdown complete')
 })
 
 //admin panel
@@ -111,7 +90,7 @@ exports.start = function(done){
  */
 exports.stop = function(done){
   //start the shutdown process
-  logger.info('Beginning shutdown')
+  console.log('Beginning shutdown')
   lifecycle.stop(function(err){
     if(err) throw err
     done()

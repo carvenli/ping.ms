@@ -3,7 +3,6 @@ var Table = require('cli-table')
 var program = require('commander')
 var mongoose = require('mongoose')
 
-var logger = require('../helpers/logger').create('peer')
 var Peer = require('../models/Peer')
 
 var config = require('../config')
@@ -27,7 +26,7 @@ mongoose.connect(config.mongoose.dsn,config.mongoose.options,function(err){
       })
       doc.save(function(err){
         if(err) throw new Error('Failed to create peer: ' + err)
-        logger.info('Peer created!')
+        console.log('Peer created!')
         process.exit()
       })
     })
@@ -60,7 +59,7 @@ mongoose.connect(config.mongoose.dsn,config.mongoose.options,function(err){
           doc.active = ('true' === opts.active || 1 === opts.active)
         doc.save(function(err){
           if(err) throw new Error('Could not save peer: ' + err)
-          logger.info('Peer updated successfully!')
+          console.log('Peer updated successfully!')
           process.exit()
         })
       })
@@ -76,9 +75,9 @@ mongoose.connect(config.mongoose.dsn,config.mongoose.options,function(err){
         if(err) throw new Error('Could not lookup peer to remove ' + err)
         doc.remove(function(err){
           if(err){
-            logger.error('Could not remove peer: ' + err)
+            console.log('Error: could not remove peer: ' + err)
           } else {
-            logger.info('Peer removed successfully!')
+            console.log('Peer removed successfully!')
           }
           process.exit()
         })

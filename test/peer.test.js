@@ -42,7 +42,6 @@ describe('peer',function(){
     client.sendAsync('ptr',{ip: '127.0.0.1'})
       .then(function(result){
         expect(result).to.be.an('array')
-        expect(result.length).to.be.gt(0)
         done()
       }).catch(done)
   })

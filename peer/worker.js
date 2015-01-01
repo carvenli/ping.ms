@@ -2,8 +2,8 @@
 var amp = require('amp')
 var AmpMessage = require('amp-message')
 var axon = require('axon')
-var dns = require('dns')
 var P = require('bluebird')
+var dns = require('dns')
 var worker = require('infant').worker
 var net = require('net')
 var netPing = require('net-ping')
@@ -90,6 +90,9 @@ var restCommands = {
     })
     .then(function(results){
       reply(null,results)
+    })
+    .catch(P.OperationalError,function(){
+      reply(null,[])
     })
     .catch(function(err){
       reply('could not lookup PTR: ' + err)
@@ -333,4 +336,4 @@ exports.stop = function(done){
 
 //worker startup through infant
 if(require.main === module)
-  worker(restServer,'ping.ms:peer:worker',exports.start,exports.stop)
+  worker(streamServer,'ping.ms:peer:worker',exports.start,exports.stop)
